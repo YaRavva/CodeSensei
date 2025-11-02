@@ -27,6 +27,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    // Проверка rate limit
+    const { checkRateLimit, logGeneration } = await import("@/lib/utils/rate-limit");
+    const rateLimitCheck = await checkRateLimit(user.id, "module");
+    if (!rateLimitCheck.canGenerate) {
+      return NextResponse.json(
+        { error: rateLimitCheck.error || "Rate limit exceeded", remaining: rateLimitCheck.remaining },
+        { status: 429 }
+      );
+    }
+
     // Проверка наличия API ключа
     if (!HF_API_KEY) {
       return NextResponse.json(
@@ -417,7 +427,14 @@ ${description ? `- Дополнительные требования: ${descript
       );
     }
 
-    return NextResponse.json({ data: moduleData });
+    // Логируем успешную генерацию
+    await logGeneration(user.id, "module");
+
+    return NextResponse.json({
+      success: true,
+      data: moduleData,
+      remaining: rateLimitCheck.remaining - 1,
+    });
   } catch (error) {
     console.error("Error generating module:", error);
     return NextResponse.json(

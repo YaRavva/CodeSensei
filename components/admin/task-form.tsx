@@ -19,6 +19,7 @@ import type { Database } from "@/types/supabase";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Sparkles, Loader2 } from "lucide-react";
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
   ssr: false,
@@ -51,6 +52,8 @@ export function TaskForm({ lessonId, taskId }: TaskFormProps) {
   const [orderIndex, setOrderIndex] = useState("0");
   const [currentLessonId, setCurrentLessonId] = useState(lessonId || "");
   const [loading, setLoading] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [topic, setTopic] = useState("");
   const router = useRouter();
   const { toast } = useToast();
   const supabase = createClient();
@@ -92,6 +95,85 @@ export function TaskForm({ lessonId, taskId }: TaskFormProps) {
       } catch {
         setTestCases([]);
       }
+    }
+  }
+
+  async function handleGenerateAI() {
+    if (!topic.trim()) {
+      toast({
+        title: "Ошибка",
+        description: "Укажите тему задания для генерации",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setGenerating(true);
+
+    try {
+      // Получаем теорию урока для контекста
+      let lessonTheory = "";
+      if (currentLessonId) {
+        const { data: lessonData } = await supabase
+          .from("lessons")
+          .select("theory_content")
+          .eq("id", currentLessonId)
+          .maybeSingle();
+        lessonTheory = lessonData?.theory_content || "";
+      }
+
+      const response = await fetch("/api/ai/generate-task", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          topic,
+          difficulty,
+          lessonTheory,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Ошибка генерации");
+      }
+
+      if (result.data) {
+        // Заполняем поля формы
+        if (result.data.title) {
+          setTitle(result.data.title);
+        }
+        if (result.data.description) {
+          setDescription(result.data.description);
+        }
+        if (result.data.starter_code) {
+          setStarterCode(result.data.starter_code);
+        }
+        if (result.data.solution_code) {
+          setSolutionCode(result.data.solution_code);
+        }
+        if (result.data.test_cases && Array.isArray(result.data.test_cases)) {
+          setTestCases(result.data.test_cases);
+        }
+        if (result.data.xp_reward) {
+          setXpReward(result.data.xp_reward.toString());
+        }
+
+        toast({
+          title: "Успешно!",
+          description: "Задание сгенерировано. Проверьте и при необходимости отредактируйте поля.",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Ошибка генерации",
+        description: error instanceof Error ? error.message : "Неизвестная ошибка",
+        variant: "destructive",
+      });
+    } finally {
+      setGenerating(false);
     }
   }
 
@@ -166,9 +248,46 @@ export function TaskForm({ lessonId, taskId }: TaskFormProps) {
     <Card>
       <form onSubmit={handleSubmit}>
         <CardHeader>
-          <CardTitle>{taskId ? "Редактировать задание" : "Новое задание"}</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>{taskId ? "Редактировать задание" : "Новое задание"}</CardTitle>
+            {!taskId && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleGenerateAI}
+                disabled={generating || loading}
+              >
+                {generating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ИИ генерирует задание...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Сгенерировать с AI
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="space-y-6">
+          {!taskId && (
+            <div className="space-y-2 p-4 bg-muted rounded-lg">
+              <Label htmlFor="topic">Тема задания для AI-генерации</Label>
+              <Input
+                id="topic"
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
+                placeholder="Например: сумма двух чисел, поиск максимума в списке"
+                disabled={generating || loading}
+              />
+              <p className="text-xs text-muted-foreground">
+                Укажите тему задания, и AI сгенерирует описание, код и тесты
+              </p>
+            </div>
+          )}
           <div className="space-y-2">
             <Label htmlFor="title">Название *</Label>
             <Input

@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { createClient } from "@/lib/supabase/client";
 import { calculateLevelProgress } from "@/lib/utils/levels";
 import { useState } from "react";
+import { AchievementsList } from "@/components/achievements/achievements-list";
 
 export default function ProfilePage() {
   const { user, profile, refreshProfile } = useAuth();
@@ -107,6 +108,8 @@ export default function ProfilePage() {
             </form>
           </CardContent>
         </Card>
+
+        <AchievementsList userId={user.id} />
       </div>
     </div>
   );
