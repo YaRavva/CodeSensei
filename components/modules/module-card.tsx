@@ -36,7 +36,14 @@ export function ModuleCard({ module, status }: ModuleCardProps) {
             <CardDescription>{module.topic}</CardDescription>
           </div>
           <div className="flex flex-col items-end gap-2">
-            <Badge variant={statusInfo.color as "default" | "destructive" | "secondary"}>
+            <Badge
+              variant={statusInfo.color as "default" | "destructive" | "secondary"}
+              className={
+                status === "not_started"
+                  ? "bg-destructive/25 text-destructive border border-destructive/30"
+                  : undefined
+              }
+            >
               <span className="mr-1">{statusInfo.icon}</span>
               {statusInfo.label}
             </Badge>
