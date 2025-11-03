@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { getUserAchievements } from "@/lib/utils/achievements";
 import { AchievementBadge } from "@/components/achievements/achievement-badge";
@@ -9,33 +9,32 @@ import type { Database } from "@/types/supabase";
 
 type Achievement = Database["public"]["Tables"]["achievements"]["Row"];
 
-export function AchievementsList({ userId }: { userId: string }) {
+export function AchievementsList({
+  userId,
+  initialAchievements = [],
+}: {
+  userId: string;
+  initialAchievements?: Array<Achievement & { earned_at: string }>;
+}) {
   const [achievements, setAchievements] = useState<
     Array<Achievement & { earned_at: string }>
-  >([]);
-  const [loading, setLoading] = useState(true);
-  const supabase = createClient();
+  >(initialAchievements);
+  const supabase = useMemo(() => createClient(), []);
 
   useEffect(() => {
     async function loadAchievements() {
-      setLoading(true);
-      const userAchievements = await getUserAchievements(supabase, userId);
-      setAchievements(userAchievements);
-      setLoading(false);
+      try {
+        const userAchievements = await getUserAchievements(supabase, userId);
+        setAchievements(userAchievements);
+      } catch (error) {
+        console.error("Error loading achievements:", error);
+        setAchievements([]);
+      }
     }
-    loadAchievements();
-  }, [userId, supabase]);
-
-  if (loading) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Достижения</CardTitle>
-          <CardDescription>Загрузка...</CardDescription>
-        </CardHeader>
-      </Card>
-    );
-  }
+    if (initialAchievements.length === 0) {
+      loadAchievements();
+    }
+  }, [userId, supabase, initialAchievements.length]);
 
   if (achievements.length === 0) {
     return (

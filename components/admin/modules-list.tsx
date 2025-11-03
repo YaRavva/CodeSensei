@@ -1,22 +1,37 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
+import { Badge, badgeVariants } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/client";
 import type { Database } from "@/types/supabase";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
 
 type Module = Database["public"]["Tables"]["modules"]["Row"];
 
-export function ModulesList() {
-  const [modules, setModules] = useState<Module[]>([]);
+interface ModulesListProps {
+  initialModules?: Module[];
+}
+
+export function ModulesList({ initialModules }: ModulesListProps) {
+  const [modules, setModules] = useState<Module[]>(initialModules ?? []);
   const [loading, setLoading] = useState(true);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deletingTitle, setDeletingTitle] = useState<string>("");
   const supabase = createClient();
+  const { toast } = useToast();
 
   useEffect(() => {
-    loadModules();
+    if (initialModules && initialModules.length >= 0) {
+      setLoading(false);
+    } else {
+      loadModules();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function loadModules() {
@@ -54,16 +69,24 @@ export function ModulesList() {
     }
   }
 
-  async function handleDelete(id: string) {
-    if (!confirm("Вы уверены, что хотите удалить этот модуль?")) return;
+  function requestDelete(id: string, title: string) {
+    setDeletingId(id);
+    setDeletingTitle(title || "модуль");
+    setConfirmOpen(true);
+  }
 
-    const { error } = await supabase.from("modules").update({ is_published: false }).eq("id", id);
-
+  async function handleDeleteConfirmed() {
+    if (!deletingId) return;
+    // Жёсткое удаление из БД
+    const { error } = await supabase.from("modules").delete().eq("id", deletingId);
+    setConfirmOpen(false);
+    setDeletingId(null);
     if (error) {
-      alert(`Ошибка: ${error.message}`);
+      console.error("Delete error:", error);
+      toast({ title: "Ошибка удаления", description: error.message, variant: "destructive" });
       return;
     }
-
+    toast({ title: "Модуль удалён", description: `«${deletingTitle}» успешно удалён из базы` });
     await loadModules();
   }
 
@@ -86,37 +109,51 @@ export function ModulesList() {
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       {modules.map((module) => (
-        <Card key={module.id}>
+        <Card key={module.id} className="flex h-full flex-col">
           <CardHeader>
             <div className="flex items-start justify-between">
               <div>
                 <CardTitle>{module.title}</CardTitle>
                 <CardDescription>{module.topic}</CardDescription>
               </div>
-              <Badge variant={module.is_published ? "default" : "secondary"}>
+              <div className={badgeVariants({ variant: module.is_published ? "default" : "secondary" })}>
                 {module.is_published ? "Опубликован" : "Черновик"}
-              </Badge>
+              </div>
             </div>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="flex flex-1 flex-col justify-between space-y-4">
             <div className="text-sm text-muted-foreground">
               <p>Уровень сложности: {module.level}</p>
               <p>Порядок: {module.order_index}</p>
             </div>
-            <div className="flex gap-2">
+            <div className="mt-auto flex gap-2">
               <Button variant="outline" size="sm" asChild>
                 <Link href={`/admin/modules/${module.id}/edit`}>Редактировать</Link>
               </Button>
               <Button variant="outline" size="sm" asChild>
                 <Link href={`/admin/modules/${module.id}/lessons`}>Уроки</Link>
               </Button>
-              <Button variant="destructive" size="sm" onClick={() => handleDelete(module.id)}>
+            <Button type="button" variant="destructive" size="sm" onClick={() => requestDelete(module.id, module.title)}>
                 Удалить
               </Button>
             </div>
           </CardContent>
         </Card>
       ))}
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Удалить модуль?</DialogTitle>
+            <DialogDescription>
+              Вы действительно хотите удалить «{deletingTitle}»? Это действие нельзя отменить.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setConfirmOpen(false)}>Отмена</Button>
+            <Button type="button" variant="destructive" onClick={handleDeleteConfirmed}>Удалить</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

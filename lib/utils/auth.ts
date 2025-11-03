@@ -14,7 +14,14 @@ export async function requireAuth() {
     redirect("/login");
   }
 
-  return { user, supabase };
+  // Загружаем профиль пользователя
+  const { data: profile } = await supabase
+    .from("users")
+    .select("*")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  return { user, profile: profile ?? null, supabase };
 }
 
 /**
@@ -55,9 +62,9 @@ export async function requireAdmin() {
     console.log("Role from direct query:", userRole);
   }
 
-  // Проверяем роль
-  if (!userRole || (userRole !== "admin" && userRole !== "teacher")) {
-    console.error("Access denied. User role:", userRole);
+  // Проверяем роль: доступ только админам
+  if (!userRole || userRole !== "admin") {
+    console.error("Access denied. Admins only. User role:", userRole);
     redirect("/");
   }
 

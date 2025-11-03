@@ -40,7 +40,7 @@ export function ModuleCard({ module, status }: ModuleCardProps) {
               variant={statusInfo.color as "default" | "destructive" | "secondary"}
               className={
                 status === "not_started"
-                  ? "bg-destructive/25 text-destructive border border-destructive/30"
+                  ? "bg-destructive/10 text-destructive border border-destructive/30"
                   : undefined
               }
             >

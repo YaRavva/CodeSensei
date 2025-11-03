@@ -8,6 +8,9 @@ import { Progress } from "@/components/ui/progress";
 import { AchievementsList } from "@/components/achievements/achievements-list";
 
 type UserProfile = Database["public"]["Tables"]["users"]["Row"];
+type UserAchievementView = Database["public"]["Tables"]["achievements"]["Row"] & {
+  earned_at: string;
+};
 
 interface DashboardStats {
   totalXp: number;
@@ -21,9 +24,10 @@ interface DashboardStats {
 interface DashboardContentProps {
   profile: UserProfile | null;
   stats: DashboardStats;
+  achievements?: UserAchievementView[];
 }
 
-export function DashboardContent({ profile, stats }: DashboardContentProps) {
+export function DashboardContent({ profile, stats, achievements }: DashboardContentProps) {
   const levelProgress = calculateLevelProgress(stats.totalXp);
 
   return (
@@ -107,7 +111,7 @@ export function DashboardContent({ profile, stats }: DashboardContentProps) {
         </CardContent>
       </Card>
 
-      {/* Дополнительная статистика */}
+      {/* Дополнительная статистика и достижения */}
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
@@ -138,10 +142,10 @@ export function DashboardContent({ profile, stats }: DashboardContentProps) {
             )}
           </CardContent>
         </Card>
+        {profile && (
+          <AchievementsList userId={profile.id} initialAchievements={achievements ?? []} />
+        )}
       </div>
-
-      {/* Достижения */}
-      {profile && <AchievementsList userId={profile.id} />}
     </div>
   );
 }

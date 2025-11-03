@@ -109,104 +109,35 @@ ${description ? `- Дополнительные требования: ${descript
 - Примеры должны быть понятными для школьников 7-9 классов
 - Возвращай ТОЛЬКО валидный JSON, без markdown разметки`;
 
-    // Запрос к Hugging Face Inference Providers API (новый формат с 2 ноября 2025)
-    // Используем формат из примера: baseURL с провайдером nebius
-    // Пробуем несколько вариантов модели
-    const baseUrls = [
-      "https://router.huggingface.co/nebius/v1/chat/completions", // Chat completions с nebius
-      "https://router.huggingface.co/nebius/v1/completions", // Completions с nebius
-      "https://router.huggingface.co/v1/chat/completions", // Без провайдера
-    ];
-    
-    const modelsToTry = [
-      "deepseek-ai/DeepSeek-Coder-V2-Lite-Instruct",
-      "deepseek-ai/DeepSeek-Coder-V2-Lite-Instruct:nebius",
-      "openai/gpt-oss-20b", // Из примера пользователя
-    ];
-    
-    let lastError: string = "";
-    let data: any = null;
-    
-    for (const baseUrl of baseUrls) {
-      for (const modelName of modelsToTry) {
-        try {
-          // Формируем запрос в формате OpenAI Chat Completions
-          const requestBody = {
-            model: modelName,
-            messages: [
-              {
-                role: "user",
-                content: prompt,
-              },
-            ],
-          max_tokens: 4000,
-          temperature: 0.7,
-          };
+    // Единый вызов только к openai/gpt-oss-20b через общий chat completions endpoint
+    const response = await fetch("https://router.huggingface.co/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${HF_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "openai/gpt-oss-20b",
+        messages: [
+          { role: "user", content: prompt },
+        ],
+        max_tokens: 4000,
+        temperature: 0.7,
+      }),
+    });
 
-          const response = await fetch(baseUrl, {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${HF_API_KEY}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(requestBody),
-          });
-
-          if (response.ok) {
-            data = await response.json();
-            console.log(`Success with baseUrl: ${baseUrl}, model: ${modelName}`);
-            break; // Успешно получили ответ
-          } else {
-            const errorText = await response.text();
-            lastError = errorText;
-            console.error(`Failed with baseUrl ${baseUrl}, model ${modelName}:`, {
-              status: response.status,
-              statusText: response.statusText,
-              error: errorText.substring(0, 200),
-            });
-            
-            // Если это не 404, возможно проблема с авторизацией
-            if (response.status !== 404) {
-              return NextResponse.json(
-                {
-                  error: `Hugging Face API error: ${response.statusText}`,
-                  details: errorText.substring(0, 500),
-                },
-                { status: response.status }
-              );
-            }
-            // Продолжаем пробовать следующий вариант если 404
-          }
-        } catch (error) {
-          console.error(`Error with baseUrl ${baseUrl}, model ${modelName}:`, error);
-          lastError = error instanceof Error ? error.message : String(error);
-          // Продолжаем пробовать следующий вариант
-        }
-      }
-      
-      // Если нашли рабочий вариант, выходим из цикла baseUrls
-      if (data) break;
-    }
-
-    // Если ни один вариант не сработал
-    if (!data) {
+    if (!response.ok) {
+      const errorText = await response.text();
       return NextResponse.json(
         {
-          error: `Hugging Face API error: All endpoints and models failed (404 Not Found)`,
-          details: `Попробованы baseURLs: ${baseUrls.join(", ")} и модели: ${modelsToTry.join(", ")}. 
-Возможные причины:
-1. Модель недоступна через Inference Providers API
-2. Требуется другой провайдер или endpoint
-3. Проверьте доступность модели на https://huggingface.co/models
-
-Попробуйте:
-- Проверить страницу модели на Hugging Face для правильного имени
-- Использовать другую модель, доступную через Inference Providers`,
-          lastError: lastError.substring(0, 500),
+          error: `Hugging Face API error: ${response.status} ${response.statusText}`,
+          details: errorText.substring(0, 1000),
         },
-        { status: 500 }
+        { status: response.status }
       );
     }
+
+    const data = await response.json();
 
     // Извлекаем текст из ответа OpenAI-совместимого формата
     let generatedText = "";
@@ -237,6 +168,11 @@ ${description ? `- Дополнительные требования: ${descript
       if (jsonMatch) {
         jsonText = jsonMatch[0];
       }
+
+      // Быстрые правки типичных артефактов (например: ,"{ -> ,{)
+      jsonText = jsonText.replace(/,\s*"\{/g, ",{");
+      // и }" , -> },
+      jsonText = jsonText.replace(/\}\s*"\s*,/g, "},");
 
       // Пытаемся починить незавершенный JSON
       let fixedJson = jsonText;
@@ -415,16 +351,11 @@ ${description ? `- Дополнительные требования: ${descript
       console.error("Generated text length:", generatedText.length);
       console.error("Generated text (first 2000 chars):", generatedText.substring(0, 2000));
       console.error("Generated text (last 500 chars):", generatedText.substring(Math.max(0, generatedText.length - 500)));
-      
-      return NextResponse.json(
-        {
-          error: "Failed to parse AI response as JSON",
-          details: parseError instanceof Error ? parseError.message : String(parseError),
-          rawResponse: generatedText.substring(0, 2000),
-          responseLength: generatedText.length,
-        },
-        { status: 500 }
-      );
+      // Мягкий фолбэк: возвращаем текст как описание, чтобы UI мог продолжить работу
+      moduleData = {
+        description: generatedText,
+        theory: null,
+      } as any;
     }
 
     // Логируем успешную генерацию

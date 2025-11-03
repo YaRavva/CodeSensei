@@ -11,13 +11,6 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
@@ -28,7 +21,6 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
-  const [role, setRole] = useState<"student" | "teacher">("student");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
@@ -63,7 +55,7 @@ export default function RegisterPage() {
         id: authData.user.id,
         email: authData.user.email ?? "",
         display_name: displayName || null,
-        role,
+        role: "student",
       });
 
       if (profileError) {
@@ -119,27 +111,15 @@ export default function RegisterPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="displayName">Имя</Label>
+              <Label htmlFor="displayName">Фамилия Имя</Label>
               <Input
                 id="displayName"
                 type="text"
-                placeholder="Ваше имя"
+                placeholder="Иванов Иван"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 disabled={loading}
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="role">Роль</Label>
-              <Select value={role} onValueChange={(v) => setRole(v as "student" | "teacher")}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="student">Ученик</SelectItem>
-                  <SelectItem value="teacher">Учитель</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-4">

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import {
   Select,
   SelectContent,
@@ -24,9 +25,10 @@ import remarkGfm from "remark-gfm";
 
 interface ModuleFormProps {
   moduleId?: string;
+  initialData?: Database["public"]["Tables"]["modules"]["Row"];
 }
 
-export function ModuleForm({ moduleId }: ModuleFormProps) {
+export function ModuleForm({ moduleId, initialData }: ModuleFormProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [topic, setTopic] = useState("");
@@ -40,10 +42,20 @@ export function ModuleForm({ moduleId }: ModuleFormProps) {
   const supabase = createClient();
 
   useEffect(() => {
+    if (initialData) {
+      setTitle(initialData.title || "");
+      setDescription(initialData.description || "");
+      setTopic(initialData.topic || "");
+      setLevel(String(initialData.level ?? "1"));
+      setOrderIndex(String(initialData.order_index ?? "0"));
+      setIsPublished(Boolean(initialData.is_published));
+      setLoading(false);
+      return;
+    }
     if (moduleId) {
       loadModule();
     }
-  }, [moduleId]);
+  }, [moduleId, initialData]);
 
   async function loadModule() {
     if (!moduleId) return;
@@ -170,7 +182,7 @@ export function ModuleForm({ moduleId }: ModuleFormProps) {
 
         toast({
           title: "Модуль сгенерирован",
-          description: "Поля заполнены автоматически. Проверьте и отредактируйте при необходимости.",
+          description: "Поля заполнены автоматически. Проверьте и нажмите Сохранить.",
         });
       }
     } catch (error) {
@@ -186,11 +198,27 @@ export function ModuleForm({ moduleId }: ModuleFormProps) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    console.log("ModuleForm: handleSubmit start", { title, topic, level, orderIndex, isPublished });
     setLoading(true);
+
+    // Явная валидация, чтобы не блокировала скрытая секция аккордеона
+    if (!title.trim()) {
+      setLoading(false);
+      toast({ title: "Название обязательно", description: "Заполните поле 'Название' перед сохранением", variant: "destructive" });
+      return;
+    }
+    if (!topic.trim()) {
+      setLoading(false);
+      toast({ title: "Тема обязательна", description: "Заполните поле 'Тема' перед сохранением", variant: "destructive" });
+      return;
+    }
+
+    // Санитизация описания на случай скрытых управляющих символов из AI
+    const sanitizedDescription = (description || "").replace(/[\u0000\u2028\u2029]/g, "");
 
     const moduleData = {
       title,
-      description: description || null,
+      description: sanitizedDescription || null,
       topic,
       level: Number.parseInt(level, 10),
       order_index: Number.parseInt(orderIndex, 10),
@@ -198,6 +226,7 @@ export function ModuleForm({ moduleId }: ModuleFormProps) {
     };
 
     try {
+      console.log("ModuleForm: before save, moduleId=", moduleId);
       if (moduleId) {
         const { data, error } = await supabase.from("modules").update(moduleData).eq("id", moduleId).select().single();
 
@@ -241,6 +270,7 @@ export function ModuleForm({ moduleId }: ModuleFormProps) {
           throw new Error(`Недостаточно прав для создания модуля. Роль: ${userRole || "не определена"}`);
         }
 
+        console.log("ModuleForm: inserting module...");
         const { data: insertedData, error } = await supabase
           .from("modules")
           .insert({
@@ -252,12 +282,16 @@ export function ModuleForm({ moduleId }: ModuleFormProps) {
 
         if (error) {
           console.error("Insert error:", error);
-          console.error("Error details:", {
-            code: error.code,
-            message: error.message,
-            details: error.details,
-            hint: error.hint,
-          });
+          // Подсказка для случая несоответствия RLS (например, учитель не имеет прав)
+          if ((error as any)?.code === "42501" || /policy|rls|permission/i.test(String((error as any)?.message))) {
+            throw new Error("Недостаточно прав для сохранения модуля. Доступ разрешён только админу.");
+          }
+          if ((error as any)?.code === "23503") {
+            throw new Error("Нарушение внешнего ключа: профиль пользователя отсутствует. Повторите сохранение.");
+          }
+          if ((error as any)?.code) {
+            throw new Error(`${(error as any).code}: ${(error as any).message}`);
+          }
           throw error;
         }
 
@@ -300,6 +334,7 @@ export function ModuleForm({ moduleId }: ModuleFormProps) {
           <CardTitle>{moduleId ? "Редактировать модуль" : "Новый модуль"}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Поле Название вынесено наружу */}
           <div className="space-y-2">
             <Label htmlFor="title">Название *</Label>
             <Input
@@ -310,27 +345,42 @@ export function ModuleForm({ moduleId }: ModuleFormProps) {
               disabled={loading}
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="description">Описание</Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              disabled={loading}
-              className="min-h-[500px] font-mono text-sm"
-              placeholder="Введите описание в формате Markdown..."
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Предпросмотр</Label>
-            <div className="border rounded-md p-4 h-[500px] overflow-auto bg-card">
-              <div className="prose prose-sm dark:prose-invert max-w-none">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                  {description || "*Введите текст выше для предпросмотра*"}
-                </ReactMarkdown>
-              </div>
-            </div>
-          </div>
+
+          <Accordion type="multiple" defaultValue={["description", "preview"]} className="w-full">
+
+            <AccordionItem value="description">
+              <AccordionTrigger>Описание</AccordionTrigger>
+              <AccordionContent>
+                <div className="space-y-2">
+                  <Label htmlFor="description">Описание</Label>
+                  <Textarea
+                    id="description"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    disabled={loading}
+                    className="min-h-[500px] font-ubuntu-mono text-sm"
+                    placeholder="Введите описание в формате Markdown..."
+                  />
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="preview">
+              <AccordionTrigger>Предпросмотр</AccordionTrigger>
+              <AccordionContent>
+                <div className="space-y-2">
+                  <Label>Предпросмотр</Label>
+                  <div className="border rounded-md p-4 h-[500px] overflow-auto bg-card">
+                    <div className="prose prose-sm dark:prose-invert max-w-none">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {description || "*Введите текст выше для предпросмотра*"}
+                      </ReactMarkdown>
+                    </div>
+                  </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label htmlFor="topic">Тема *</Label>
@@ -409,7 +459,7 @@ export function ModuleForm({ moduleId }: ModuleFormProps) {
           <Button type="button" variant="outline" onClick={() => router.back()} disabled={loading}>
             Отмена
           </Button>
-          <Button type="submit" disabled={loading || generating}>
+          <Button type="submit" disabled={loading}>
             {loading ? "Сохранение..." : moduleId ? "Сохранить" : "Создать"}
           </Button>
         </CardFooter>

@@ -121,88 +121,73 @@ ${lessonTheory ? `- Теория урока (для контекста):\n${less
 
 **Важно:** Возвращай ТОЛЬКО валидный JSON, без markdown разметки`;
 
-    // Запрос к Hugging Face Inference Providers API
-    const modelConfigs = [
-      {
-        baseURL: "https://router.huggingface.co/nebius/v1/chat/completions",
-        model: "openai/gpt-oss-20b",
+    // Единый вызов только к openai/gpt-oss-20b через общий chat completions endpoint
+    const response = await fetch("https://router.huggingface.co/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${HF_API_KEY}`,
       },
-    ];
-
-    let lastError: Error | null = null;
-
-    for (const config of modelConfigs) {
-      try {
-        const response = await fetch(config.baseURL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${HF_API_KEY}`,
+      body: JSON.stringify({
+        model: "openai/gpt-oss-20b",
+        messages: [
+          {
+            role: "user",
+            content: prompt,
           },
-          body: JSON.stringify({
-            model: config.model,
-            messages: [
-              {
-                role: "user",
-                content: prompt,
-              },
-            ],
-            temperature: 0.7,
-            max_tokens: 4000,
-          }),
-        });
+        ],
+        temperature: 0.7,
+        max_tokens: 4000,
+      }),
+    });
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(
-            `Hugging Face API error: ${JSON.stringify({ status: response.status, statusText: response.statusText, error: errorText })}`
-          );
-        }
-
-        const data = await response.json();
-        const generatedText = data.choices?.[0]?.message?.content || "";
-
-        if (!generatedText) {
-          throw new Error("Empty response from AI");
-        }
-
-        // Извлекаем JSON из ответа
-        let jsonText = generatedText.trim();
-
-        // Удаляем markdown код блоки, если есть
-        if (jsonText.startsWith("```json")) {
-          jsonText = jsonText.replace(/^```json\s*/, "").replace(/\s*```$/, "");
-        } else if (jsonText.startsWith("```")) {
-          jsonText = jsonText.replace(/^```\s*/, "").replace(/\s*```$/, "");
-        }
-
-        // Попытка исправить неполный JSON
-        let taskData: any = null;
-        try {
-          taskData = JSON.parse(jsonText);
-        } catch (parseError) {
-          console.error("JSON parse error:", parseError);
-          console.error("Generated text:", generatedText);
-          // Попытка исправить JSON
-          taskData = tryFixJson(jsonText);
-        }
-
-        // Логируем успешную генерацию
-        await logGeneration(user.id, "task");
-
-        return NextResponse.json({
-          success: true,
-          data: taskData,
-          remaining: rateLimitCheck.remaining - 1,
-        });
-      } catch (error) {
-        lastError = error instanceof Error ? error : new Error(String(error));
-        console.error(`Error with ${config.model}:`, lastError);
-        continue;
-      }
+    if (!response.ok) {
+      const errorText = await response.text();
+      return NextResponse.json(
+        {
+          error: `Hugging Face API error: ${response.status} ${response.statusText}`,
+          details: errorText.substring(0, 1000),
+        },
+        { status: response.status }
+      );
     }
 
-    throw lastError || new Error("All models failed");
+    const data = await response.json();
+    const generatedText = data.choices?.[0]?.message?.content || "";
+
+    if (!generatedText) {
+      return NextResponse.json({ error: "Empty response from AI" }, { status: 500 });
+    }
+
+    // Извлекаем JSON из ответа
+    let jsonText = generatedText.trim();
+
+    // Удаляем markdown код блоки, если есть
+    if (jsonText.startsWith("```json")) {
+      jsonText = jsonText.replace(/^```json\s*/, "").replace(/\s*```$/, "");
+    } else if (jsonText.startsWith("```")) {
+      jsonText = jsonText.replace(/^```\s*/, "").replace(/\s*```$/, "");
+    }
+
+    // Попытка исправить неполный JSON
+    let taskData: any = null;
+    try {
+      taskData = JSON.parse(jsonText);
+    } catch (parseError) {
+      console.error("JSON parse error:", parseError);
+      console.error("Generated text:", generatedText);
+      // Попытка исправить JSON
+      taskData = tryFixJson(jsonText);
+    }
+
+    // Логируем успешную генерацию
+    await logGeneration(user.id, "task");
+
+    return NextResponse.json({
+      success: true,
+      data: taskData,
+      remaining: rateLimitCheck.remaining - 1,
+    });
   } catch (error) {
     console.error("Generate task error:", error);
     return NextResponse.json(

@@ -26,21 +26,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
-    // Получаем текущего пользователя
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    // Получаем текущую сессию и пользователя
+    supabase.auth.getSession().then(({ data }) => {
       if (!mounted) return;
-      setUser(user);
-      if (user) {
-        loadProfile(user.id);
+      const currentUser = data.session?.user ?? null;
+      setUser(currentUser);
+      if (currentUser) {
+        loadProfile(currentUser.id);
       } else {
         setLoading(false);
       }
     });
 
     // Слушаем изменения аутентификации
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (!mounted) return;
       setUser(session?.user ?? null);
       if (session?.user) {
@@ -53,7 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       mounted = false;
-      subscription.unsubscribe();
+      listener.subscription.unsubscribe();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -70,7 +69,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      setProfile(data ?? null);
+      if (!data) {
+        // Создаем запись профиля при первом входе
+        const authUser = (await supabase.auth.getUser()).data.user;
+        const roleFromAuth = (
+          (authUser?.app_metadata as any)?.user_role ||
+          (authUser?.app_metadata as any)?.role ||
+          (authUser?.user_metadata as any)?.role ||
+          "student"
+        ) as string;
+        const email = authUser?.email ?? null;
+        const displayName =
+          (authUser?.user_metadata as any)?.full_name ||
+          (authUser?.user_metadata as any)?.name ||
+          null;
+
+        const { data: inserted, error: insertError } = await supabase
+          .from("users")
+          .insert({ id: userId, email, role: roleFromAuth, display_name: displayName })
+          .select("*")
+          .maybeSingle();
+
+        if (insertError) {
+          console.error("Error creating user profile:", insertError);
+          setProfile(null);
+        } else {
+          setProfile(inserted ?? null);
+        }
+      } else {
+        setProfile(data);
+      }
     } catch (error: any) {
       // Игнорируем ошибки infinite recursion
       if (error?.code !== "42P17") {
@@ -88,9 +116,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function signOut() {
+    try {
+      // Сначала очищаем серверные httpOnly куки
+      await fetch("/api/auth/signout", { method: "POST", credentials: "include" });
+    } catch (e) {
+      // игнорируем сетевые ошибки
+    }
+    // Затем чистим клиентские токены на всякий случай
     await supabase.auth.signOut();
     setUser(null);
     setProfile(null);
+    if (typeof window !== "undefined") {
+      window.location.replace("/");
+    }
   }
 
   return (

@@ -5,7 +5,11 @@ import { requireAdmin } from "@/lib/utils/auth";
 import Link from "next/link";
 
 export default async function AdminModulesPage() {
-  await requireAdmin();
+  const { supabase } = await requireAdmin();
+  const { data: modules } = await supabase
+    .from("modules")
+    .select("*")
+    .order("order_index", { ascending: true });
 
   return (
     <AdminLayout>
@@ -15,7 +19,7 @@ export default async function AdminModulesPage() {
           <Link href="/admin/modules/new">Создать модуль</Link>
         </Button>
       </div>
-      <ModulesList />
+      <ModulesList initialModules={modules ?? []} />
     </AdminLayout>
   );
 }

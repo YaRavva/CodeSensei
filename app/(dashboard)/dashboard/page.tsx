@@ -1,6 +1,7 @@
 import { requireAuth } from "@/lib/utils/auth";
 import { createClient } from "@/lib/supabase/server";
 import { DashboardContent } from "@/components/dashboard/dashboard-content";
+import { getUserAchievements } from "@/lib/utils/achievements";
 
 export default async function DashboardPage() {
   const { user, profile, supabase } = await requireAuth();
@@ -28,6 +29,8 @@ export default async function DashboardPage() {
         )
       : 0;
 
+  const achievements = await getUserAchievements(supabase, user.id);
+
   return (
     <DashboardContent
       profile={profile}
@@ -39,6 +42,7 @@ export default async function DashboardPage() {
         totalAttempts,
         avgExecutionTime,
       }}
+      achievements={achievements}
     />
   );
 }

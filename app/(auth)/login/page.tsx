@@ -28,29 +28,71 @@ export default function LoginPage() {
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
+    let navigated = false;
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+      if (error) {
+        console.error("signIn error", error);
+        toast({ title: "Ошибка входа", description: error.message, variant: "destructive" });
+        return;
+      }
 
-    if (error) {
+      // Двойная проверка сессии сразу после входа
+      const { data: sessionData, error: sessionErr } = await supabase.auth.getSession();
+      if (sessionErr) {
+        console.error("getSession error", sessionErr);
+      }
+
+      const activeSession = sessionData?.session ?? data?.session ?? null;
+
+      if (activeSession) {
+        toast({
+          title: "Вход выполнен",
+          description: "Добро пожаловать в CodeSensei!",
+        });
+        // Синхронизируем сессию в httpOnly куки через API, чтобы SSR-страницы увидели пользователя
+        try {
+          await fetch("/api/auth/set-session", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+              access_token: activeSession.access_token,
+              refresh_token: activeSession.refresh_token,
+            }),
+          });
+        } catch (syncErr) {
+          console.error("Session sync error", syncErr);
+        }
+
+        router.replace("/modules");
+        router.refresh();
+        navigated = true;
+        return;
+      }
+
+      if (data?.user && !activeSession) {
+        toast({
+          title: "Требуется подтверждение email",
+          description:
+            "Мы создали ваш аккаунт, но вход завершится после подтверждения email. Проверьте почту.",
+        });
+        return;
+      }
+
+      toast({ title: "Не удалось войти", description: "Проверьте данные и попробуйте снова" });
+    } catch (err: any) {
+      console.error("Unexpected login error", err);
       toast({
-        title: "Ошибка входа",
-        description: error.message,
+        title: "Неожиданная ошибка",
+        description: err?.message || "Попробуйте снова чуть позже",
         variant: "destructive",
       });
-      setLoading(false);
-      return;
-    }
-
-    if (data.user) {
-      toast({
-        title: "Успешный вход",
-        description: "Добро пожаловать!",
-      });
-      router.push("/dashboard");
-      router.refresh();
+    } finally {
+      if (!navigated) {
+        setLoading(false);
+      }
     }
   }
 

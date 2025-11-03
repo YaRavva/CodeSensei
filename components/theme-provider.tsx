@@ -31,15 +31,19 @@ export function ThemeProvider({
   storageKey = "codesensei-theme",
   ...props
 }: ThemeProviderProps) {
-  const [theme, setThemeState] = React.useState<Theme>(() => {
+  const [theme, setThemeState] = React.useState<Theme>(defaultTheme);
+  const [mounted, setMounted] = React.useState(false);
+
+  // Загружаем тему из localStorage только после монтирования на клиенте
+  React.useEffect(() => {
+    setMounted(true);
     if (typeof window !== "undefined") {
-      // Проверяем, есть ли сохраненная тема
       const saved = localStorage.getItem(storageKey) as Theme;
-      // Если сохранена тема "system" или ничего не сохранено, используем "system"
-      return saved === "system" || !saved ? defaultTheme : saved;
+      if (saved && (saved === "dark" || saved === "light" || saved === "system")) {
+        setThemeState(saved);
+      }
     }
-    return defaultTheme;
-  });
+  }, [storageKey]);
 
   const setTheme = React.useCallback(
     (newTheme: Theme) => {
@@ -52,6 +56,8 @@ export function ThemeProvider({
   );
 
   React.useEffect(() => {
+    if (!mounted) return;
+    
     const root = window.document.documentElement;
     root.classList.remove("light", "dark");
     
@@ -63,11 +69,11 @@ export function ThemeProvider({
     } else {
       root.classList.add(theme);
     }
-  }, [theme]);
+  }, [theme, mounted]);
 
   // Слушаем изменения системной темы
   React.useEffect(() => {
-    if (theme !== "system") return;
+    if (!mounted || theme !== "system") return;
 
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
     const handleChange = (e: MediaQueryListEvent) => {
@@ -78,11 +84,11 @@ export function ThemeProvider({
 
     mediaQuery.addEventListener("change", handleChange);
     return () => mediaQuery.removeEventListener("change", handleChange);
-  }, [theme]);
+  }, [theme, mounted]);
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme }}>
-      <div {...props} data-theme={theme}>
+      <div {...props} data-theme={mounted ? theme : defaultTheme} suppressHydrationWarning>
         {children}
       </div>
     </ThemeContext.Provider>

@@ -56,10 +56,18 @@ export async function logGeneration(
 ): Promise<void> {
   const supabase = await createClient();
 
-  const { error } = await supabase.from("ai_generation_logs").insert({
-    user_id: userId,
-    generation_type: generationType,
-  });
+  const { error } = await supabase
+    .from("ai_generation_logs")
+    .insert(
+      {
+        user_id: userId,
+        generation_type: generationType,
+      },
+      {
+        onConflict: "user_id,generation_type,created_date",
+        ignoreDuplicates: true,
+      }
+    );
 
   if (error) {
     console.error("Error logging generation:", error);

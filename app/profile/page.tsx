@@ -28,10 +28,12 @@ export default function ProfilePage() {
     );
   }
 
-  const levelProgress = calculateLevelProgress(profile.total_xp ?? 0);
+  // Используем current_level из БД или рассчитываем, если его нет
+  const currentLevel = profile.current_level ?? calculateLevelProgress(profile.total_xp ?? 0).currentLevel;
 
   async function handleUpdate(e: React.FormEvent) {
     e.preventDefault();
+    if (!user) return;
     setLoading(true);
 
     const { error } = await supabase
@@ -78,7 +80,7 @@ export default function ProfilePage() {
               </Avatar>
               <div>
                 <h2 className="text-2xl font-bold">{profile.display_name || profile.email}</h2>
-                <Badge variant="secondary">Уровень {levelProgress.currentLevel}</Badge>
+                <Badge variant="secondary">Уровень {currentLevel}</Badge>
                 <p className="text-sm text-muted-foreground mt-1">{profile.total_xp ?? 0} XP</p>
               </div>
             </div>
