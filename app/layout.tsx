@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/components/auth/auth-provider";
-import { Footer } from "@/components/footer";
 import { Layout } from "@/components/layout";
 import { Navigation } from "@/components/navigation";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -25,7 +24,6 @@ export default function RootLayout({
             <Layout>
               <Navigation />
               <main className="flex-1">{children}</main>
-              <Footer />
             </Layout>
             <Toaster />
           </AuthProvider>
