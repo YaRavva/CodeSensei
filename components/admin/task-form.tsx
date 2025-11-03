@@ -28,7 +28,7 @@ const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
 
 
 interface TaskFormProps {
-  lessonId?: string;
+  moduleId?: string;
   taskId?: string;
 }
 
@@ -41,7 +41,7 @@ type TestCase = {
   is_visible: boolean;
 };
 
-export function TaskForm({ lessonId, taskId }: TaskFormProps) {
+export function TaskForm({ moduleId, taskId }: TaskFormProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [starterCode, setStarterCode] = useState("");
@@ -50,10 +50,14 @@ export function TaskForm({ lessonId, taskId }: TaskFormProps) {
   const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">("easy");
   const [xpReward, setXpReward] = useState("10");
   const [orderIndex, setOrderIndex] = useState("0");
-  const [currentLessonId, setCurrentLessonId] = useState(lessonId || "");
+  const [currentModuleId, setCurrentModuleId] = useState(moduleId || "");
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [topic, setTopic] = useState("");
+  const [rubric, setRubric] = useState<string>("\n[\n  { \"name\": \"Корректность\", \"weight\": 0.6, \"criteria\": \"Проходит базовые и граничные тесты\" },\n  { \"name\": \"Крайние случаи\", \"weight\": 0.2, \"criteria\": \"Учитывает пустые/некорректные входы, большие значения\" },\n  { \"name\": \"Стиль и читаемость\", \"weight\": 0.2, \"criteria\": \"Понятные имена, простота, отсутствие лишней сложности\" }\n]");
+  const [evalPrompt, setEvalPrompt] = useState<string>(
+    "Ты проверяешь решение ученика. Дай краткий отзыв (3-5 предложений) и числовую оценку 0..1 согласно rubric. Верни JSON {\\\"score\\\": number, \\\"feedback\\\": string}."
+  );
   const router = useRouter();
   const { toast } = useToast();
   const supabase = createClient();
@@ -86,7 +90,7 @@ export function TaskForm({ lessonId, taskId }: TaskFormProps) {
       setDifficulty(data.difficulty);
       setXpReward(data.xp_reward?.toString() || "10");
       setOrderIndex(data.order_index.toString());
-      setCurrentLessonId(data.lesson_id);
+      setCurrentModuleId((data as any).module_id);
 
       // Парсим тестовые случаи
       try {
@@ -111,15 +115,15 @@ export function TaskForm({ lessonId, taskId }: TaskFormProps) {
     setGenerating(true);
 
     try {
-      // Получаем теорию урока для контекста
-      let lessonTheory = "";
-      if (currentLessonId) {
-        const { data: lessonData } = await supabase
-          .from("lessons")
-          .select("theory_content")
-          .eq("id", currentLessonId)
+      // Получаем теорию модуля (описание) для контекста
+      let moduleTheory = "";
+      if (currentModuleId) {
+        const { data: moduleData } = await supabase
+          .from("modules")
+          .select("description")
+          .eq("id", currentModuleId)
           .maybeSingle();
-        lessonTheory = lessonData?.theory_content || "";
+        moduleTheory = moduleData?.description || "";
       }
 
       const response = await fetch("/api/ai/generate-task", {
@@ -130,7 +134,7 @@ export function TaskForm({ lessonId, taskId }: TaskFormProps) {
         body: JSON.stringify({
           topic,
           difficulty,
-          lessonTheory,
+          lessonTheory: moduleTheory,
         }),
       });
 
@@ -159,6 +163,16 @@ export function TaskForm({ lessonId, taskId }: TaskFormProps) {
         }
         if (result.data.xp_reward) {
           setXpReward(result.data.xp_reward.toString());
+        }
+        if (result.data.rubric) {
+          try {
+            setRubric(JSON.stringify(result.data.rubric, null, 2));
+          } catch {
+            // игнорируем, если пришёл не-JSON
+          }
+        }
+        if (result.data.eval_prompt) {
+          setEvalPrompt(result.data.eval_prompt);
         }
 
         toast({
@@ -201,11 +215,14 @@ export function TaskForm({ lessonId, taskId }: TaskFormProps) {
       difficulty,
       xp_reward: Number.parseInt(xpReward),
       order_index: Number.parseInt(orderIndex),
-    };
+      module_id: currentModuleId,
+    } as Database["public"]["Tables"]["tasks"]["Insert"];
 
     try {
       if (taskId) {
-        const { error } = await supabase.from("tasks").update(taskData).eq("id", taskId);
+        const updateData = { ...taskData } as any;
+        delete updateData.module_id; // модуль не меняем при редактировании
+        const { error } = await supabase.from("tasks").update(updateData).eq("id", taskId);
 
         if (error) throw error;
 
@@ -214,24 +231,24 @@ export function TaskForm({ lessonId, taskId }: TaskFormProps) {
           description: "Изменения сохранены",
         });
       } else {
-        if (!currentLessonId) {
-          throw new Error("Не указан урок");
+        if (!currentModuleId) {
+          throw new Error("Не указан модуль");
         }
 
-        const { error } = await supabase.from("tasks").insert({
-          ...taskData,
-          lesson_id: currentLessonId,
-        });
+        const { data, error } = await supabase.from("tasks").insert(taskData).select("id").single();
 
         if (error) throw error;
 
+        const newId = (data as any)?.id as string;
         toast({
           title: "Задание создано",
           description: "Новое задание успешно создано",
         });
+        router.push(`/admin/tasks/${newId}/edit`);
+        router.refresh();
+        return;
       }
 
-      router.push(`/admin/lessons/${currentLessonId}/tasks`);
       router.refresh();
     } catch (error) {
       toast({
@@ -288,6 +305,30 @@ export function TaskForm({ lessonId, taskId }: TaskFormProps) {
               </p>
             </div>
           )}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <Label htmlFor="rubric">Rubric (JSON, критерии и веса)</Label>
+              <Textarea
+                id="rubric"
+                value={rubric}
+                onChange={(e) => setRubric(e.target.value)}
+                rows={8}
+                disabled={loading}
+              />
+              <p className="text-xs text-muted-foreground">Рекомендуется сумма весов = 1. Используется ИИ для оценки качества решения.</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="evalPrompt">Eval Prompt (шаблон для AI-оценки)</Label>
+              <Textarea
+                id="evalPrompt"
+                value={evalPrompt}
+                onChange={(e) => setEvalPrompt(e.target.value)}
+                rows={8}
+                disabled={loading}
+              />
+              <p className="text-xs text-muted-foreground">Краткая инструкция для модели как оценивать решение. Должна быть стабильной и выводить JSON.</p>
+            </div>
+          </div>
           <div className="space-y-2">
             <Label htmlFor="title">Название *</Label>
             <Input

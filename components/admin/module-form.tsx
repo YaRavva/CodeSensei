@@ -24,6 +24,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertTriangle } from "lucide-react";
+import { ToastAction } from "@/components/ui/toast";
 
 
 interface ModuleFormProps {
@@ -247,7 +248,7 @@ export function ModuleForm({ moduleId, initialData, createdByUserId }: ModuleFor
       return;
     }
     try {
-      const insertData = {
+      const payload = {
         title: generatedTask.title || "",
         description: generatedTask.description || "",
         starter_code: generatedTask.starter_code || "",
@@ -256,14 +257,53 @@ export function ModuleForm({ moduleId, initialData, createdByUserId }: ModuleFor
         difficulty: taskGenDifficulty,
         xp_reward: generatedTask.xp_reward ?? (taskGenDifficulty === "easy" ? 10 : taskGenDifficulty === "medium" ? 20 : 30),
         order_index: 0,
-        module_id: moduleId,
-      } as Database["public"]["Tables"]["tasks"]["Insert"];
+      };
 
-      const { error } = await supabase.from("tasks").insert(insertData);
-      if (error) throw error;
+      const res = await fetch(`/api/admin/modules/${moduleId}/tasks/create`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        const msg = (body as any)?.error || `${res.status} ${res.statusText}`;
+        const details = (body as any)?.details;
+        const mid = (body as any)?.moduleId || moduleId;
+        const fullMsg = `${msg}${details ? ` — ${details}` : ""} [module_id=${mid}]`;
+        toast({
+          title: "Ошибка",
+          description: fullMsg,
+          variant: "destructive",
+          action: (
+            <ToastAction altText="Скопировать" onClick={() => navigator.clipboard.writeText(fullMsg)}>
+              Скопировать
+            </ToastAction>
+          ),
+        });
+        return;
+      }
+      const { id: newId } = await res.json();
       toast({ title: "Задание создано", description: "Задание добавлено в модуль" });
+      if (newId) {
+        router.push(`/admin/tasks/${newId}/edit`);
+      } else {
+        // Если RLS не позволяет выбирать только что созданную запись, отправляем в список задач админки
+        router.push(`/admin/tasks`);
+      }
+      router.refresh();
     } catch (e) {
-      toast({ title: "Ошибка", description: e instanceof Error ? e.message : "Неизвестная ошибка", variant: "destructive" });
+      const msg = e instanceof Error ? e.message : "Неизвестная ошибка";
+      toast({
+        title: "Ошибка",
+        description: msg,
+        variant: "destructive",
+        action: (
+          <ToastAction altText="Скопировать" onClick={() => navigator.clipboard.writeText(msg)}>
+            Скопировать
+          </ToastAction>
+        ),
+      });
     }
   }
 

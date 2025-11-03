@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { usePyodide } from "@/hooks/use-pyodide";
 import { useState } from "react";
-import { Play, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Play, Loader2, AlertCircle, CheckCircle2, RefreshCw } from "lucide-react";
 
 interface CodeRunnerProps {
   code: string;
@@ -92,9 +92,17 @@ export function CodeRunner({ code, onExecutionComplete }: CodeRunnerProps) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground mb-4">
             {pyodideError.message}
           </p>
+          <Button 
+            onClick={() => window.location.reload()} 
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Перезагрузить страницу
+          </Button>
         </CardContent>
       </Card>
     );
@@ -165,4 +173,3 @@ export function CodeRunner({ code, onExecutionComplete }: CodeRunnerProps) {
     </div>
   );
 }
-

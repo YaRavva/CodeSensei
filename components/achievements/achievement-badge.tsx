@@ -1,6 +1,5 @@
 "use client";
 
-import * as Icons from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { Database } from "@/types/supabase";
 
@@ -12,29 +11,18 @@ interface AchievementBadgeProps {
   size?: "sm" | "md" | "lg";
 }
 
-// Динамически получаем иконку по имени
-function getIcon(iconName: string, size: number = 20) {
-  const IconComponent = (Icons as any)[iconName as keyof typeof Icons];
-  if (!IconComponent) {
-    // Fallback иконка
-    const Trophy = Icons.Trophy;
-    return <Trophy className={`h-${size} w-${size}`} />;
-  }
-  return <IconComponent className={`h-${size} w-${size}`} />;
-}
-
 export function AchievementBadge({
   achievement,
   showDescription = false,
   size = "md",
 }: AchievementBadgeProps) {
   const sizeMap = {
-    sm: 16,
-    md: 20,
-    lg: 24,
+    sm: "text-base",
+    md: "text-lg",
+    lg: "text-xl",
   };
 
-  const iconSize = sizeMap[size];
+  const iconSizeClass = sizeMap[size];
 
   return (
     <div className="flex flex-col gap-1">
@@ -42,7 +30,7 @@ export function AchievementBadge({
         variant={achievement.earned_at ? "default" : "outline"}
         className={`flex items-center gap-1.5 ${size === "lg" ? "px-3 py-1.5" : size === "sm" ? "px-2 py-0.5" : "px-2.5 py-1"}`}
       >
-        {getIcon(achievement.icon_name, iconSize)}
+        <span className={iconSizeClass}>{achievement.icon_name || "🏆"}</span>
         <span className={size === "sm" ? "text-xs" : size === "lg" ? "text-base" : "text-sm"}>
           {achievement.title}
         </span>

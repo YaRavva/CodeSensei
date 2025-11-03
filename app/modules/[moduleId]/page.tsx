@@ -1,7 +1,7 @@
-import { createClient } from "@/lib/supabase/server";
 import { requireAuth } from "@/lib/utils/auth";
 import { redirect } from "next/navigation";
 import { ModuleDetails } from "@/components/modules/module-details";
+import { createClient } from "@/lib/supabase/server";
 
 export default async function ModulePage({
   params,
@@ -23,42 +23,38 @@ export default async function ModulePage({
     redirect("/modules");
   }
 
-  // Получаем уроки модуля
-  const { data: lessons, error: lessonsError } = await supabase
-    .from("lessons")
-    .select("*")
+  // Получаем задачи модуля
+  const { data: tasks, error: tasksError } = await supabase
+    .from("tasks")
+    .select("id,title,order_index,difficulty,xp_reward")
     .eq("module_id", moduleId)
-    .eq("is_published", true)
     .order("order_index");
-
-  if (lessonsError) {
-    console.error("Error loading lessons:", lessonsError);
+  if (tasksError) {
+    console.error("Error loading tasks:", tasksError);
   }
 
-  // Получаем прогресс пользователя для уроков
-  const { data: progressData } = await supabase
-    .from("user_progress")
-    .select("*")
-    .eq("user_id", user.id)
-    .in(
-      "lesson_id",
-      lessons?.map((l) => l.id) || []
-    );
-
-  // Рассчитываем прогресс модуля
-  const totalLessons = lessons?.length || 0;
-  const completedLessons =
-    progressData?.filter((p) => p.status === "completed").length || 0;
-  const progress =
-    totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
+  // Прогресс по задачам: количество задач с успешными попытками пользователя
+  let completedTaskIds: string[] = [];
+  if (tasks && tasks.length) {
+    const { data: attempts } = await supabase
+      .from("task_attempts")
+      .select("task_id,is_successful")
+      .eq("user_id", user.id)
+      .in("task_id", tasks.map((t) => t.id));
+    if (attempts) {
+      const set = new Set<string>();
+      for (const a of attempts) {
+        if (a.is_successful) set.add(a.task_id as string);
+      }
+      completedTaskIds = Array.from(set);
+    }
+  }
+  const totalTasks = tasks?.length || 0;
+  const completedTasks = completedTaskIds.length;
+  const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
   return (
-    <ModuleDetails
-      module={module}
-      lessons={lessons || []}
-      userProgress={progressData || []}
-      moduleProgress={progress}
-    />
+    <ModuleDetails module={module} tasks={tasks || []} completedTaskIds={completedTaskIds} moduleProgress={progress} />
   );
 }
 

@@ -13,38 +13,31 @@ import { createClient } from "@/lib/supabase/client";
 import { runTestSuite } from "@/lib/utils/test-runner";
 import { usePyodide } from "@/hooks/use-pyodide";
 import type { TestCase, TestSuiteResult } from "@/types/test-case";
-import { ArrowLeft, ArrowRight, BookOpen, RotateCcw, Sparkles, Loader2, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpen, RotateCcw, Sparkles, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 type Module = Database["public"]["Tables"]["modules"]["Row"];
-type Lesson = Database["public"]["Tables"]["lessons"]["Row"];
 type Task = Database["public"]["Tables"]["tasks"]["Row"];
 type TaskAttempt = Database["public"]["Tables"]["task_attempts"]["Row"];
 
 interface TaskPageContentProps {
   module: Module;
-  lesson: Lesson;
   task: Task;
   prevTask: { id: string; title: string } | null;
   nextTask: { id: string; title: string } | null;
   lastAttempt: TaskAttempt | null;
 }
 
-export function TaskPageContent({
-  module,
-  lesson,
-  task,
-  prevTask,
-  nextTask,
-  lastAttempt,
-}: TaskPageContentProps) {
+export function TaskPageContent({ module, task, prevTask, nextTask, lastAttempt }: TaskPageContentProps) {
   const router = useRouter();
   const { user } = useAuth();
   const { toast } = useToast();
-  const { pyodide, loading: pyodideLoading, executeCode } = usePyodide();
+  const { pyodide, loading: pyodideLoading, error: pyodideError, executeCode } = usePyodide();
 
   // Состояние кода
   const [code, setCode] = useState(task.starter_code || "");
@@ -61,6 +54,17 @@ export function TaskPageContent({
   // Состояние тестов
   const [testResults, setTestResults] = useState<TestSuiteResult | null>(null);
   const [testing, setTesting] = useState(false);
+  const [isCompleted, setIsCompleted] = useState(lastAttempt?.is_successful || false);
+
+  // Состояние AI-подсказки (модалка)
+  const [hintOpen, setHintOpen] = useState(false);
+  const [hintTitle, setHintTitle] = useState<string>("");
+  const [hintMarkdown, setHintMarkdown] = useState<string>("");
+
+  // Состояние AI-оценки (модалка)
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [feedbackTitle, setFeedbackTitle] = useState<string>("");
+  const [feedbackMarkdown, setFeedbackMarkdown] = useState<string>("");
 
   // Загружаем сохраненный код из последней попытки, если есть
   useEffect(() => {
@@ -75,11 +79,31 @@ export function TaskPageContent({
     : [];
 
   async function handleRunCode() {
+    if (pyodideError) {
+      toast({
+        title: "Ошибка Pyodide",
+        description: "Не удалось загрузить Python среду. Попробуйте перезагрузить страницу.",
+        variant: "destructive",
+        action: (
+          <ToastAction altText="Перезагрузить" onClick={() => window.location.reload()}>
+            Перезагрузить
+          </ToastAction>
+        ),
+      });
+      return;
+    }
+
     if (!pyodide || !code.trim()) {
+      const msg = pyodide ? "Код не может быть пустым" : "Python среда еще не загружена. Подождите немного.";
       toast({
         title: "Ошибка",
-        description: pyodide ? "Код не может быть пустым" : "Python среда еще не загружена. Подождите немного.",
+        description: msg,
         variant: "destructive",
+        action: (
+          <ToastAction altText="Скопировать" onClick={() => navigator.clipboard.writeText(msg)}>
+            Скопировать
+          </ToastAction>
+        ),
       });
       return;
     }
@@ -104,11 +128,31 @@ export function TaskPageContent({
   }
 
   async function handleTestTask() {
+    if (pyodideError) {
+      toast({
+        title: "Ошибка Pyodide",
+        description: "Не удалось загрузить Python среду. Попробуйте перезагрузить страницу.",
+        variant: "destructive",
+        action: (
+          <ToastAction altText="Перезагрузить" onClick={() => window.location.reload()}>
+            Перезагрузить
+          </ToastAction>
+        ),
+      });
+      return;
+    }
+
     if (!pyodide) {
+      const msg = "Python среда еще не загружена. Подождите немного.";
       toast({
         title: "Ошибка",
-        description: "Python среда еще не загружена. Подождите немного.",
+        description: msg,
         variant: "destructive",
+        action: (
+          <ToastAction altText="Скопировать" onClick={() => navigator.clipboard.writeText(msg)}>
+            Скопировать
+          </ToastAction>
+        ),
       });
       return;
     }
@@ -129,103 +173,118 @@ export function TaskPageContent({
       const results = await runTestSuite(code, testCases, pyodide);
       setTestResults(results);
 
-      // Сохраняем попытку в БД и начисляем XP
-      if (user) {
-        const supabase = createClient();
-        
-        // Получаем количество попыток для этого задания
-        const { count: attemptsCount } = await supabase
-          .from("task_attempts")
-          .select("*", { count: "exact", head: true })
-          .eq("user_id", user.id)
-          .eq("task_id", task.id);
-
-        const attemptNumber = (attemptsCount || 0) + 1;
-
-        // Проверяем, есть ли успешные попытки
-        const { data: successfulAttempts } = await supabase
-          .from("task_attempts")
-          .select("id")
-          .eq("user_id", user.id)
-          .eq("task_id", task.id)
-          .eq("is_successful", true);
-
-        const isFirstAttempt = attemptNumber === 1;
-        const isFirstSuccessfulAttempt =
-          results.allPassed && (!successfulAttempts || successfulAttempts.length === 0);
-
-        // Сохраняем попытку
-        const { error: attemptError } = await supabase
-          .from("task_attempts")
-          .insert({
-            user_id: user.id,
-            task_id: task.id,
-            code_solution: code,
-            test_results: results as unknown,
-            is_successful: results.allPassed,
-            execution_time_ms: results.executionTime,
-            error_message: results.results.find((r) => !r.passed)?.error ?? null,
-            used_ai_hint: false, // TODO: отслеживать использование AI-подсказок
+      if (results.allPassed) {
+        // AI-оценка решения (сервер)
+        try {
+          const evalRes = await fetch("/api/tasks/evaluate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              taskId: task.id,
+              code,
+              runtimeOutput: executionResult?.output,
+              testSummary: { allPassed: results.allPassed, passedCount: results.passedCount, total: results.totalCount },
+            }),
           });
-
-        if (attemptError) {
-          console.error("Error saving attempt:", attemptError);
+          const evalJson = await evalRes.json();
+          if (evalRes.ok && evalJson.success) {
+            setFeedbackTitle(`AI-оценка: ${(evalJson.score * 100).toFixed(0)}%`);
+            setFeedbackMarkdown(evalJson.feedback);
+            setFeedbackOpen(true);
+          }
+        } catch {
+          // ignore AI failure
         }
 
-        // Начисляем XP при успешном выполнении
-        if (results.allPassed) {
-          try {
-            const xpResponse = await fetch("/api/tasks/award-xp", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                taskId: task.id,
-                lessonId: lesson.id,
-                attemptNumber,
-                usedAiHint: false,
-                executionTime: results.executionTime,
-                isFirstAttempt: isFirstSuccessfulAttempt,
-              }),
+        // Сохраняем попытку в БД и начисляем XP
+        if (user) {
+          const supabase = createClient();
+          
+          // Получаем количество попыток для этого задания
+          const { count: attemptsCount } = await supabase
+            .from("task_attempts")
+            .select("*", { count: "exact", head: true })
+            .eq("user_id", user.id)
+            .eq("task_id", task.id);
+
+          const attemptNumber = (attemptsCount || 0) + 1;
+
+          // Проверяем, есть ли успешные попытки
+          const { data: successfulAttempts } = await supabase
+            .from("task_attempts")
+            .select("id")
+            .eq("user_id", user.id)
+            .eq("task_id", task.id)
+            .eq("is_successful", true);
+
+          const isFirstSuccessfulAttempt =
+            results.allPassed && (!successfulAttempts || successfulAttempts.length === 0);
+
+          // Сохраняем попытку
+          const { error: attemptError } = await supabase
+            .from("task_attempts")
+            .insert({
+              user_id: user.id,
+              task_id: task.id,
+              code_solution: code,
+              test_results: results as any,
+              is_successful: results.allPassed,
+              execution_time_ms: results.executionTime,
+              error_message: results.results.find((r) => !r.passed)?.error ?? null,
+              used_ai_hint: false, // TODO: отслеживать использование AI-подсказок
             });
 
-            const xpData = await xpResponse.json();
+          if (attemptError) {
+            console.error("Error saving attempt:", attemptError);
+          }
 
-            if (xpResponse.ok && xpData.success) {
-              // Показываем уведомление о XP
-              toast({
-                title: "Поздравляем! 🎉",
-                description: `Все тесты пройдены! Вы заработали ${xpData.xpAwarded} XP${xpData.newLevel !== undefined && xpData.newLevel !== null ? ` (Уровень ${xpData.newLevel})` : ""}`,
-                duration: 5000,
-              });
+          // Начисляем XP при успешном выполнении по тестам (AI в следующем шаге)
+          const xpResponse = await fetch("/api/tasks/award-xp", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              taskId: task.id,
+              lessonId: "legacy",
+              attemptNumber,
+              usedAiHint: false,
+              executionTime: results.executionTime,
+              isFirstAttempt: isFirstSuccessfulAttempt,
+            }),
+          });
 
-              // Показываем уведомления о новых достижениях
-              if (xpData.newlyUnlockedAchievements && xpData.newlyUnlockedAchievements.length > 0) {
-                for (const achievement of xpData.newlyUnlockedAchievements) {
-                  setTimeout(() => {
-                    toast({
-                      title: `🏆 Достижение разблокировано!`,
-                      description: `${achievement.title}: ${achievement.description} (+${achievement.xp_reward} XP)`,
-                      duration: 7000,
-                    });
-                  }, 600);
-                }
+          const xpData = await xpResponse.json();
+
+          if (xpResponse.ok && xpData.success) {
+            // Показываем уведомление о XP
+            toast({
+              title: "Поздравляем! 🎉",
+              description: `Все тесты пройдены! Вы заработали ${xpData.xpAwarded} XP${xpData.newLevel !== undefined && xpData.newLevel !== null ? ` (Уровень ${xpData.newLevel})` : ""}`,
+              duration: 5000,
+            });
+
+            // Показываем уведомления о новых достижениях
+            if (xpData.newlyUnlockedAchievements && xpData.newlyUnlockedAchievements.length > 0) {
+              for (const achievement of xpData.newlyUnlockedAchievements) {
+                setTimeout(() => {
+                  toast({
+                    title: `🏆 Достижение разблокировано!`,
+                    description: `${achievement.title}: ${achievement.description} (+${achievement.xp_reward} XP)`,
+                    duration: 7000,
+                  });
+                }, 600);
               }
-            } else {
-              toast({
-                title: "Все тесты пройдены! 🎉",
-                description: "Ошибка при начислении XP, но задание засчитано",
-                variant: "default",
-              });
             }
-          } catch (xpError) {
-            console.error("Error awarding XP:", xpError);
+
+            setIsCompleted(true);
+          } else {
             toast({
               title: "Все тесты пройдены! 🎉",
               description: "Ошибка при начислении XP, но задание засчитано",
               variant: "default",
             });
+            setIsCompleted(true);
           }
         }
       }
@@ -236,6 +295,11 @@ export function TaskPageContent({
         title: "Ошибка выполнения тестов",
         description: errorMessage,
         variant: "destructive",
+        action: (
+          <ToastAction altText="Скопировать" onClick={() => navigator.clipboard.writeText(errorMessage)}>
+            Скопировать
+          </ToastAction>
+        ),
       });
     } finally {
       setTesting(false);
@@ -248,22 +312,54 @@ export function TaskPageContent({
     setTestResults(null);
   }
 
-  function handleAiHint() {
-    // TODO: Реализовать на ЭТАП 17
-    toast({
-      title: "Скоро",
-      description: "AI-подсказки будут доступны в следующих обновлениях",
-    });
+  async function handleAiHint() {
+    try {
+      const res = await fetch("/api/ai/hint", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskId: task.id, code }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || `${res.status}`);
+      const hint = data?.hint;
+
+      let md = ``;
+      if (hint?.type) {
+        md += `**Тип подсказки:** ${hint.type}\n\n`;
+      }
+      if (Array.isArray(hint?.steps) && hint.steps.length) {
+        md += `### Шаги к решению\n\n${hint.steps.map((step: string, i: number) => `${i + 1}. ${step}`).join("\n")}`;
+      } else {
+        md += hint?.hint || "Попробуйте ещё раз";
+      }
+
+      setHintTitle(`AI-помощник`);
+      setHintMarkdown(md);
+      setHintOpen(true);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Неизвестная ошибка";
+      toast({
+        title: "Ошибка подсказки",
+        description: msg,
+        variant: "destructive",
+        action: (
+          <ToastAction altText="Скопировать" onClick={() => navigator.clipboard.writeText(msg)}>
+            Скопировать
+          </ToastAction>
+        ),
+      });
+    }
   }
 
   return (
+    <>
     <div className="container mx-auto px-4 py-8">
       {/* Навигация */}
       <div className="mb-6 flex items-center gap-4">
         <Button variant="ghost" asChild>
-          <Link href={`/modules/${module.id}/lessons/${lesson.id}`}>
+          <Link href={`/modules/${module.id}`}>
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Назад к уроку
+            Назад к модулю
           </Link>
         </Button>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -274,14 +370,6 @@ export function TaskPageContent({
           <Link href={`/modules/${module.id}`} className="hover:underline">
             {module.title}
           </Link>
-          <span>/</span>
-          <Link
-            href={`/modules/${module.id}/lessons/${lesson.id}`}
-            className="hover:underline"
-          >
-            {lesson.title}
-          </Link>
-          <span>/</span>
           <span>{task.title}</span>
         </div>
       </div>
@@ -302,7 +390,7 @@ export function TaskPageContent({
               {task.xp_reward && (
                 <Badge variant="secondary">+{task.xp_reward} XP</Badge>
               )}
-              {lastAttempt?.is_successful && (
+              {(lastAttempt?.is_successful || isCompleted) && (
                 <Badge className="bg-green-600 text-white">
                   <CheckCircle2 className="mr-1 h-3 w-3" />
                   Выполнено
@@ -316,8 +404,8 @@ export function TaskPageContent({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Левая колонка: Теория и Описание */}
         <div className="space-y-6">
-          {/* Теория урока */}
-          {lesson.theory && (
+          {/* Теория модуля */}
+          {module.description && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -328,7 +416,7 @@ export function TaskPageContent({
               <CardContent>
                 <div className="prose prose-sm dark:prose-invert max-w-none">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {lesson.theory}
+                    {module.description}
                   </ReactMarkdown>
                 </div>
               </CardContent>
@@ -410,6 +498,39 @@ export function TaskPageContent({
                   AI-подсказка
                 </Button>
               </div>
+              
+              {/* Отображение ошибки Pyodide */}
+              {pyodideError && (
+                <div className="mt-4 p-4 rounded-md bg-destructive/10 border border-destructive">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle className="h-5 w-5 text-destructive mt-0.5 flex-shrink-0" />
+                    <div>
+                      <h4 className="font-medium text-destructive">Ошибка загрузки Python среды</h4>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {pyodideError.message}
+                      </p>
+                      <Button 
+                        onClick={() => window.location.reload()} 
+                        variant="outline" 
+                        size="sm" 
+                        className="mt-2"
+                      >
+                        Перезагрузить страницу
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Индикатор загрузки Pyodide */}
+              {pyodideLoading && (
+                <div className="mt-4 p-4 rounded-md bg-muted">
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-sm">Загрузка Python среды... Это может занять несколько секунд</span>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -458,9 +579,7 @@ export function TaskPageContent({
       <div className="flex justify-between gap-4 pt-6 mt-8 border-t">
         {prevTask ? (
           <Button variant="outline" asChild>
-            <Link
-              href={`/modules/${module.id}/lessons/${lesson.id}/tasks/${prevTask.id}`}
-            >
+            <Link href={`/modules/${module.id}/tasks/${prevTask.id}`}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               Предыдущее задание: {prevTask.title}
             </Link>
@@ -470,9 +589,7 @@ export function TaskPageContent({
         )}
         {nextTask ? (
           <Button variant="outline" asChild>
-            <Link
-              href={`/modules/${module.id}/lessons/${lesson.id}/tasks/${nextTask.id}`}
-            >
+            <Link href={`/modules/${module.id}/tasks/${nextTask.id}`}>
               Следующее задание: {nextTask.title}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
@@ -482,6 +599,40 @@ export function TaskPageContent({
         )}
       </div>
     </div>
+
+    {/* Модальное окно AI подсказки */}
+    <Dialog open={hintOpen} onOpenChange={setHintOpen}>
+      <DialogContent aria-describedby="hint-description" className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" />
+            {hintTitle}
+          </DialogTitle>
+        </DialogHeader>
+        <div id="hint-description" className="prose prose-sm dark:prose-invert max-w-none">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            {hintMarkdown}
+          </ReactMarkdown>
+        </div>
+      </DialogContent>
+    </Dialog>
+
+    {/* Модальное окно AI оценки */}
+    <Dialog open={feedbackOpen} onOpenChange={setFeedbackOpen}>
+      <DialogContent aria-describedby="feedback-description" className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <CheckCircle2 className="h-5 w-5 text-green-600" />
+            {feedbackTitle}
+          </DialogTitle>
+        </DialogHeader>
+        <div id="feedback-description" className="prose prose-sm dark:prose-invert max-w-none">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            {feedbackMarkdown}
+          </ReactMarkdown>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
-

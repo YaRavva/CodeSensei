@@ -12,37 +12,16 @@ export async function POST(
     const supabase = await createClient();
 
     // Удаляем зависимости вручную, если нет ON DELETE CASCADE
-    // 1) Удаляем tasks уроков модуля
-    const { data: lessonIdsData, error: lessonsFetchError } = await supabase
-      .from("lessons")
-      .select("id")
-      .eq("module_id", moduleId);
-
-    if (lessonsFetchError) {
-      return NextResponse.json({ error: lessonsFetchError.message }, { status: 400 });
-    }
-
-    const lessonIds = (lessonIdsData || []).map((l) => l.id);
-    if (lessonIds.length > 0) {
-      const { error: tasksDeleteError } = await supabase
-        .from("tasks")
-        .delete()
-        .in("lesson_id", lessonIds);
-      if (tasksDeleteError) {
-        return NextResponse.json({ error: tasksDeleteError.message }, { status: 400 });
-      }
-    }
-
-    // 2) Удаляем уроки модуля
-    const { error: lessonsDeleteError } = await supabase
-      .from("lessons")
+    // 1) Удаляем tasks модуля
+    const { error: tasksDeleteError } = await supabase
+      .from("tasks")
       .delete()
-      .eq("module_id", moduleId);
-    if (lessonsDeleteError) {
-      return NextResponse.json({ error: lessonsDeleteError.message }, { status: 400 });
+      .eq("module_id", moduleId); // Изменено: удаляем задачи по module_id
+    if (tasksDeleteError) {
+      return NextResponse.json({ error: tasksDeleteError.message }, { status: 400 });
     }
 
-    // 3) Удаляем сам модуль
+    // 2) Удаляем сам модуль
     const { error: moduleDeleteError } = await supabase
       .from("modules")
       .delete()

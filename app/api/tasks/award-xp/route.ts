@@ -3,6 +3,82 @@ import { createClient } from "@/lib/supabase/server";
 import { calculateXP, type XPCalculationParams } from "@/lib/utils/xp-calculation";
 import { checkAndAwardAchievements } from "@/lib/utils/achievements";
 
+async function updateUserProgress(supabase: ReturnType<typeof createClient>, userId: string, moduleId: string) {
+  try {
+    // 1. Получаем текущий прогресс
+    const { data: progress, error: progressError } = await supabase
+      .from("user_progress")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("module_id", moduleId)
+      .single();
+
+    if (progressError && progressError.code !== 'PGRST116') {
+      throw new Error(`Error fetching user progress: ${progressError.message}`);
+    }
+
+    // 2. Если прогресса нет, создаем запись
+    if (!progress) {
+      const { error: insertError } = await supabase.from("user_progress").insert({
+        user_id: userId,
+        module_id: moduleId,
+        status: "in_progress",
+      });
+      if (insertError) {
+        throw new Error(`Error creating user progress: ${insertError.message}`);
+      }
+    }
+
+    // 3. Проверяем, все ли задачи в модуле выполнены
+    const { data: moduleTasks, error: moduleTasksError } = await supabase
+      .from("tasks")
+      .select("id")
+      .eq("module_id", moduleId);
+
+    if (moduleTasksError) {
+      throw new Error(`Error fetching module tasks: ${moduleTasksError.message}`);
+    }
+
+    if (!moduleTasks || moduleTasks.length === 0) {
+      // Если в модуле нет задач, считаем его завершенным
+      await supabase
+        .from("user_progress")
+        .update({ status: "completed" })
+        .eq("user_id", userId)
+        .eq("module_id", moduleId);
+      return;
+    }
+
+    const { data: completedTasks, error: completedTasksError } = await supabase
+      .from("task_attempts")
+      .select("task_id")
+      .eq("user_id", userId)
+      .eq("is_successful", true)
+      .in("task_id", moduleTasks.map(t => t.id));
+
+    if (completedTasksError) {
+      throw new Error(`Error fetching completed tasks: ${completedTasksError.message}`);
+    }
+
+    const completedTaskIds = new Set(completedTasks.map(t => t.task_id));
+
+    if (completedTaskIds.size === moduleTasks.length) {
+      const { error: updateError } = await supabase
+        .from("user_progress")
+        .update({ status: "completed" })
+        .eq("user_id", userId)
+        .eq("module_id", moduleId);
+      if (updateError) {
+        throw new Error(`Error updating user progress: ${updateError.message}`);
+      }
+    }
+  } catch (error) {
+    console.error("Error in updateUserProgress:", error);
+    // Не бросаем ошибку дальше, чтобы не прерывать основной поток,
+    // но логируем ее для отладки.
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
@@ -15,26 +91,19 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const {
-      taskId,
-      lessonId,
-      attemptNumber,
-      usedAiHint,
-      executionTime,
-      isFirstAttempt,
-    } = body;
+    const { taskId, attemptNumber, usedAiHint, executionTime, isFirstAttempt } = body;
 
-    if (!taskId || !lessonId || !attemptNumber) {
+    if (!taskId || !attemptNumber) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
       );
     }
 
-    // Получаем информацию о задании
+    // Получаем информацию о задании, включая module_id
     const { data: task, error: taskError } = await supabase
       .from("tasks")
-      .select("xp_reward, difficulty")
+      .select("xp_reward, difficulty, module_id") // Добавляем module_id
       .eq("id", taskId)
       .single();
 
@@ -124,92 +193,16 @@ export async function POST(request: NextRequest) {
 
     const finalLevel = updatedUser.current_level || newLevelValue || currentUser.current_level || 1;
 
-    // Обновляем или создаем прогресс урока
-    const { data: existingProgress } = await supabase
-      .from("user_progress")
-      .select("*")
-      .eq("user_id", user.id)
-      .eq("lesson_id", lessonId)
-      .maybeSingle();
-
-    const now = new Date().toISOString();
-
-    if (existingProgress) {
-      // Обновляем существующий прогресс
-      const newXP = (existingProgress.xp_earned || 0) + xpCalculation.totalXP;
-      const newAttemptsCount = (existingProgress.attempts_count || 0) + 1;
-
-      const updateData: any = {
-        xp_earned: newXP,
-        attempts_count: newAttemptsCount,
-        last_attempt_at: now,
-        updated_at: now,
-      };
-
-      // Если это первое успешное выполнение, проверяем, завершен ли урок
-      if (isFirstAttempt) {
-        // Проверяем, все ли задания урока выполнены
-        const { data: lessonTasks } = await supabase
-          .from("tasks")
-          .select("id")
-          .eq("lesson_id", lessonId);
-
-        if (lessonTasks && lessonTasks.length > 0) {
-          // Получаем все успешные попытки пользователя для этого урока
-          const { data: userTaskAttempts } = await supabase
-            .from("task_attempts")
-            .select("task_id")
-            .eq("user_id", user.id)
-            .eq("is_successful", true)
-            .in(
-              "task_id",
-              lessonTasks.map((t) => t.id)
-            );
-
-          // Уникальные выполненные задания
-          const completedTaskIds = new Set(
-            userTaskAttempts?.map((a) => a.task_id) || []
-          );
-          const allTaskIds = new Set(lessonTasks.map((t) => t.id));
-
-          // Если все задания выполнены, отмечаем урок как завершенный
-          if (completedTaskIds.size === allTaskIds.size) {
-            updateData.status = "completed";
-            if (!existingProgress.first_completed_at) {
-              updateData.first_completed_at = now;
-            }
-          } else {
-            updateData.status = "in_progress";
-          }
-        }
-      }
-
-      await supabase
-        .from("user_progress")
-        .update(updateData)
-        .eq("id", existingProgress.id);
-    } else {
-      // Создаем новый прогресс
-      await supabase.from("user_progress").insert({
-        user_id: user.id,
-        lesson_id: lessonId,
-        status: "in_progress",
-        xp_earned: xpCalculation.totalXP,
-        attempts_count: 1,
-        last_attempt_at: now,
-      });
+    // Обновляем прогресс пользователя по модулю
+    if (task.module_id) {
+      await updateUserProgress(supabase, user.id, task.module_id);
     }
 
     // Проверяем и начисляем достижения
-    const newlyUnlockedAchievements = await checkAndAwardAchievements(
-      supabase,
-      user.id,
-      {
-        taskId,
-        lessonId,
-        completedAt: new Date(),
-      }
-    );
+    const newlyUnlockedAchievements = await checkAndAwardAchievements(supabase, user.id, {
+      taskId,
+      completedAt: new Date(),
+    } as any);
 
     return NextResponse.json({
       success: true,

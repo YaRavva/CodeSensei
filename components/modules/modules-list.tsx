@@ -6,12 +6,10 @@ import { useState } from "react";
 
 type Module = Database["public"]["Tables"]["modules"]["Row"];
 type UserProgress = Database["public"]["Tables"]["user_progress"]["Row"];
-type Lesson = Database["public"]["Tables"]["lessons"]["Row"];
 
 interface ModulesListProps {
   modules: Module[];
   userProgress: UserProgress[];
-  lessons: Lesson[];
 }
 
 type ModuleStatus = "not_started" | "in_progress" | "completed";
@@ -21,40 +19,21 @@ type ModuleStatus = "not_started" | "in_progress" | "completed";
  */
 function getModuleStatus(
   moduleId: string,
-  lessons: Lesson[],
-  progress: UserProgress[]
+  userProgress: UserProgress[]
 ): ModuleStatus {
-  // Находим все уроки этого модуля
-  const moduleLessons = lessons.filter((l) => l.module_id === moduleId);
-  
-  if (moduleLessons.length === 0) {
+  // Находим прогресс для этого модуля
+  const progressEntry = userProgress.find((p) => p.module_id === moduleId);
+
+  // Если нет записи о прогрессе, модуль не начат
+  if (!progressEntry) {
     return "not_started";
   }
 
-  // Находим прогресс для уроков этого модуля
-  const moduleProgress = progress.filter((p) =>
-    moduleLessons.some((l) => l.id === p.lesson_id)
-  );
-
-  // Если нет прогресса, модуль не начат
-  if (moduleProgress.length === 0) {
-    return "not_started";
-  }
-
-  // Проверяем, все ли уроки завершены
-  const completedLessons = moduleProgress.filter(
-    (p) => p.status === "completed"
-  ).length;
-
-  if (completedLessons === moduleLessons.length) {
-    return "completed";
-  }
-
-  // Если есть прогресс, но не все уроки завершены - в процессе
-  return "in_progress";
+  // Возвращаем статус из записи прогресса
+  return progressEntry.status;
 }
 
-export function ModulesList({ modules, userProgress, lessons }: ModulesListProps) {
+export function ModulesList({ modules, userProgress }: ModulesListProps) {
   const [filter, setFilter] = useState<{
     status?: ModuleStatus;
     level?: number;
@@ -63,7 +42,7 @@ export function ModulesList({ modules, userProgress, lessons }: ModulesListProps
   // Фильтруем модули
   const filteredModules = modules.filter((module) => {
     if (filter.status) {
-      const status = getModuleStatus(module.id, lessons, userProgress);
+      const status = getModuleStatus(module.id, userProgress);
       if (status !== filter.status) return false;
     }
     if (filter.level && module.level !== filter.level) return false;
@@ -121,7 +100,7 @@ export function ModulesList({ modules, userProgress, lessons }: ModulesListProps
       {/* Список модулей */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {filteredModules.map((module) => {
-          const status = getModuleStatus(module.id, lessons, userProgress);
+          const status = getModuleStatus(module.id, userProgress);
           return (
             <ModuleCard key={module.id} module={module} status={status} />
           );

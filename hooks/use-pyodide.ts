@@ -2,15 +2,22 @@
 
 import { useEffect, useState, useCallback } from "react";
 
-type Pyodide = {
-  runPython: (code: string) => void;
+// Более точные типы для Pyodide
+interface Pyodide {
+  runPython: (code: string) => any;
   runPythonAsync: (code: string) => Promise<any>;
   globals: any;
-  loadedPackages: Set<string>;
-};
+  loadedPackages: { [key: string]: string } | Set<string>;
+}
 
 let pyodideCache: Pyodide | null = null;
 let loadPromise: Promise<Pyodide> | null = null;
+
+declare global {
+  interface Window {
+    loadPyodide: any;
+  }
+}
 
 async function loadPyodide(): Promise<Pyodide> {
   if (pyodideCache) {
@@ -22,21 +29,30 @@ async function loadPyodide(): Promise<Pyodide> {
   }
 
   loadPromise = (async () => {
-    // Динамический импорт Pyodide (только на клиенте)
     if (typeof window === "undefined") {
       throw new Error("Pyodide может быть загружен только на клиенте");
     }
 
-    // @ts-ignore - Pyodide типы могут быть неполными
-    const { loadPyodide: loadPyodideFn } = await import("pyodide");
+    try {
+      if (typeof window.loadPyodide !== 'function') {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';
+        script.async = true;
+        
+        const scriptLoadPromise = new Promise<void>((resolve, reject) => {
+          script.onload = () => resolve();
+          script.onerror = () => reject(new Error('Failed to load Pyodide script'));
+        });
+        
+        document.head.appendChild(script);
+        await scriptLoadPromise;
+      }
+      
+      const pyodideInstance = await window.loadPyodide({
+        indexURL: "https://cdn.jsdelivr.net/pyodide/v0.25.0/full/",
+      });
 
-    // Загружаем Pyodide с базовыми пакетами
-    const pyodide = await loadPyodideFn({
-      indexURL: "https://cdn.jsdelivr.net/pyodide/v0.29.0/full/",
-    });
-
-    // Настраиваем перехват print() для получения вывода
-    pyodide.runPython(`
+      pyodideInstance.runPython(`
 import sys
 from io import StringIO
 
@@ -61,8 +77,12 @@ _stdout_capture = PyodideStdout()
 sys.stdout = _stdout_capture
 `);
 
-    pyodideCache = pyodide;
-    return pyodide;
+      pyodideCache = pyodideInstance;
+      return pyodideInstance;
+    } catch (error) {
+      console.error("Error loading Pyodide:", error);
+      throw new Error(`Failed to load Pyodide: ${error instanceof Error ? error.message : String(error)}`);
+    }
   })();
 
   return loadPromise;
@@ -101,6 +121,7 @@ export function usePyodide(): UsePyodideReturn {
       .catch((err) => {
         setError(err instanceof Error ? err : new Error(String(err)));
         setLoading(false);
+        console.error("Pyodide loading failed:", err);
       });
   }, []);
 
@@ -138,11 +159,12 @@ export function usePyodide(): UsePyodideReturn {
         await Promise.race([executionPromise, timeoutPromise]);
 
         // Получаем вывод из stdout
-        const output = pyodide.runPython("_stdout_capture.getvalue()") || "";
+        const outputResult = pyodide.runPython("_stdout_capture.getvalue()");
+        const output = outputResult !== null && outputResult !== undefined ? String(outputResult) : "";
         const executionTime = Date.now() - startTime;
 
         return {
-          output: String(output || "").trim(),
+          output: output.trim(),
           error: null,
           executionTime,
         };
@@ -168,4 +190,3 @@ export function usePyodide(): UsePyodideReturn {
     executeCode,
   };
 }
-

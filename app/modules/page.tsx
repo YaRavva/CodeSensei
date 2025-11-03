@@ -19,14 +19,14 @@ export default async function ModulesPage() {
   // Получаем прогресс пользователя для определения статуса модулей
   const { data: progressData } = await supabase
     .from("user_progress")
-    .select("lesson_id, status")
+    .select("module_id, status") // Изменено: теперь user_progress привязан к module_id
     .eq("user_id", user.id);
 
-  // Получаем все уроки для модулей
-  const { data: lessonsData } = await supabase
-    .from("lessons")
-    .select("id, module_id, is_published")
-    .eq("is_published", true);
+  // Удаляем получение уроков, так как они больше не используются
+  // const { data: lessonsData } = await supabase
+  //   .from("lessons")
+  //   .select("id, module_id, is_published")
+  //   .eq("is_published", true);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -39,7 +39,7 @@ export default async function ModulesPage() {
       <ModulesList
         modules={modules || []}
         userProgress={progressData || []}
-        lessons={lessonsData || []}
+        // lessons={lessonsData || []} // Удаляем lessons из пропсов
       />
     </div>
   );

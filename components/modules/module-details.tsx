@@ -11,36 +11,22 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 type Module = Database["public"]["Tables"]["modules"]["Row"];
-type Lesson = Database["public"]["Tables"]["lessons"]["Row"];
-type UserProgress = Database["public"]["Tables"]["user_progress"]["Row"];
+type Task = Database["public"]["Tables"]["tasks"]["Row"];
 
 interface ModuleDetailsProps {
   module: Module;
-  lessons: Lesson[];
-  userProgress: UserProgress[];
+  tasks: Pick<Task, "id" | "title" | "order_index" | "difficulty" | "xp_reward">[];
+  completedTaskIds: string[];
   moduleProgress: number;
 }
 
-function getLessonStatus(
-  lessonId: string,
-  progress: UserProgress[]
-): "not_started" | "in_progress" | "completed" {
-  const lessonProgress = progress.find((p) => p.lesson_id === lessonId);
-  if (!lessonProgress) return "not_started";
-  if (lessonProgress.status === "completed") return "completed";
-  return "in_progress";
+function getTaskStatus(taskId: string, completedTaskIds: string[]): "not_started" | "completed" | "in_progress" {
+  return completedTaskIds.includes(taskId) ? "completed" : "not_started";
 }
 
-export function ModuleDetails({
-  module,
-  lessons,
-  userProgress,
-  moduleProgress,
-}: ModuleDetailsProps) {
-  const totalLessons = lessons.length;
-  const completedLessons = userProgress.filter(
-    (p) => p.status === "completed"
-  ).length;
+export function ModuleDetails({ module, tasks, completedTaskIds, moduleProgress }: ModuleDetailsProps) {
+  const totalTasks = tasks.length;
+  const completedTasks = completedTaskIds.length;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -70,9 +56,9 @@ export function ModuleDetails({
           <CardContent>
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span>Завершено уроков</span>
+                <span>Завершено заданий</span>
                 <span>
-                  {completedLessons} из {totalLessons}
+                  {completedTasks} из {totalTasks}
                 </span>
               </div>
               <Progress value={moduleProgress} className="h-2" />
@@ -100,45 +86,44 @@ export function ModuleDetails({
         )}
       </div>
 
-      {/* Список уроков */}
+      {/* Список заданий */}
       <div className="space-y-4">
         <h2 className="text-2xl font-bold mb-4">
           <BookOpen className="inline mr-2 h-6 w-6" />
-          Уроки ({totalLessons})
+          Задания ({totalTasks})
         </h2>
 
-        {lessons.length === 0 ? (
+        {tasks.length === 0 ? (
           <Card>
             <CardContent className="pt-6">
               <p className="text-center text-muted-foreground">
-                В этом модуле пока нет уроков
+                В этом модуле пока нет заданий
               </p>
             </CardContent>
           </Card>
         ) : (
           <div className="grid gap-4 md:grid-cols-2">
-            {lessons.map((lesson, index) => {
-              const status = getLessonStatus(lesson.id, userProgress);
+            {tasks.map((task, index) => {
+              const status = getTaskStatus(task.id, completedTaskIds);
               const statusConfig = {
-                not_started: { label: "Не начат", icon: "🔴", variant: "outline" as const },
+                not_started: { label: "Не начато", icon: "🔴", variant: "outline" as const },
                 in_progress: { label: "В процессе", icon: "🟡", variant: "default" as const },
-                completed: { label: "Завершен", icon: "🟢", variant: "secondary" as const },
-              };
+                completed: { label: "Завершено", icon: "🟢", variant: "secondary" as const },
+              } as const;
               const statusInfo = statusConfig[status];
 
               return (
-                <Card key={lesson.id} className="hover:shadow-lg transition-shadow">
+                <Card key={task.id} className="hover:shadow-lg transition-shadow">
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <CardTitle className="mb-2">
-                          Урок {index + 1}: {lesson.title}
+                          Задание {index + 1}: {task.title}
                         </CardTitle>
-                        {lesson.duration_minutes && (
-                          <CardDescription>
-                            Продолжительность: ~{lesson.duration_minutes} минут
-                          </CardDescription>
-                        )}
+                        <CardDescription>
+                          Сложность: {task.difficulty}
+                          {task.xp_reward ? ` · Награда: +${task.xp_reward} XP` : ""}
+                        </CardDescription>
                       </div>
                       <Badge variant={statusInfo.variant}>
                         <span className="mr-1">{statusInfo.icon}</span>
@@ -148,12 +133,8 @@ export function ModuleDetails({
                   </CardHeader>
                   <CardContent>
                     <Button asChild className="w-full">
-                      <Link href={`/modules/${module.id}/lessons/${lesson.id}`}>
-                        {status === "not_started"
-                          ? "Начать урок"
-                          : status === "completed"
-                            ? "Повторить урок"
-                            : "Продолжить"}
+                      <Link href={`/modules/${module.id}/tasks/${task.id}`}>
+                        {status === "completed" ? "Открыть задание" : "Начать задание"}
                       </Link>
                     </Button>
                   </CardContent>
