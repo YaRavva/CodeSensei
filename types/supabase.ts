@@ -229,7 +229,7 @@ export type Database = {
           difficulty: string;
           hints: Json | null;
           id: string;
-          lesson_id: string;
+          module_id: string;
           order_index: number;
           solution_code: string | null;
           starter_code: string;
@@ -244,7 +244,7 @@ export type Database = {
           difficulty: string;
           hints?: Json | null;
           id?: string;
-          lesson_id: string;
+          module_id: string;
           order_index: number;
           solution_code?: string | null;
           starter_code: string;
@@ -259,7 +259,7 @@ export type Database = {
           difficulty?: string;
           hints?: Json | null;
           id?: string;
-          lesson_id?: string;
+          module_id?: string;
           order_index?: number;
           solution_code?: string | null;
           starter_code?: string;
@@ -270,10 +270,10 @@ export type Database = {
         };
         Relationships: [
           {
-            foreignKeyName: "tasks_lesson_id_fkey";
-            columns: ["lesson_id"];
+            foreignKeyName: "tasks_module_id_fkey";
+            columns: ["module_id"];
             isOneToOne: false;
-            referencedRelation: "lessons";
+            referencedRelation: "modules";
             referencedColumns: ["id"];
           },
         ];

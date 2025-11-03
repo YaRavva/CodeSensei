@@ -5,6 +5,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -44,6 +45,11 @@ export function ModuleForm({ moduleId, initialData, createdByUserId }: ModuleFor
   const { toast } = useToast();
   const supabase = createClient();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("module");
+  const [taskGenLoading, setTaskGenLoading] = useState(false);
+  const [taskGenDifficulty, setTaskGenDifficulty] = useState<"easy" | "medium" | "hard">("easy");
+  const [generatedTask, setGeneratedTask] = useState<any | null>(null);
+  // Сущности уроков больше нет — задания сохраняются напрямую в модуль
 
   useEffect(() => {
     if (initialData) {
@@ -200,6 +206,67 @@ export function ModuleForm({ moduleId, initialData, createdByUserId }: ModuleFor
     }
   }
 
+  async function handleGenerateTaskAI() {
+    if (!topic.trim()) {
+      toast({ title: "Ошибка", description: "Укажите тему модуля — она используется как тема задания", variant: "destructive" });
+      return;
+    }
+    setTaskGenLoading(true);
+    try {
+      const response = await fetch("/api/ai/generate-task", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          topic,
+          difficulty: taskGenDifficulty,
+          lessonTheory: description || "",
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || "Ошибка генерации задания");
+      }
+      setGeneratedTask(result.data || null);
+      toast({ title: "Задание сгенерировано", description: "Проверьте и используйте в форме задания" });
+    } catch (e) {
+      toast({ title: "Ошибка генерации", description: e instanceof Error ? e.message : "Неизвестная ошибка", variant: "destructive" });
+    } finally {
+      setTaskGenLoading(false);
+    }
+  }
+
+  function copyGeneratedField(_value: string) {}
+
+  async function handleCreateTaskFromGenerated() {
+    if (!moduleId) {
+      toast({ title: "Сначала сохраните модуль", description: "Создайте модуль, затем добавьте в него задания", variant: "destructive" });
+      return;
+    }
+    if (!generatedTask) {
+      toast({ title: "Нет данных задания", description: "Сгенерируйте задание перед сохранением", variant: "destructive" });
+      return;
+    }
+    try {
+      const insertData = {
+        title: generatedTask.title || "",
+        description: generatedTask.description || "",
+        starter_code: generatedTask.starter_code || "",
+        solution_code: generatedTask.solution_code || null,
+        test_cases: Array.isArray(generatedTask.test_cases) ? generatedTask.test_cases : [],
+        difficulty: taskGenDifficulty,
+        xp_reward: generatedTask.xp_reward ?? (taskGenDifficulty === "easy" ? 10 : taskGenDifficulty === "medium" ? 20 : 30),
+        order_index: 0,
+        module_id: moduleId,
+      } as Database["public"]["Tables"]["tasks"]["Insert"];
+
+      const { error } = await supabase.from("tasks").insert(insertData);
+      if (error) throw error;
+      toast({ title: "Задание создано", description: "Задание добавлено в модуль" });
+    } catch (e) {
+      toast({ title: "Ошибка", description: e instanceof Error ? e.message : "Неизвестная ошибка", variant: "destructive" });
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     console.log("ModuleForm: handleSubmit start", { title, topic, level, orderIndex, isPublished });
@@ -329,109 +396,177 @@ export function ModuleForm({ moduleId, initialData, createdByUserId }: ModuleFor
               disabled={loading}
             />
           </div>
+          <Tabs defaultValue="module" value={activeTab} onValueChange={setActiveTab}>
+            <TabsList>
+              <TabsTrigger value="module">Данные модуля</TabsTrigger>
+              <TabsTrigger value="ai">Генерация заданий ИИ</TabsTrigger>
+            </TabsList>
 
-          <Accordion type="single" collapsible className="w-full">
+            <TabsContent value="module" className="space-y-4">
+              <Accordion type="single" collapsible className="w-full">
+                <AccordionItem value="description">
+                  <AccordionTrigger>Описание</AccordionTrigger>
+                  <AccordionContent>
+                    <Textarea
+                      id="description"
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      disabled={loading}
+                      className="min-h-[500px] font-ubuntu-mono text-sm"
+                      placeholder="Введите описание в формате Markdown..."
+                    />
+                  </AccordionContent>
+                </AccordionItem>
+                <AccordionItem value="preview">
+                  <AccordionTrigger>Предпросмотр</AccordionTrigger>
+                  <AccordionContent>
+                    <div className="border rounded-md p-4 h-[500px] overflow-auto bg-card font-ubuntu-mono text-sm">
+                      <div className="prose prose-sm dark:prose-invert max-w-none">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {description || "*Введите текст выше для предпросмотра*"}
+                        </ReactMarkdown>
+                      </div>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
 
-            <AccordionItem value="description">
-              <AccordionTrigger>Описание</AccordionTrigger>
-              <AccordionContent>
-                <Textarea
-                  id="description"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  disabled={loading}
-                  className="min-h-[500px] font-ubuntu-mono text-sm"
-                  placeholder="Введите описание в формате Markdown..."
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="topic">Тема *</Label>
+                  {!moduleId && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleGenerateAI}
+                      disabled={loading || generating || !topic.trim()}
+                    >
+                      {generating ? "Генерация..." : "🎨 Сгенерировать с AI"}
+                    </Button>
+                  )}
+                </div>
+                <Input
+                  id="topic"
+                  value={topic}
+                  onChange={(e) => {
+                    setTopic(e.target.value);
+                    if (!title && e.target.value.trim()) {
+                      setTitle(e.target.value.trim());
+                    }
+                  }}
+                  placeholder="Например: Переменные, Циклы, Функции"
+                  required
+                  disabled={loading || generating}
                 />
-              </AccordionContent>
-            </AccordionItem>
+                {generating && (
+                  <p className="text-sm text-muted-foreground">ИИ генерирует контент модуля... Это может занять несколько секунд.</p>
+                )}
+              </div>
 
-            <AccordionItem value="preview">
-              <AccordionTrigger>Предпросмотр</AccordionTrigger>
-              <AccordionContent>
-                <div className="border rounded-md p-4 h-[500px] overflow-auto bg-card font-ubuntu-mono text-sm">
-                  <div className="prose prose-sm dark:prose-invert max-w-none">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                      {description || "*Введите текст выше для предпросмотра*"}
-                    </ReactMarkdown>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="level">Уровень сложности (1-5) *</Label>
+                  <Select value={level} onValueChange={setLevel}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Выберите уровень" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">1 - Начальный</SelectItem>
+                      <SelectItem value="2">2 - Базовый</SelectItem>
+                      <SelectItem value="3">3 - Средний</SelectItem>
+                      <SelectItem value="4">4 - Продвинутый</SelectItem>
+                      <SelectItem value="5">5 - Эксперт</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="orderIndex">Порядок отображения *</Label>
+                  <Input
+                    id="orderIndex"
+                    type="number"
+                    value={orderIndex}
+                    onChange={(e) => setOrderIndex(e.target.value)}
+                    required
+                    min="0"
+                    disabled={loading}
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Switch id="isPublished" checked={isPublished} onCheckedChange={setIsPublished} disabled={loading} />
+                <Label htmlFor="isPublished">Опубликован</Label>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="ai" className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2 md:col-span-2">
+                  <Label>Сложность задания для генерации</Label>
+                  <Select value={taskGenDifficulty} onValueChange={(v) => setTaskGenDifficulty(v as any)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="easy">Легкая</SelectItem>
+                      <SelectItem value="medium">Средняя</SelectItem>
+                      <SelectItem value="hard">Сложная</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">Будет использована тема модуля и его теория как контекст</p>
+                </div>
+                <div className="flex items-end">
+                  <Button type="button" onClick={handleGenerateTaskAI} disabled={taskGenLoading} className="w-full">
+                    {taskGenLoading ? "Генерация..." : "⚙️ Сгенерировать задание"}
+                  </Button>
+                </div>
+              </div>
+
+              {moduleId && (
+                <div className="flex items-end">
+                  <Button type="button" variant="secondary" onClick={handleCreateTaskFromGenerated} disabled={!generatedTask} className="w-full">
+                    Сохранить задание
+                  </Button>
+                </div>
+              )}
+
+              {generatedTask && (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Название</Label>
+                    <Input readOnly value={generatedTask.title || ""} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Описание (Markdown)</Label>
+                    <Textarea readOnly rows={8} value={generatedTask.description || ""} />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Starter code</Label>
+                      <Textarea readOnly rows={8} value={generatedTask.starter_code || ""} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Solution code</Label>
+                      <Textarea readOnly rows={8} value={generatedTask.solution_code || ""} />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Rubric (JSON)</Label>
+                    <Textarea readOnly rows={6} value={JSON.stringify(generatedTask.rubric ?? [], null, 2)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Eval Prompt</Label>
+                    <Textarea readOnly rows={4} value={generatedTask.eval_prompt || ""} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Тестовые случаи (JSON)</Label>
+                    <Textarea readOnly rows={8} value={JSON.stringify(generatedTask.test_cases ?? [], null, 2)} />
                   </div>
                 </div>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="topic">Тема *</Label>
-              {!moduleId && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleGenerateAI}
-                  disabled={loading || generating || !topic.trim()}
-                >
-                  {generating ? "Генерация..." : "🎨 Сгенерировать с AI"}
-                </Button>
               )}
-            </div>
-            <Input
-              id="topic"
-              value={topic}
-              onChange={(e) => {
-                setTopic(e.target.value);
-                // Автоматически заполняем название из темы, если оно пустое
-                if (!title && e.target.value.trim()) {
-                  setTitle(e.target.value.trim());
-                }
-              }}
-              placeholder="Например: Переменные, Циклы, Функции"
-              required
-              disabled={loading || generating}
-            />
-            {generating && (
-              <p className="text-sm text-muted-foreground">
-                ИИ генерирует контент модуля... Это может занять несколько секунд.
-              </p>
-            )}
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="level">Уровень сложности (1-5) *</Label>
-              <Select value={level} onValueChange={setLevel}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Выберите уровень" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">1 - Начальный</SelectItem>
-                  <SelectItem value="2">2 - Базовый</SelectItem>
-                  <SelectItem value="3">3 - Средний</SelectItem>
-                  <SelectItem value="4">4 - Продвинутый</SelectItem>
-                  <SelectItem value="5">5 - Эксперт</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="orderIndex">Порядок отображения *</Label>
-              <Input
-                id="orderIndex"
-                type="number"
-                value={orderIndex}
-                onChange={(e) => setOrderIndex(e.target.value)}
-                required
-                min="0"
-                disabled={loading}
-              />
-            </div>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="isPublished"
-              checked={isPublished}
-              onCheckedChange={setIsPublished}
-              disabled={loading}
-            />
-            <Label htmlFor="isPublished">Опубликован</Label>
-          </div>
+            </TabsContent>
+          </Tabs>
         </CardContent>
         <CardFooter className="flex justify-end gap-2">
           <Button type="button" variant="outline" onClick={() => router.back()} disabled={loading}>
