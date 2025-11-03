@@ -30,13 +30,13 @@ export default function LoginPage() {
     setLoading(true);
     let navigated = false;
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
-      if (error) {
-        console.error("signIn error", error);
-        toast({ title: "Ошибка входа", description: error.message, variant: "destructive" });
-        return;
-      }
+    if (error) {
+      console.error("signIn error", error);
+      toast({ title: "Ошибка входа", description: error.message, variant: "destructive" });
+      return;
+    }
 
       // Двойная проверка сессии сразу после входа
       const { data: sessionData, error: sessionErr } = await supabase.auth.getSession();
@@ -67,7 +67,7 @@ export default function LoginPage() {
         }
 
         router.replace("/modules");
-        router.refresh();
+      router.refresh();
         navigated = true;
         return;
       }
@@ -78,10 +78,10 @@ export default function LoginPage() {
           description:
             "Мы создали ваш аккаунт, но вход завершится после подтверждения email. Проверьте почту.",
         });
-        return;
-      }
+      return;
+    }
 
-      toast({ title: "Не удалось войти", description: "Проверьте данные и попробуйте снова" });
+    toast({ title: "Не удалось войти", description: "Проверьте данные и попробуйте снова" });
     } catch (err: any) {
       console.error("Unexpected login error", err);
       toast({
@@ -91,7 +91,7 @@ export default function LoginPage() {
       });
     } finally {
       if (!navigated) {
-        setLoading(false);
+    setLoading(false);
       }
     }
   }

@@ -111,11 +111,11 @@ ${description ? `- Дополнительные требования: ${descript
 
     // Единый вызов только к openai/gpt-oss-20b через общий chat completions endpoint
     const response = await fetch("https://router.huggingface.co/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${HF_API_KEY}`,
-        "Content-Type": "application/json",
-      },
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${HF_API_KEY}`,
+              "Content-Type": "application/json",
+            },
       body: JSON.stringify({
         model: "openai/gpt-oss-20b",
         messages: [
@@ -124,10 +124,10 @@ ${description ? `- Дополнительные требования: ${descript
         max_tokens: 4000,
         temperature: 0.7,
       }),
-    });
+          });
 
     if (!response.ok) {
-      const errorText = await response.text();
+            const errorText = await response.text();
       return NextResponse.json(
         {
           error: `Hugging Face API error: ${response.status} ${response.statusText}`,

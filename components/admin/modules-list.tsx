@@ -9,6 +9,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { AlertTriangle } from "lucide-react";
 
 type Module = Database["public"]["Tables"]["modules"]["Row"];
 
@@ -77,13 +78,15 @@ export function ModulesList({ initialModules }: ModulesListProps) {
 
   async function handleDeleteConfirmed() {
     if (!deletingId) return;
-    // Жёсткое удаление из БД
-    const { error } = await supabase.from("modules").delete().eq("id", deletingId);
+    // Жёсткое удаление через серверный маршрут (с каскадным удалением зависимостей)
+    const res = await fetch(`/api/admin/modules/${deletingId}/delete`, { method: "POST" });
     setConfirmOpen(false);
     setDeletingId(null);
-    if (error) {
-      console.error("Delete error:", error);
-      toast({ title: "Ошибка удаления", description: error.message, variant: "destructive" });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      const msg = body?.error || `${res.status} ${res.statusText}`;
+      console.error("Delete error:", msg);
+      toast({ title: "Ошибка удаления", description: msg, variant: "destructive" });
       return;
     }
     toast({ title: "Модуль удалён", description: `«${deletingTitle}» успешно удалён из базы` });
@@ -141,14 +144,22 @@ export function ModulesList({ initialModules }: ModulesListProps) {
         </Card>
       ))}
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Удалить модуль?</DialogTitle>
-            <DialogDescription>
-              Вы действительно хотите удалить «{deletingTitle}»? Это действие нельзя отменить.
-            </DialogDescription>
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 rounded-full bg-destructive/10 p-2 text-destructive">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <div className="space-y-1">
+                <DialogTitle>Удалить модуль?</DialogTitle>
+                <DialogDescription>
+                  Вы действительно хотите удалить «<span className="font-medium text-foreground">{deletingTitle}</span>»?
+                  Это действие нельзя отменить.
+                </DialogDescription>
+              </div>
+            </div>
           </DialogHeader>
-          <DialogFooter>
+          <DialogFooter className="sm:justify-end">
             <Button type="button" variant="outline" onClick={() => setConfirmOpen(false)}>Отмена</Button>
             <Button type="button" variant="destructive" onClick={handleDeleteConfirmed}>Удалить</Button>
           </DialogFooter>

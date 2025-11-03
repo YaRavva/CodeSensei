@@ -21,14 +21,17 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertTriangle } from "lucide-react";
 
 
 interface ModuleFormProps {
   moduleId?: string;
   initialData?: Database["public"]["Tables"]["modules"]["Row"];
+  createdByUserId?: string;
 }
 
-export function ModuleForm({ moduleId, initialData }: ModuleFormProps) {
+export function ModuleForm({ moduleId, initialData, createdByUserId }: ModuleFormProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [topic, setTopic] = useState("");
@@ -40,6 +43,7 @@ export function ModuleForm({ moduleId, initialData }: ModuleFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const supabase = createClient();
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   useEffect(() => {
     if (initialData) {
@@ -215,95 +219,75 @@ export function ModuleForm({ moduleId, initialData }: ModuleFormProps) {
 
     // Санитизация описания на случай скрытых управляющих символов из AI
     const sanitizedDescription = (description || "").replace(/[\u0000\u2028\u2029]/g, "");
+    const descLength = sanitizedDescription.length;
+    const nonAsciiCount = (sanitizedDescription.match(/[^\x00-\x7F]/g) || []).length;
+    console.log("ModuleForm: description stats", { descLength, nonAsciiCount, sample: sanitizedDescription.slice(0, 200) });
+
+    const parsedLevel = Number.parseInt(level, 10);
+    const parsedOrder = Number.parseInt(orderIndex, 10);
+    const levelValue = Number.isNaN(parsedLevel) && initialData ? initialData.level : parsedLevel;
+    const orderValue = Number.isNaN(parsedOrder) && initialData ? initialData.order_index : parsedOrder;
 
     const moduleData = {
       title,
       description: sanitizedDescription || null,
       topic,
-      level: Number.parseInt(level, 10),
-      order_index: Number.parseInt(orderIndex, 10),
+      level: levelValue,
+      order_index: orderValue,
       is_published: isPublished,
     };
 
     try {
       console.log("ModuleForm: before save, moduleId=", moduleId);
       if (moduleId) {
-        const { data, error } = await supabase.from("modules").update(moduleData).eq("id", moduleId).select().single();
-
-        if (error) {
-          console.error("Update error:", error);
-          throw error;
+        console.log("ModuleForm: updating module via API", { moduleId, level: moduleData.level, order_index: moduleData.order_index, title: moduleData.title, topic: moduleData.topic, descLength });
+        console.time("ModuleForm:updateDuration");
+        const res = await fetch(`/api/admin/modules/${moduleId}/update`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(moduleData),
+        });
+        console.timeEnd("ModuleForm:updateDuration");
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          const msg = (body as any)?.error || `${res.status} ${res.statusText}`;
+          throw new Error(`Ошибка обновления модуля: ${msg}`);
         }
-
-        if (!data) {
-          throw new Error("Не удалось обновить модуль. Данные не возвращены.");
-        }
-
+        console.log("ModuleForm: update done");
         toast({
           title: "Модуль обновлен",
           description: "Изменения сохранены в базе данных",
         });
       } else {
-        // Проверяем текущего пользователя перед вставкой
-        const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser();
-        if (userError || !currentUser) {
-          console.error("Auth error:", userError);
-          throw new Error("Не удалось подтвердить аутентификацию пользователя");
+        if (!createdByUserId) {
+          throw new Error("Не удалось определить пользователя для поля created_by");
         }
 
-        console.log("Creating module with data:", {
-          ...moduleData,
-          created_by: currentUser.id,
-          user_id: currentUser.id,
-          user_email: currentUser.email,
+        console.log("Creating module with data (stats only):", { level: moduleData.level, order_index: moduleData.order_index, title: moduleData.title, topic: moduleData.topic, descLength, createdByUserId });
+
+        console.log("ModuleForm: inserting module via API...");
+        console.time("ModuleForm:insertDuration");
+        const res = await fetch("/api/admin/modules/create", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ ...moduleData, created_by: createdByUserId }),
         });
+        console.timeEnd("ModuleForm:insertDuration");
 
-        // Проверяем роль пользователя через RPC
-        const { data: userRole, error: roleError } = await (supabase.rpc as any)("get_user_role", {
-          user_id: currentUser.id,
-        });
-
-        console.log("User role check:", { userRole, roleError });
-
-        if (roleError || (userRole !== "admin" && userRole !== "teacher")) {
-          console.error("Role check failed:", { userRole, roleError });
-          throw new Error(`Недостаточно прав для создания модуля. Роль: ${userRole || "не определена"}`);
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          const msg = (body as any)?.error || `${res.status} ${res.statusText}`;
+          throw new Error(`Ошибка создания модуля: ${msg}`);
         }
 
-        console.log("ModuleForm: inserting module...");
-        const { data: insertedData, error } = await supabase
-          .from("modules")
-          .insert({
-            ...moduleData,
-            created_by: currentUser.id,
-          })
-          .select()
-          .single();
-
-        if (error) {
-          console.error("Insert error:", error);
-          // Подсказка для случая несоответствия RLS (например, учитель не имеет прав)
-          if ((error as any)?.code === "42501" || /policy|rls|permission/i.test(String((error as any)?.message))) {
-            throw new Error("Недостаточно прав для сохранения модуля. Доступ разрешён только админу.");
-          }
-          if ((error as any)?.code === "23503") {
-            throw new Error("Нарушение внешнего ключа: профиль пользователя отсутствует. Повторите сохранение.");
-          }
-          if ((error as any)?.code) {
-            throw new Error(`${(error as any).code}: ${(error as any).message}`);
-          }
-          throw error;
-        }
-
-        if (!insertedData) {
-          throw new Error("Не удалось создать модуль. Данные не возвращены из базы.");
-        }
-
-        console.log("Module created successfully:", insertedData);
+        const data = await res.json();
+        console.log("Module created successfully", { id: data?.id, title: data?.title });
 
         toast({
           title: "Модуль создан",
-          description: `Модуль "${insertedData.title}" успешно сохранен в базе данных`,
+          description: `Модуль "${moduleData.title}" успешно сохранен в базе данных`,
         });
       }
 
@@ -346,36 +330,30 @@ export function ModuleForm({ moduleId, initialData }: ModuleFormProps) {
             />
           </div>
 
-          <Accordion type="multiple" defaultValue={["description", "preview"]} className="w-full">
+          <Accordion type="single" collapsible className="w-full">
 
             <AccordionItem value="description">
               <AccordionTrigger>Описание</AccordionTrigger>
               <AccordionContent>
-                <div className="space-y-2">
-                  <Label htmlFor="description">Описание</Label>
-                  <Textarea
-                    id="description"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    disabled={loading}
-                    className="min-h-[500px] font-ubuntu-mono text-sm"
-                    placeholder="Введите описание в формате Markdown..."
-                  />
-                </div>
+                <Textarea
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  disabled={loading}
+                  className="min-h-[500px] font-ubuntu-mono text-sm"
+                  placeholder="Введите описание в формате Markdown..."
+                />
               </AccordionContent>
             </AccordionItem>
 
             <AccordionItem value="preview">
               <AccordionTrigger>Предпросмотр</AccordionTrigger>
               <AccordionContent>
-                <div className="space-y-2">
-                  <Label>Предпросмотр</Label>
-                  <div className="border rounded-md p-4 h-[500px] overflow-auto bg-card">
-                    <div className="prose prose-sm dark:prose-invert max-w-none">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                        {description || "*Введите текст выше для предпросмотра*"}
-                      </ReactMarkdown>
-                    </div>
+                <div className="border rounded-md p-4 h-[500px] overflow-auto bg-card font-ubuntu-mono text-sm">
+                  <div className="prose prose-sm dark:prose-invert max-w-none">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {description || "*Введите текст выше для предпросмотра*"}
+                    </ReactMarkdown>
                   </div>
                 </div>
               </AccordionContent>
@@ -421,7 +399,7 @@ export function ModuleForm({ moduleId, initialData }: ModuleFormProps) {
               <Label htmlFor="level">Уровень сложности (1-5) *</Label>
               <Select value={level} onValueChange={setLevel}>
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Выберите уровень" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="1">1 - Начальный</SelectItem>
@@ -455,14 +433,67 @@ export function ModuleForm({ moduleId, initialData }: ModuleFormProps) {
             <Label htmlFor="isPublished">Опубликован</Label>
           </div>
         </CardContent>
-        <CardFooter className="flex justify-between">
+        <CardFooter className="flex justify-end gap-2">
           <Button type="button" variant="outline" onClick={() => router.back()} disabled={loading}>
             Отмена
           </Button>
+          {moduleId && (
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={loading}
+              onClick={() => setConfirmOpen(true)}
+            >
+              Удалить
+            </Button>
+          )}
           <Button type="submit" disabled={loading}>
             {loading ? "Сохранение..." : moduleId ? "Сохранить" : "Создать"}
           </Button>
         </CardFooter>
+
+        {moduleId && (
+          <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 rounded-full bg-destructive/10 p-2 text-destructive">
+                    <AlertTriangle className="h-5 w-5" />
+                  </div>
+                  <div className="space-y-1">
+                    <DialogTitle>Удалить модуль?</DialogTitle>
+                    <DialogDescription>
+                      Вы действительно хотите удалить этот модуль? Это действие нельзя отменить.
+                    </DialogDescription>
+                  </div>
+                </div>
+              </DialogHeader>
+              <DialogFooter className="sm:justify-end">
+                <Button type="button" variant="outline" onClick={() => setConfirmOpen(false)}>Отмена</Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={async () => {
+                    if (!moduleId) return;
+                    const res = await fetch(`/api/admin/modules/${moduleId}/delete`, { method: "POST" });
+                    setConfirmOpen(false);
+                    if (!res.ok) {
+                      const body = await res.json().catch(() => ({}));
+                      const msg = (body as any)?.error || `${res.status} ${res.statusText}`;
+                      toast({ title: "Ошибка удаления", description: msg, variant: "destructive" });
+                      return;
+                    }
+                    toast({ title: "Модуль удалён", description: "Модуль успешно удалён из базы" });
+                    router.push("/admin/modules");
+                    router.refresh();
+                  }}
+                >
+                  Удалить
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
       </form>
     </Card>
   );

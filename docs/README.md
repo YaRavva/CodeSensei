@@ -72,6 +72,19 @@
 - **Backend:** Vercel + Supabase (PostgreSQL)
 - **AI:** Hugging Face Inference API
 
+### Обновления (админский CRUD, аутентификация, AI)
+- Серверные эндпоинты для админского CRUD модулей:
+  - `POST /api/admin/modules/create` — создание модуля (серверная вставка в `modules`, подробное логирование, таймаут 15с)
+  - `POST /api/admin/modules/[moduleId]/update` — обновление модуля (серверный update, логирование, таймаут)
+  - `POST /api/admin/modules/[moduleId]/delete` — удаление модуля (каскад: задачи → уроки → модуль)
+- Форма создания/редактирования модулей переводится на серверные эндпоинты для устранения «зависаний» клиентского insert при RLS/куках.
+- Аутентификация:
+  - После входа — синхронизация httpOnly-куки через `POST /api/auth/set-session`.
+  - Выход — через `POST /api/auth/signout` (чистит серверные куки) + клиентский signOut.
+- Генерация AI:
+  - Используется одна модель: `openai/gpt-oss-20b` через `https://router.huggingface.co/v1/chat/completions`.
+  - Устойчивый парсинг JSON-ответов и мягкий фолбэк на текст при ошибке парсинга.
+
 ### Система XP
 - **Базовые значения:** 10/20/30 XP (easy/medium/hard)
 - **Множители:** 1.0x (первая попытка), 0.7x (вторая), 0.5x (далее/с подсказкой)
@@ -99,7 +112,17 @@
 - Как модератировать сгенерированный контент
 
 ### Для разработчиков
-- API документация (будет добавлена)
+- API документация (частично)
+  - `POST /api/admin/modules/create`
+    - Вход: `{ title, topic, description|null, level:number, order_index:number, is_published:boolean, created_by:string }`
+    - Выход: `{ ok: true, id, title }` или `{ error, code }`
+  - `POST /api/admin/modules/[moduleId]/update`
+    - Вход: `{ title, topic, description|null, level:number, order_index:number, is_published:boolean }`
+    - Выход: `{ ok: true }` или `{ error, code }`
+  - `POST /api/admin/modules/[moduleId]/delete`
+    - Выход: `{ ok: true }` или `{ error }`
+  - `POST /api/auth/set-session`
+  - `POST /api/auth/signout`
 - Руководство по развертыванию
 - Структура проекта
 
