@@ -5,9 +5,17 @@ import { createClient } from "@/lib/supabase/client";
 import { getUserAchievements } from "@/lib/utils/achievements";
 import { AchievementBadge } from "@/components/achievements/achievement-badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import type { Database } from "@/types/supabase";
-
-type Achievement = Database["public"]["Tables"]["achievements"]["Row"];
+type Achievement = {
+  id: string;
+  title: string;
+  description: string;
+  icon_name: string;
+  xp_reward: number;
+  condition_type: string;
+  condition_value: any;
+  is_active: boolean;
+  created_at: string;
+};
 
 export function AchievementsList({
   userId,

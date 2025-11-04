@@ -43,7 +43,7 @@ export default async function LeaderboardPage({
   let currentRank = 1;
   let previousXP: number | null = null;
   
-  users?.forEach((u) => {
+  users?.forEach((u: any) => {
     const currentXP = u.total_xp || 0;
     
     // Если XP отличается от предыдущего, увеличиваем ранг
@@ -73,25 +73,26 @@ export default async function LeaderboardPage({
       .single();
 
     if (currentUser) {
+      const typedCurrentUser = currentUser as User;
       // Подсчитываем ранг текущего пользователя (студенты и админы)
       const { count } = await supabase
         .from("users")
         .select("*", { count: "exact", head: true })
         .in("role", ["student", "admin"])
-        .gt("total_xp", currentUser.total_xp || 0);
+        .gt("total_xp", typedCurrentUser.total_xp || 0);
 
       // Подсчитываем точный ранг (учитывая пользователей с таким же XP)
       const { data: usersWithSameXp } = await supabase
         .from("users")
         .select("id")
         .in("role", ["student", "admin"])
-        .eq("total_xp", currentUser.total_xp || 0);
+        .eq("total_xp", typedCurrentUser.total_xp || 0);
 
       const usersWithMoreXp = count || 0;
       const rank = usersWithMoreXp + 1;
 
       currentUserData = {
-        ...currentUser,
+        ...typedCurrentUser,
         rank,
       };
     }

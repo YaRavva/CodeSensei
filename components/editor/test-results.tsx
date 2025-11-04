@@ -40,7 +40,7 @@ export function TestResults({ testResults, testCases }: TestResultsProps) {
             </CardDescription>
           </div>
           {testResults.allPassed ? (
-            <Badge className="bg-green-600 text-white">
+            <Badge className="bg-primary text-primary-foreground">
               <CheckCircle2 className="mr-1 h-3 w-3" />
               Все тесты пройдены!
             </Badge>
@@ -66,16 +66,16 @@ export function TestResults({ testResults, testCases }: TestResultsProps) {
                   key={result.testCaseId}
                   className={`p-4 rounded-lg border ${
                     result.passed
-                      ? "bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800"
-                      : "bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800"
+                      ? "bg-primary/10 border-primary/30"
+                      : "bg-destructive/10 border-destructive/30"
                   }`}
                 >
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-2">
                       {result.passed ? (
-                        <CheckCircle2 className="h-5 w-5 text-green-600" />
+                        <CheckCircle2 className="h-5 w-5 text-primary" />
                       ) : (
-                        <XCircle className="h-5 w-5 text-red-600" />
+                        <XCircle className="h-5 w-5 text-destructive" />
                       )}
                       <span className="font-medium">
                         {testCase?.description || `Тест ${result.testCaseId}`}
@@ -91,11 +91,11 @@ export function TestResults({ testResults, testCases }: TestResultsProps) {
                   {!result.passed && (
                     <div className="mt-3 space-y-2 text-sm">
                       {result.error && (
-                        <div className="p-2 bg-red-100 dark:bg-red-900 rounded">
-                          <p className="font-medium text-red-800 dark:text-red-200">
+                        <div className="p-2 bg-destructive/20 rounded">
+                          <p className="font-medium text-destructive">
                             Ошибка:
                           </p>
-                          <pre className="text-xs text-red-700 dark:text-red-300 mt-1 whitespace-pre-wrap font-mono">
+                          <pre className="text-xs text-destructive/90 mt-1 whitespace-pre-wrap font-mono">
                             {result.error}
                           </pre>
                         </div>

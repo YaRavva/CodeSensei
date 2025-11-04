@@ -81,7 +81,7 @@ export function ClientLayout({
         return;
       }
       if (originalUnhandledRejection) {
-        originalUnhandledRejection(event);
+        (originalUnhandledRejection as (event: PromiseRejectionEvent) => void)(event);
       }
     };
 

@@ -44,12 +44,14 @@ export default function RegisterPage() {
 
     if (authData.user) {
       // Создаем профиль в таблице users
-      const { error: profileError } = await supabase.from("users").insert({
-        id: authData.user.id,
-        email: authData.user.email ?? "",
-        display_name: displayName || null,
-        role: "student",
-      });
+      const { error: profileError } = await supabase
+        .from("users")
+        .insert({
+          id: authData.user.id,
+          email: authData.user.email ?? "",
+          display_name: displayName || null,
+          role: "student",
+        } as any);
 
       if (profileError) {
         console.error("Error creating profile:", profileError);
@@ -109,7 +111,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="bg-muted flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center p-6 md:p-10">
+    <div className="bg-background flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center p-6 md:p-10">
       <div className="w-full max-w-sm md:max-w-4xl">
         <div className="flex flex-col gap-6">
           <Card className="overflow-hidden p-0">
@@ -240,7 +242,7 @@ export default function RegisterPage() {
                       WebkitMaskSize: 'contain',
                       WebkitMaskRepeat: 'no-repeat',
                       WebkitMaskPosition: 'center',
-                      backgroundColor: 'hsl(var(--primary))',
+                      backgroundColor: 'var(--primary)',
                       width: '320px',
                       height: '320px',
                       minWidth: '320px',

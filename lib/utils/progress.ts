@@ -3,11 +3,12 @@ import { calculateXP, type XPCalculationParams } from "./xp-calculation";
 
 /**
  * Начисляет XP и обновляет прогресс пользователя при успешном выполнении задания
+ * @deprecated Используйте логику из /api/tasks/award-xp/route.ts, которая работает с модулями
  */
 export async function awardXPAndUpdateProgress(
   userId: string,
   taskId: string,
-  lessonId: string,
+  moduleId: string,
   params: XPCalculationParams
 ) {
   const supabase = await createClient();
@@ -15,10 +16,10 @@ export async function awardXPAndUpdateProgress(
   // Рассчитываем XP
   const xpCalculation = calculateXP(params);
 
-  // Получаем информацию о задании и уроке
+  // Получаем информацию о задании и модуле
   const { data: task } = await supabase
     .from("tasks")
-    .select("xp_reward, difficulty")
+    .select("xp_reward, difficulty, module_id")
     .eq("id", taskId)
     .single();
 
@@ -30,7 +31,8 @@ export async function awardXPAndUpdateProgress(
     .eq("task_id", taskId)
     .order("created_at", { ascending: true });
 
-  const successfulAttempts = attempts?.filter((a) => a.is_successful) || [];
+  const typedAttempts = (attempts || []) as Array<{ is_successful: boolean }>;
+  const successfulAttempts = typedAttempts.filter((a) => a.is_successful);
   const isFirstSuccessfulAttempt = successfulAttempts.length === 1;
 
   // Обновляем total_xp пользователя
@@ -44,11 +46,12 @@ export async function awardXPAndUpdateProgress(
     throw new Error("User not found");
   }
 
-  const newTotalXP = (user.total_xp || 0) + xpCalculation.totalXP;
+  const typedUser = user as { total_xp: number | null; current_level: number | null };
+  const newTotalXP = (typedUser.total_xp || 0) + xpCalculation.totalXP;
 
   // Обновляем total_xp (триггер в БД обновит уровень автоматически)
-  const { error: xpError } = await supabase
-    .from("users")
+  const { error: xpError } = await (supabase
+    .from("users") as any)
     .update({ total_xp: newTotalXP })
     .eq("id", userId);
 
@@ -56,20 +59,27 @@ export async function awardXPAndUpdateProgress(
     throw new Error(`Failed to update user XP: ${xpError.message}`);
   }
 
-  // Обновляем или создаем прогресс урока
+  // Обновляем или создаем прогресс модуля
   const { data: existingProgress } = await supabase
     .from("user_progress")
     .select("*")
     .eq("user_id", userId)
-    .eq("lesson_id", lessonId)
+    .eq("module_id", moduleId)
     .maybeSingle();
 
   const now = new Date().toISOString();
 
-  if (existingProgress) {
+  const typedExistingProgress = existingProgress as {
+    xp_earned: number;
+    attempts_count: number;
+    status: string;
+    [key: string]: any;
+  } | null;
+
+  if (typedExistingProgress) {
     // Обновляем существующий прогресс
-    const newXP = (existingProgress.xp_earned || 0) + xpCalculation.totalXP;
-    const newAttemptsCount = (existingProgress.attempts_count || 0) + 1;
+    const newXP = (typedExistingProgress.xp_earned || 0) + xpCalculation.totalXP;
+    const newAttemptsCount = (typedExistingProgress.attempts_count || 0) + 1;
 
     const updateData: any = {
       xp_earned: newXP,
@@ -78,15 +88,17 @@ export async function awardXPAndUpdateProgress(
       updated_at: now,
     };
 
-    // Если это первое успешное выполнение задания в уроке, обновляем статус
+    // Если это первое успешное выполнение задания в модуле, обновляем статус
     if (isFirstSuccessfulAttempt) {
-      // Проверяем, все ли задания урока выполнены
-      const { data: lessonTasks } = await supabase
+      // Проверяем, все ли задания модуля выполнены
+      const { data: moduleTasks } = await supabase
         .from("tasks")
         .select("id")
-        .eq("lesson_id", lessonId);
+        .eq("module_id", moduleId);
 
-      // Получаем все успешные попытки пользователя для этого урока
+      const typedModuleTasks = (moduleTasks || []) as Array<{ id: string }>;
+
+      // Получаем все успешные попытки пользователя для этого модуля
       const { data: userTaskAttempts } = await supabase
         .from("task_attempts")
         .select("task_id")
@@ -94,17 +106,18 @@ export async function awardXPAndUpdateProgress(
         .eq("is_successful", true)
         .in(
           "task_id",
-          lessonTasks?.map((t) => t.id) || []
+          typedModuleTasks.map((t) => t.id)
         );
 
+      const typedUserTaskAttempts = (userTaskAttempts || []) as Array<{ task_id: string }>;
       // Уникальные выполненные задания
-      const completedTaskIds = new Set(userTaskAttempts?.map((a) => a.task_id) || []);
-      const allTaskIds = new Set(lessonTasks?.map((t) => t.id) || []);
+      const completedTaskIds = new Set(typedUserTaskAttempts.map((a) => a.task_id));
+      const allTaskIds = new Set(typedModuleTasks.map((t) => t.id));
 
-      // Если все задания выполнены, отмечаем урок как завершенный
+      // Если все задания выполнены, отмечаем модуль как завершенный
       if (allTaskIds.size > 0 && completedTaskIds.size === allTaskIds.size) {
         updateData.status = "completed";
-        if (!existingProgress.first_completed_at) {
+        if (!typedExistingProgress.first_completed_at) {
           updateData.first_completed_at = now;
         }
       } else {
@@ -112,10 +125,10 @@ export async function awardXPAndUpdateProgress(
       }
     }
 
-    const { error: progressError } = await supabase
-      .from("user_progress")
+    const { error: progressError } = await (supabase
+      .from("user_progress") as any)
       .update(updateData)
-      .eq("id", existingProgress.id);
+      .eq("id", typedExistingProgress.id);
 
     if (progressError) {
       console.error("Failed to update progress:", progressError);
@@ -123,9 +136,9 @@ export async function awardXPAndUpdateProgress(
     }
   } else {
     // Создаем новый прогресс
-    const { error: progressError } = await supabase.from("user_progress").insert({
+    const { error: progressError } = await (supabase.from("user_progress") as any).insert({
       user_id: userId,
-      lesson_id: lessonId,
+      module_id: moduleId,
       status: "in_progress",
       xp_earned: xpCalculation.totalXP,
       attempts_count: 1,

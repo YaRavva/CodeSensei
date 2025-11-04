@@ -5,9 +5,10 @@ import { createClient as createServerClient } from "@/lib/supabase/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
 
-export async function POST(req: NextRequest, { params }: { params: { moduleId: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ moduleId: string }> }) {
   try {
-    const moduleId = decodeURIComponent(params.moduleId || "");
+    const { moduleId: moduleIdParam } = await params;
+    const moduleId = decodeURIComponent(moduleIdParam || "");
     if (!moduleId) return NextResponse.json({ error: "moduleId is required" }, { status: 400 });
 
     // 1) Authn + role check (admin/teacher)
@@ -65,7 +66,7 @@ export async function POST(req: NextRequest, { params }: { params: { moduleId: s
         xp_reward: typeof xp_reward === "number" ? xp_reward : null,
         order_index: typeof order_index === "number" ? order_index : 0,
         module_id: moduleId,
-      })
+      } as any)
       .select("id")
       .single();
 

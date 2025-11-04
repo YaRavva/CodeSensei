@@ -91,6 +91,79 @@ export interface Database {
           updated_at?: string;
         };
       };
+      users: {
+        Row: {
+          id: string;
+          email: string | null;
+          display_name: string | null;
+          role: string;
+          avatar_url: string | null;
+          total_xp: number;
+          current_level: number;
+          created_at: string;
+          last_active_at: string | null;
+        };
+        Insert: {
+          id: string;
+          email?: string | null;
+          display_name?: string | null;
+          role?: string;
+          avatar_url?: string | null;
+          total_xp?: number;
+          current_level?: number;
+          created_at?: string;
+          last_active_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          email?: string | null;
+          display_name?: string | null;
+          role?: string;
+          avatar_url?: string | null;
+          total_xp?: number;
+          current_level?: number;
+          created_at?: string;
+          last_active_at?: string | null;
+        };
+      };
+      task_attempts: {
+        Row: {
+          id: string;
+          user_id: string;
+          task_id: string;
+          code_solution: string;
+          test_results: Json;
+          is_successful: boolean;
+          used_ai_hint: boolean;
+          execution_time_ms: number | null;
+          error_message: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          task_id: string;
+          code_solution: string;
+          test_results: Json;
+          is_successful: boolean;
+          used_ai_hint?: boolean;
+          execution_time_ms?: number | null;
+          error_message?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          task_id?: string;
+          code_solution?: string;
+          test_results?: Json;
+          is_successful?: boolean;
+          used_ai_hint?: boolean;
+          execution_time_ms?: number | null;
+          error_message?: string | null;
+          created_at?: string;
+        };
+      };
       user_progress: {
         Row: {
           id: string;

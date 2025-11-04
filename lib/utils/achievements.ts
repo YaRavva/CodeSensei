@@ -1,8 +1,22 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/supabase";
-
-type Achievement = Database["public"]["Tables"]["achievements"]["Row"];
-type UserAchievement = Database["public"]["Tables"]["user_achievements"]["Row"];
+type Achievement = {
+  id: string;
+  title: string;
+  description: string;
+  icon_name: string;
+  xp_reward: number;
+  condition_type: string;
+  condition_value: any;
+  is_active: boolean;
+  created_at: string;
+};
+type UserAchievement = {
+  id: string;
+  user_id: string;
+  achievement_id: string;
+  earned_at: string;
+};
 
 interface AchievementCheckResult {
   achievement: Achievement;
@@ -34,6 +48,8 @@ export async function checkAndAwardAchievements(
     return newlyUnlocked;
   }
 
+  const typedAchievements = (achievements || []) as Achievement[];
+
   // Получаем уже полученные достижения пользователя
   const { data: userAchievements, error: userAchievementsError } = await supabase
     .from("user_achievements")
@@ -45,12 +61,13 @@ export async function checkAndAwardAchievements(
     return newlyUnlocked;
   }
 
+  const typedUserAchievements = (userAchievements || []) as UserAchievement[];
   const earnedAchievementIds = new Set(
-    userAchievements?.map((ua) => ua.achievement_id) || []
+    typedUserAchievements.map((ua) => ua.achievement_id)
   );
 
   // Проверяем каждое достижение
-  for (const achievement of achievements) {
+  for (const achievement of typedAchievements) {
     // Пропускаем уже полученные
     if (earnedAchievementIds.has(achievement.id)) {
       continue;
@@ -66,8 +83,8 @@ export async function checkAndAwardAchievements(
 
     if (isUnlocked) {
       // Начисляем достижение
-      const { error: insertError } = await supabase
-        .from("user_achievements")
+      const { error: insertError } = await (supabase
+        .from("user_achievements") as any)
         .insert({
           user_id: userId,
           achievement_id: achievement.id,
@@ -89,10 +106,11 @@ export async function checkAndAwardAchievements(
             .single();
 
           if (user) {
-            const newTotalXP = (user.total_xp || 0) + achievement.xp_reward;
+            const typedUser = user as { total_xp: number | null; current_level: number | null };
+            const newTotalXP = (typedUser.total_xp || 0) + achievement.xp_reward;
             
             // Рассчитываем новый уровень с помощью RPC функции
-            const { data: calculatedLevel } = await supabase.rpc(
+            const { data: calculatedLevel } = await (supabase.rpc as any)(
               "calculate_user_level",
               {
                 total_xp: newTotalXP,
@@ -102,11 +120,11 @@ export async function checkAndAwardAchievements(
             const newLevelValue =
               typeof calculatedLevel === "number" ? calculatedLevel : null;
 
-            await supabase
-              .from("users")
+            await (supabase
+              .from("users") as any)
               .update({
                 total_xp: newTotalXP,
-                current_level: newLevelValue || user.current_level || 1,
+                current_level: newLevelValue || typedUser.current_level || 1,
               })
               .eq("id", userId);
           }
@@ -166,8 +184,9 @@ async function checkAchievementCondition(
 
       if (!attempts) return false;
 
+      const typedAttempts = attempts as Array<{ created_at: string }>;
       let matchingCount = 0;
-      for (const attempt of attempts) {
+      for (const attempt of typedAttempts) {
         if (!attempt.created_at) continue;
         const attemptDate = new Date(attempt.created_at);
         const hour = attemptDate.getHours();
@@ -233,7 +252,8 @@ async function checkAchievementCondition(
 
       // Группируем по дням
       const daysSet = new Set<string>();
-      for (const attempt of attempts) {
+      const typedAttempts2 = (attempts || []) as Array<{ created_at: string }>;
+      for (const attempt of typedAttempts2) {
         if (!attempt.created_at) continue;
         const date = new Date(attempt.created_at);
         const dayKey = date.toISOString().split("T")[0];
@@ -256,9 +276,10 @@ async function checkAchievementCondition(
         .eq("id", userId)
         .single();
 
-      if (!user || !user.created_at) return false;
+      const typedUser2 = user as { created_at: string } | null;
+      if (!typedUser2 || !typedUser2.created_at) return false;
 
-      const registrationDate = new Date(user.created_at);
+      const registrationDate = new Date(typedUser2.created_at);
       const nextDay = new Date(registrationDate);
       nextDay.setDate(nextDay.getDate() + 1);
 
@@ -287,8 +308,9 @@ async function checkAchievementCondition(
       if (!allTasks) return false;
 
       // Группируем по task_id и проверяем, была ли первая попытка успешной
+      const typedAllTasks = (allTasks || []) as Array<{ task_id: string; is_successful: boolean }>;
       const taskMap = new Map<string, boolean>();
-      for (const attempt of allTasks) {
+      for (const attempt of typedAllTasks) {
         if (!taskMap.has(attempt.task_id)) {
           taskMap.set(attempt.task_id, attempt.is_successful);
         }

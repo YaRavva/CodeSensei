@@ -118,7 +118,7 @@ export function Navigation() {
   }
 
   return (
-    <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm">
+    <nav className="border-b bg-background shadow-sm">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <Link href="/" className="text-xl font-bold">
           CodeSensei
@@ -150,7 +150,7 @@ export function Navigation() {
                       <AvatarImage src={profile?.avatar_url ?? undefined} />
                       <AvatarFallback 
                         key={`${profile?.id || user?.id || "default"}-${profile?.display_name || user?.email || ""}`}
-                        className="text-lg font-semibold"
+                        className="text-sm font-semibold bg-primary text-primary-foreground"
                       >
                         {getInitials()}
                       </AvatarFallback>

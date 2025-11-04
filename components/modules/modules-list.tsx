@@ -2,7 +2,14 @@
 
 import type { Database } from "@/types/supabase";
 import { ModuleCard } from "@/components/modules/module-card";
-import { useState } from "react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useMemo, useState } from "react";
 
 type Module = Database["public"]["Tables"]["modules"]["Row"];
 type UserProgress = Database["public"]["Tables"]["user_progress"]["Row"];
@@ -39,15 +46,19 @@ export function ModulesList({ modules, userProgress }: ModulesListProps) {
     level?: number;
   }>({});
 
-  // Фильтруем модули
-  const filteredModules = modules.filter((module) => {
-    if (filter.status) {
-      const status = getModuleStatus(module.id, userProgress);
-      if (status !== filter.status) return false;
-    }
-    if (filter.level && module.level !== filter.level) return false;
-    return true;
-  });
+  const statusValue = filter.status ?? "all";
+  const levelValue = filter.level ? String(filter.level) : "all";
+
+  const filteredModules = useMemo(() => {
+    return modules.filter((module) => {
+      if (filter.status) {
+        const status = getModuleStatus(module.id, userProgress);
+        if (status !== filter.status) return false;
+      }
+      if (filter.level && module.level !== filter.level) return false;
+      return true;
+    });
+  }, [modules, filter, userProgress]);
 
   if (modules.length === 0) {
     return (
@@ -62,39 +73,56 @@ export function ModulesList({ modules, userProgress }: ModulesListProps) {
   return (
     <div className="space-y-6">
       {/* Фильтры */}
-      <div className="flex gap-4 flex-wrap">
-        <select
-          className="px-3 py-2 border rounded-md bg-background"
-          value={filter.status || ""}
-          onChange={(e) =>
-            setFilter({
-              ...filter,
-              status: e.target.value ? (e.target.value as ModuleStatus) : undefined,
-            })
-          }
-        >
-          <option value="">Все статусы</option>
-          <option value="not_started">Не начат</option>
-          <option value="in_progress">В процессе</option>
-          <option value="completed">Завершен</option>
-        </select>
-        <select
-          className="px-3 py-2 border rounded-md bg-background"
-          value={filter.level || ""}
-          onChange={(e) =>
-            setFilter({
-              ...filter,
-              level: e.target.value ? Number.parseInt(e.target.value, 10) : undefined,
-            })
-          }
-        >
-          <option value="">Все уровни</option>
-          <option value="1">Уровень 1 - Начальный</option>
-          <option value="2">Уровень 2 - Базовый</option>
-          <option value="3">Уровень 3 - Средний</option>
-          <option value="4">Уровень 4 - Продвинутый</option>
-          <option value="5">Уровень 5 - Эксперт</option>
-        </select>
+      <div className="rounded-xl border border-border/60 bg-card/80 p-4 shadow-sm">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex flex-col gap-2">
+            <span className="text-sm font-medium text-muted-foreground">Статус</span>
+            <Select
+              value={statusValue}
+              onValueChange={(value) =>
+                setFilter((prev) => ({
+                  ...prev,
+                  status: value === "all" ? undefined : (value as ModuleStatus),
+                }))
+              }
+            >
+              <SelectTrigger className="w-full min-w-[200px] bg-card">
+                <SelectValue placeholder="Все статусы" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Все статусы</SelectItem>
+                <SelectItem value="not_started">Не начат</SelectItem>
+                <SelectItem value="in_progress">В процессе</SelectItem>
+                <SelectItem value="completed">Завершен</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <span className="text-sm font-medium text-muted-foreground">Уровень сложности</span>
+            <Select
+              value={levelValue}
+              onValueChange={(value) =>
+                setFilter((prev) => ({
+                  ...prev,
+                  level: value === "all" ? undefined : Number.parseInt(value, 10),
+                }))
+              }
+            >
+              <SelectTrigger className="w-full min-w-[220px] bg-card">
+                <SelectValue placeholder="Все уровни" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Все уровни</SelectItem>
+                <SelectItem value="1">Уровень 1 — Начальный</SelectItem>
+                <SelectItem value="2">Уровень 2 — Базовый</SelectItem>
+                <SelectItem value="3">Уровень 3 — Средний</SelectItem>
+                <SelectItem value="4">Уровень 4 — Продвинутый</SelectItem>
+                <SelectItem value="5">Уровень 5 — Эксперт</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
       </div>
 
       {/* Список модулей */}

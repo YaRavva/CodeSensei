@@ -36,8 +36,8 @@ export default function ProfilePage() {
     if (!user) return;
     setLoading(true);
 
-    const { error } = await supabase
-      .from("users")
+    const { error } = await (supabase
+      .from("users") as any)
       .update({
         display_name: displayName || null,
       })

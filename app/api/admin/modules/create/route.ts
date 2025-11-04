@@ -37,8 +37,8 @@ export async function POST(request: Request) {
     };
     console.log("API:createModule: payload stats", stats);
 
-    const insertPromise = supabase
-      .from("modules")
+    const insertPromise = (supabase
+      .from("modules") as any)
       .insert({
         title: body.title,
         topic: body.topic,
@@ -51,14 +51,15 @@ export async function POST(request: Request) {
       .select("id,title")
       .single();
 
-    const { data, error } = await withTimeout(insertPromise, 15000);
+    const { data, error } = (await withTimeout(insertPromise, 15000)) as { data: any; error: any } | { data?: null; error?: null };
 
     if (error) {
       console.error("API:createModule: insert error", error);
       return NextResponse.json({ error: error.message, code: (error as any)?.code }, { status: 400 });
     }
 
-    return NextResponse.json({ ok: true, id: data?.id, title: data?.title });
+    const typedData = data as { id: string; title: string } | null;
+    return NextResponse.json({ ok: true, id: typedData?.id, title: typedData?.title });
   } catch (e: any) {
     console.error("API:createModule: unexpected", e);
     const msg = e?.message || "Unknown error";

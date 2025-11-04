@@ -26,9 +26,10 @@ export async function POST(req: NextRequest) {
       .eq("id", taskId)
       .maybeSingle();
 
+    const typedTask = task as { title: string; description: string } | null;
     const prompt = `Ты наставник по Python. Дай поэтапную подсказку (не решение) к задаче. Структура JSON: {\"type\": \"concept\"|\"edge_case\"|\"debug\", \"hint\": string, \"steps\": string[]}.
-Задача: ${task?.title ?? "Без названия"}
-Описание: ${(task?.description ?? "").slice(0, 1000)}
+Задача: ${typedTask?.title ?? "Без названия"}
+Описание: ${(typedTask?.description ?? "").slice(0, 1000)}
 Код ученика (может быть пустым):\n${(code ?? "").slice(0, 1200)}`;
 
     if (!HF_API_KEY) return NextResponse.json({ error: "Hugging Face API key is not configured" }, { status: 500 });

@@ -30,10 +30,11 @@ export async function POST(req: NextRequest) {
       .eq("id", taskId)
       .maybeSingle();
 
+    const typedTask = task as { title: string; description: string } | null;
     const prompt = `Ты — наставник по Python для школьника. Оцени решение задачи по критериям: корректность, покрытие крайних случаев, читаемость. Верни ТОЛЬКО JSON {\"score\": number 0..1, \"feedback\": string}.
 
-Задача: ${task?.title ?? "Без названия"}
-Описание (Markdown):\n${(task?.description ?? "").slice(0, 2000)}
+Задача: ${typedTask?.title ?? "Без названия"}
+Описание (Markdown):\n${(typedTask?.description ?? "").slice(0, 2000)}
 
 Код ученика:\n\n${code.slice(0, 4000)}
 

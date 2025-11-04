@@ -18,9 +18,11 @@ export default async function TaskPage({
 
   const { data: module } = await supabase.from("modules").select("*").eq("id", moduleId).maybeSingle();
   if (!module) notFound();
+  const typedModule = module as Module;
 
   const { data: task } = await supabase.from("tasks").select("*").eq("id", taskId).eq("module_id", moduleId).maybeSingle();
   if (!task) notFound();
+  const typedTask = task as Task;
 
   // Навигация по заданиям модуля
   const { data: tasks } = await supabase
@@ -29,9 +31,10 @@ export default async function TaskPage({
     .eq("module_id", moduleId)
     .order("order_index", { ascending: true });
 
-  const currentIdx = task.order_index;
-  const prevTask = tasks?.find((t) => t.order_index === currentIdx - 1) ?? null;
-  const nextTask = tasks?.find((t) => t.order_index === currentIdx + 1) ?? null;
+  const typedTasks = (tasks || []) as Array<{ id: string; title: string; order_index: number }>;
+  const currentIdx = typedTask.order_index;
+  const prevTask = typedTasks.find((t) => t.order_index === currentIdx - 1) ?? null;
+  const nextTask = typedTasks.find((t) => t.order_index === currentIdx + 1) ?? null;
 
   // Последняя попытка
   const { data: attempts } = await supabase
@@ -45,7 +48,7 @@ export default async function TaskPage({
   const lastAttempt = attempts?.[0] ?? null;
 
   return (
-    <TaskPageContent module={module as Module} task={task as Task} prevTask={prevTask} nextTask={nextTask} lastAttempt={lastAttempt} />
+    <TaskPageContent module={typedModule} task={typedTask} prevTask={prevTask} nextTask={nextTask} lastAttempt={lastAttempt} />
   );
 }
 

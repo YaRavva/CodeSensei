@@ -16,6 +16,9 @@ import type { TestCase, TestSuiteResult } from "@/types/test-case";
 import { ArrowLeft, ArrowRight, BookOpen, RotateCcw, Sparkles, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { oneDark, oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { useTheme } from "@/components/theme-provider";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
@@ -35,9 +38,15 @@ interface TaskPageContentProps {
 
 export function TaskPageContent({ module, task, prevTask, nextTask, lastAttempt }: TaskPageContentProps) {
   const router = useRouter();
+  const { theme } = useTheme();
   const { user } = useAuth();
   const { toast } = useToast();
   const { pyodide, loading: pyodideLoading, error: pyodideError, executeCode } = usePyodide();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Состояние кода
   const [code, setCode] = useState(task.starter_code || "");
@@ -221,8 +230,8 @@ export function TaskPageContent({ module, task, prevTask, nextTask, lastAttempt 
             results.allPassed && (!successfulAttempts || successfulAttempts.length === 0);
 
           // Сохраняем попытку
-          const { error: attemptError } = await supabase
-            .from("task_attempts")
+          const { error: attemptError } = await (supabase
+            .from("task_attempts") as any)
             .insert({
               user_id: user.id,
               task_id: task.id,
@@ -415,7 +424,33 @@ export function TaskPageContent({ module, task, prevTask, nextTask, lastAttempt 
               </CardHeader>
               <CardContent>
                 <div className="prose prose-sm dark:prose-invert max-w-none">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={{
+                      code({ node, inline, className, children, ...props }) {
+                        const match = /language-(\w+)/.exec(className || "");
+                        const isDark = mounted && (
+                          theme === "dark" || 
+                          (theme === "system" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches)
+                        );
+                        return !inline && match ? (
+                          <SyntaxHighlighter
+                            style={isDark ? oneDark : oneLight}
+                            language={match[1]}
+                            PreTag="div"
+                            className="font-ubuntu-mono rounded-md"
+                            {...props}
+                          >
+                            {String(children).replace(/\n$/, "")}
+                          </SyntaxHighlighter>
+                        ) : (
+                          <code className={`font-ubuntu-mono ${className}`} {...props}>
+                            {children}
+                          </code>
+                        );
+                      },
+                    }}
+                  >
                     {module.description}
                   </ReactMarkdown>
                 </div>

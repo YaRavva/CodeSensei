@@ -30,6 +30,8 @@ const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
 interface TaskFormProps {
   moduleId?: string;
   taskId?: string;
+  onSuccess?: () => void;
+  onCancel?: () => void;
 }
 
 type TestCase = {
@@ -41,7 +43,7 @@ type TestCase = {
   is_visible: boolean;
 };
 
-export function TaskForm({ moduleId, taskId }: TaskFormProps) {
+export function TaskForm({ moduleId, taskId, onSuccess, onCancel }: TaskFormProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [starterCode, setStarterCode] = useState("");
@@ -83,18 +85,29 @@ export function TaskForm({ moduleId, taskId }: TaskFormProps) {
     }
 
     if (data) {
-      setTitle(data.title);
-      setDescription(data.description);
-      setStarterCode(data.starter_code);
-      setSolutionCode(data.solution_code || "");
-      setDifficulty(data.difficulty);
-      setXpReward(data.xp_reward?.toString() || "10");
-      setOrderIndex(data.order_index.toString());
-      setCurrentModuleId((data as any).module_id);
+      const typedData = data as {
+        title: string;
+        description: string;
+        starter_code: string;
+        solution_code: string | null;
+        difficulty: "easy" | "medium" | "hard";
+        xp_reward: number | null;
+        order_index: number;
+        module_id: string;
+        test_cases: any;
+      };
+      setTitle(typedData.title);
+      setDescription(typedData.description);
+      setStarterCode(typedData.starter_code);
+      setSolutionCode(typedData.solution_code || "");
+      setDifficulty(typedData.difficulty);
+      setXpReward(typedData.xp_reward?.toString() || "10");
+      setOrderIndex(typedData.order_index.toString());
+      setCurrentModuleId(typedData.module_id);
 
       // Парсим тестовые случаи
       try {
-        const parsed = Array.isArray(data.test_cases) ? data.test_cases : [];
+        const parsed = Array.isArray(typedData.test_cases) ? typedData.test_cases : [];
         setTestCases(parsed as TestCase[]);
       } catch {
         setTestCases([]);
@@ -118,12 +131,13 @@ export function TaskForm({ moduleId, taskId }: TaskFormProps) {
       // Получаем теорию модуля (описание) для контекста
       let moduleTheory = "";
       if (currentModuleId) {
-        const { data: moduleData } = await supabase
-          .from("modules")
-          .select("description")
-          .eq("id", currentModuleId)
-          .maybeSingle();
-        moduleTheory = moduleData?.description || "";
+          const { data: moduleData } = await supabase
+            .from("modules")
+            .select("description")
+            .eq("id", currentModuleId)
+            .maybeSingle();
+          const typedModuleData = moduleData as { description: string | null } | null;
+          moduleTheory = typedModuleData?.description || "";
       }
 
       const response = await fetch("/api/ai/generate-task", {
@@ -222,7 +236,7 @@ export function TaskForm({ moduleId, taskId }: TaskFormProps) {
       if (taskId) {
         const updateData = { ...taskData } as any;
         delete updateData.module_id; // модуль не меняем при редактировании
-        const { error } = await supabase.from("tasks").update(updateData).eq("id", taskId);
+        const { error } = await (supabase.from("tasks") as any).update(updateData).eq("id", taskId);
 
         if (error) throw error;
 
@@ -230,26 +244,23 @@ export function TaskForm({ moduleId, taskId }: TaskFormProps) {
           title: "Задание обновлено",
           description: "Изменения сохранены",
         });
+        onSuccess?.();
       } else {
         if (!currentModuleId) {
           throw new Error("Не указан модуль");
         }
 
-        const { data, error } = await supabase.from("tasks").insert(taskData).select("id").single();
+        const { data, error } = await (supabase.from("tasks") as any).insert(taskData).select("id").single();
 
         if (error) throw error;
 
-        const newId = (data as any)?.id as string;
         toast({
           title: "Задание создано",
           description: "Новое задание успешно создано",
         });
-        router.push(`/admin/tasks/${newId}/edit`);
-        router.refresh();
+        onSuccess?.();
         return;
       }
-
-      router.refresh();
     } catch (error) {
       toast({
         title: "Ошибка",
@@ -428,7 +439,12 @@ export function TaskForm({ moduleId, taskId }: TaskFormProps) {
           </div>
         </CardContent>
         <CardFooter className="flex justify-between">
-          <Button type="button" variant="outline" onClick={() => router.back()} disabled={loading}>
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={() => onCancel ? onCancel() : router.back()} 
+            disabled={loading}
+          >
             Отмена
           </Button>
           <Button type="submit" disabled={loading}>

@@ -25,6 +25,7 @@ import remarkGfm from "remark-gfm";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertTriangle } from "lucide-react";
 import { ToastAction } from "@/components/ui/toast";
+import { ModuleTasksManager } from "@/components/admin/module-tasks-manager";
 
 
 interface ModuleFormProps {
@@ -83,12 +84,20 @@ export function ModuleForm({ moduleId, initialData, createdByUserId }: ModuleFor
     }
 
     if (data) {
-      setTitle(data.title);
-      setDescription(data.description || "");
-      setTopic(data.topic);
-      setLevel(data.level.toString());
-      setOrderIndex(data.order_index.toString());
-      setIsPublished(data.is_published ?? false);
+      const typedData = data as {
+        title: string;
+        description: string | null;
+        topic: string;
+        level: number;
+        order_index: number;
+        is_published: boolean;
+      };
+      setTitle(typedData.title);
+      setDescription(typedData.description || "");
+      setTopic(typedData.topic);
+      setLevel(typedData.level.toString());
+      setOrderIndex(typedData.order_index.toString());
+      setIsPublished(typedData.is_published ?? false);
     }
   }
 
@@ -439,106 +448,123 @@ export function ModuleForm({ moduleId, initialData, createdByUserId }: ModuleFor
           <Tabs defaultValue="module" value={activeTab} onValueChange={setActiveTab}>
             <TabsList>
               <TabsTrigger value="module">Данные модуля</TabsTrigger>
+              {moduleId && <TabsTrigger value="tasks">Задания</TabsTrigger>}
               <TabsTrigger value="ai">Генерация заданий ИИ</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="module" className="space-y-4">
-              <Accordion type="single" collapsible className="w-full">
-                <AccordionItem value="description">
-                  <AccordionTrigger>Описание</AccordionTrigger>
-                  <AccordionContent>
-                    <Textarea
-                      id="description"
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      disabled={loading}
-                      className="min-h-[500px] font-ubuntu-mono text-sm"
-                      placeholder="Введите описание в формате Markdown..."
-                    />
-                  </AccordionContent>
-                </AccordionItem>
-                <AccordionItem value="preview">
-                  <AccordionTrigger>Предпросмотр</AccordionTrigger>
-                  <AccordionContent>
-                    <div className="border rounded-md p-4 h-[500px] overflow-auto bg-card font-ubuntu-mono text-sm">
-                      <div className="prose prose-sm dark:prose-invert max-w-none">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                          {description || "*Введите текст выше для предпросмотра*"}
-                        </ReactMarkdown>
-                      </div>
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
+            <TabsContent value="module" className="space-y-6">
+              {/* Основные параметры */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-card rounded-lg border">
+                <div className="space-y-2">
                   <Label htmlFor="topic">Тема *</Label>
-                  {!moduleId && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={handleGenerateAI}
-                      disabled={loading || generating || !topic.trim()}
-                    >
-                      {generating ? "Генерация..." : "🎨 Сгенерировать с AI"}
-                    </Button>
+                  <div className="flex gap-2">
+                    <Input
+                      id="topic"
+                      value={topic}
+                      onChange={(e) => {
+                        setTopic(e.target.value);
+                        if (!title && e.target.value.trim()) {
+                          setTitle(e.target.value.trim());
+                        }
+                      }}
+                      placeholder="Например: Переменные, Циклы, Функции"
+                      required
+                      disabled={loading || generating}
+                    />
+                    {!moduleId && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleGenerateAI}
+                        disabled={loading || generating || !topic.trim()}
+                        className="shrink-0"
+                      >
+                        {generating ? "..." : "🎨 AI"}
+                      </Button>
+                    )}
+                  </div>
+                  {generating && (
+                    <p className="text-xs text-muted-foreground">ИИ генерирует контент модуля...</p>
                   )}
                 </div>
-                <Input
-                  id="topic"
-                  value={topic}
-                  onChange={(e) => {
-                    setTopic(e.target.value);
-                    if (!title && e.target.value.trim()) {
-                      setTitle(e.target.value.trim());
-                    }
-                  }}
-                  placeholder="Например: Переменные, Циклы, Функции"
-                  required
-                  disabled={loading || generating}
-                />
-                {generating && (
-                  <p className="text-sm text-muted-foreground">ИИ генерирует контент модуля... Это может занять несколько секунд.</p>
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="level">Уровень сложности (1-5) *</Label>
-                  <Select value={level} onValueChange={setLevel}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Выберите уровень" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1">1 - Начальный</SelectItem>
-                      <SelectItem value="2">2 - Базовый</SelectItem>
-                      <SelectItem value="3">3 - Средний</SelectItem>
-                      <SelectItem value="4">4 - Продвинутый</SelectItem>
-                      <SelectItem value="5">5 - Эксперт</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="level">Уровень (1-5) *</Label>
+                    <Select value={level} onValueChange={setLevel}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Уровень" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">1 - Начальный</SelectItem>
+                        <SelectItem value="2">2 - Базовый</SelectItem>
+                        <SelectItem value="3">3 - Средний</SelectItem>
+                        <SelectItem value="4">4 - Продвинутый</SelectItem>
+                        <SelectItem value="5">5 - Эксперт</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="orderIndex">Порядок *</Label>
+                    <Input
+                      id="orderIndex"
+                      type="number"
+                      value={orderIndex}
+                      onChange={(e) => setOrderIndex(e.target.value)}
+                      required
+                      min="0"
+                      disabled={loading}
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="orderIndex">Порядок отображения *</Label>
-                  <Input
-                    id="orderIndex"
-                    type="number"
-                    value={orderIndex}
-                    onChange={(e) => setOrderIndex(e.target.value)}
-                    required
-                    min="0"
-                    disabled={loading}
-                  />
+                <div className="md:col-span-2 flex items-center space-x-2 p-2 bg-muted/50 rounded-md">
+                  <Switch id="isPublished" checked={isPublished} onCheckedChange={setIsPublished} disabled={loading} />
+                  <Label htmlFor="isPublished" className="cursor-pointer">Опубликован</Label>
                 </div>
               </div>
 
-              <div className="flex items-center space-x-2">
-                <Switch id="isPublished" checked={isPublished} onCheckedChange={setIsPublished} disabled={loading} />
-                <Label htmlFor="isPublished">Опубликован</Label>
-              </div>
+              {/* Описание модуля */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Описание модуля (Markdown)</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Accordion type="single" collapsible className="w-full">
+                    <AccordionItem value="description" className="border-none">
+                      <AccordionTrigger className="py-2 text-sm">Редактировать описание</AccordionTrigger>
+                      <AccordionContent>
+                        <Textarea
+                          id="description"
+                          value={description}
+                          onChange={(e) => setDescription(e.target.value)}
+                          disabled={loading}
+                          className="min-h-[300px] font-ubuntu-mono text-sm"
+                          placeholder="Введите описание в формате Markdown..."
+                        />
+                      </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="preview" className="border-none">
+                      <AccordionTrigger className="py-2 text-sm">Предпросмотр</AccordionTrigger>
+                      <AccordionContent>
+                        <div className="border rounded-md p-4 h-[400px] overflow-auto bg-card">
+                          <div className="prose prose-sm dark:prose-invert max-w-none">
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                              {description || "*Введите текст выше для предпросмотра*"}
+                            </ReactMarkdown>
+                          </div>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
+                </CardContent>
+              </Card>
             </TabsContent>
+
+            {moduleId && (
+              <TabsContent value="tasks" className="space-y-4">
+                <ModuleTasksManager moduleId={moduleId} />
+              </TabsContent>
+            )}
 
             <TabsContent value="ai" className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

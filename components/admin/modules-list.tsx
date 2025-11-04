@@ -133,9 +133,6 @@ export function ModulesList({ initialModules }: ModulesListProps) {
               <Button variant="outline" size="sm" asChild>
                 <Link href={`/admin/modules/${module.id}/edit`}>Редактировать</Link>
               </Button>
-              <Button variant="outline" size="sm" asChild>
-                <Link href={`/admin/modules/${module.id}/lessons`}>Уроки</Link>
-              </Button>
             <Button type="button" variant="destructive" size="sm" onClick={() => requestDelete(module.id, module.title)}>
                 Удалить
               </Button>

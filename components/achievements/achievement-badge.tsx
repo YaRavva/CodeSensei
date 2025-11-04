@@ -1,9 +1,18 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
-import type { Database } from "@/types/supabase";
 
-type Achievement = Database["public"]["Tables"]["achievements"]["Row"];
+type Achievement = {
+  id: string;
+  title: string;
+  description: string;
+  icon_name: string;
+  xp_reward: number;
+  condition_type: string;
+  condition_value: any;
+  is_active: boolean;
+  created_at: string;
+};
 
 interface AchievementBadgeProps {
   achievement: Achievement & { earned_at?: string | null };

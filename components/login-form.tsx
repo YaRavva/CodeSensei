@@ -244,7 +244,7 @@ export function LoginForm() {
                   WebkitMaskSize: 'contain',
                   WebkitMaskRepeat: 'no-repeat',
                   WebkitMaskPosition: 'center',
-                  backgroundColor: 'hsl(var(--primary))',
+                  backgroundColor: 'var(--primary)',
                   width: '320px',
                   height: '320px',
                   minWidth: '320px',

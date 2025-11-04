@@ -8,7 +8,16 @@ import { Progress } from "@/components/ui/progress";
 import { AchievementsList } from "@/components/achievements/achievements-list";
 
 type UserProfile = Database["public"]["Tables"]["users"]["Row"];
-type UserAchievementView = Database["public"]["Tables"]["achievements"]["Row"] & {
+type UserAchievementView = {
+  id: string;
+  title: string;
+  description: string;
+  icon_name: string;
+  xp_reward: number;
+  condition_type: string;
+  condition_value: any;
+  is_active: boolean;
+  created_at: string;
   earned_at: string;
 };
 

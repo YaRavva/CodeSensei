@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { calculateXP, type XPCalculationParams } from "@/lib/utils/xp-calculation";
 import { checkAndAwardAchievements } from "@/lib/utils/achievements";
 
-async function updateUserProgress(supabase: ReturnType<typeof createClient>, userId: string, moduleId: string) {
+async function updateUserProgress(supabase: Awaited<ReturnType<typeof createClient>>, userId: string, moduleId: string) {
   try {
     // 1. Получаем текущий прогресс
     const { data: progress, error: progressError } = await supabase
@@ -19,7 +19,7 @@ async function updateUserProgress(supabase: ReturnType<typeof createClient>, use
 
     // 2. Если прогресса нет, создаем запись
     if (!progress) {
-      const { error: insertError } = await supabase.from("user_progress").insert({
+      const { error: insertError } = await (supabase.from("user_progress") as any).insert({
         user_id: userId,
         module_id: moduleId,
         status: "in_progress",
@@ -39,10 +39,12 @@ async function updateUserProgress(supabase: ReturnType<typeof createClient>, use
       throw new Error(`Error fetching module tasks: ${moduleTasksError.message}`);
     }
 
-    if (!moduleTasks || moduleTasks.length === 0) {
+    const typedModuleTasks = (moduleTasks || []) as Array<{ id: string }>;
+
+    if (typedModuleTasks.length === 0) {
       // Если в модуле нет задач, считаем его завершенным
-      await supabase
-        .from("user_progress")
+      await (supabase
+        .from("user_progress") as any)
         .update({ status: "completed" })
         .eq("user_id", userId)
         .eq("module_id", moduleId);
@@ -54,17 +56,18 @@ async function updateUserProgress(supabase: ReturnType<typeof createClient>, use
       .select("task_id")
       .eq("user_id", userId)
       .eq("is_successful", true)
-      .in("task_id", moduleTasks.map(t => t.id));
+      .in("task_id", typedModuleTasks.map(t => t.id));
 
     if (completedTasksError) {
       throw new Error(`Error fetching completed tasks: ${completedTasksError.message}`);
     }
 
-    const completedTaskIds = new Set(completedTasks.map(t => t.task_id));
+    const typedCompletedTasks = (completedTasks || []) as Array<{ task_id: string }>;
+    const completedTaskIds = new Set(typedCompletedTasks.map(t => t.task_id));
 
-    if (completedTaskIds.size === moduleTasks.length) {
-      const { error: updateError } = await supabase
-        .from("user_progress")
+    if (completedTaskIds.size === typedModuleTasks.length) {
+      const { error: updateError } = await (supabase
+        .from("user_progress") as any)
         .update({ status: "completed" })
         .eq("user_id", userId)
         .eq("module_id", moduleId);
@@ -114,6 +117,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const typedTask = task as { xp_reward: number | null; difficulty: "easy" | "medium" | "hard"; module_id: string };
+
     // Получаем среднее время выполнения для этой задачи (для бонуса скорости)
     const { data: avgExecutionData } = await supabase
       .from("task_attempts")
@@ -122,18 +127,19 @@ export async function POST(request: NextRequest) {
       .eq("is_successful", true)
       .not("execution_time_ms", "is", null);
 
+    const typedAvgExecutionData = (avgExecutionData || []) as Array<{ execution_time_ms: number | null }>;
     const averageExecutionTime =
-      avgExecutionData && avgExecutionData.length > 0
-        ? avgExecutionData.reduce(
+      typedAvgExecutionData.length > 0
+        ? typedAvgExecutionData.reduce(
             (sum, a) => sum + (a.execution_time_ms || 0),
             0
-          ) / avgExecutionData.length
+          ) / typedAvgExecutionData.length
         : undefined;
 
     // Параметры для расчета XP
     const xpParams: XPCalculationParams = {
-      baseXP: task.xp_reward || 0,
-      difficulty: task.difficulty as "easy" | "medium" | "hard",
+      baseXP: typedTask.xp_reward || 0,
+      difficulty: typedTask.difficulty,
       attemptNumber,
       usedAiHint: usedAiHint || false,
       isFirstAttempt: isFirstAttempt || false,
@@ -155,10 +161,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const newTotalXP = (currentUser.total_xp || 0) + xpCalculation.totalXP;
+    const typedCurrentUser = currentUser as { total_xp: number | null; current_level: number | null };
+    const newTotalXP = (typedCurrentUser.total_xp || 0) + xpCalculation.totalXP;
 
     // Рассчитываем новый уровень с помощью RPC функции
-    const { data: calculatedLevel, error: levelError } = await supabase.rpc(
+    const { data: calculatedLevel, error: levelError } = await (supabase.rpc as any)(
       "calculate_user_level",
       {
         total_xp: newTotalXP,
@@ -173,8 +180,8 @@ export async function POST(request: NextRequest) {
       typeof calculatedLevel === "number" ? calculatedLevel : null;
 
     // Обновляем total_xp и уровень
-    const { data: updatedUser, error: xpError } = await supabase
-      .from("users")
+    const { data: updatedUser, error: xpError } = await (supabase
+      .from("users") as any)
       .update({
         total_xp: newTotalXP,
         current_level: newLevelValue,
@@ -191,11 +198,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const finalLevel = updatedUser.current_level || newLevelValue || currentUser.current_level || 1;
+    const typedUpdatedUser = updatedUser as { total_xp: number | null; current_level: number | null } | null;
+    const finalLevel = typedUpdatedUser?.current_level || newLevelValue || typedCurrentUser.current_level || 1;
 
     // Обновляем прогресс пользователя по модулю
-    if (task.module_id) {
-      await updateUserProgress(supabase, user.id, task.module_id);
+    if (typedTask.module_id) {
+      await updateUserProgress(supabase, user.id, typedTask.module_id);
     }
 
     // Проверяем и начисляем достижения

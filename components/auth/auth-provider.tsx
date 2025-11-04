@@ -76,7 +76,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      if (!data) {
+      const typedData = data as UserProfile | null;
+
+      if (!typedData) {
         // Создаем запись профиля при первом входе
         const authUser = (await supabase.auth.getUser()).data.user;
         const roleFromAuth = (
@@ -91,8 +93,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           (authUser?.user_metadata as any)?.name ||
           null;
 
-        const { data: inserted, error: insertError } = await supabase
-          .from("users")
+        const { data: inserted, error: insertError } = await (supabase
+          .from("users") as any)
           .insert({ id: userId, email, role: roleFromAuth, display_name: displayName })
           .select("id, email, role, display_name, avatar_url, total_xp, current_level, created_at, last_active_at")
           .maybeSingle();
@@ -105,17 +107,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } else {
         // Убеждаемся что роль точно установлена
-        if (!data.role) {
+        if (!typedData.role) {
           console.warn(`Profile for user ${userId} has no role, setting to 'student'`);
-          const { data: updated } = await supabase
-            .from("users")
+          const { data: updated } = await (supabase
+            .from("users") as any)
             .update({ role: "student" })
             .eq("id", userId)
             .select("id, email, role, display_name, avatar_url, total_xp, current_level, created_at, last_active_at")
             .maybeSingle();
-          setProfile(updated ?? data);
+          setProfile((updated as UserProfile | null) ?? typedData);
         } else {
-          setProfile(data);
+          setProfile(typedData);
         }
       }
     } catch (error: any) {

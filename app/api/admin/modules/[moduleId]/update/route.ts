@@ -39,8 +39,8 @@ export async function POST(
     };
     console.log("API:updateModule: payload stats", stats);
 
-    const updatePromise = supabase
-      .from("modules")
+    const updatePromise = (supabase
+      .from("modules") as any)
       .update({
         title: body.title,
         topic: body.topic,
@@ -51,7 +51,7 @@ export async function POST(
       })
       .eq("id", moduleId);
 
-    const { error } = await withTimeout(updatePromise, 15000);
+    const { error } = (await withTimeout(updatePromise, 15000)) as { error: any } | { error?: null };
 
     if (error) {
       console.error("API:updateModule: update error", error);

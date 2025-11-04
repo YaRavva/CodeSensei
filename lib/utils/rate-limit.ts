@@ -56,8 +56,8 @@ export async function logGeneration(
 ): Promise<void> {
   const supabase = await createClient();
 
-  const { error } = await supabase
-    .from("ai_generation_logs")
+  const { error } = await (supabase
+    .from("ai_generation_logs") as any)
     .insert(
       {
         user_id: userId,
