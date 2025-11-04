@@ -194,7 +194,7 @@ export function LeaderboardContent({
                     {/* Аватар */}
                     <Avatar className="h-10 w-10">
                       <AvatarImage src={user.avatar_url || undefined} />
-                      <AvatarFallback>{getUserInitials(user)}</AvatarFallback>
+                      <AvatarFallback className="text-lg font-semibold">{getUserInitials(user)}</AvatarFallback>
                     </Avatar>
 
                     {/* Имя и информация */}

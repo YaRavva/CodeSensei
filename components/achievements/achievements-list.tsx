@@ -52,7 +52,7 @@ export function AchievementsList({
       <CardHeader>
         <CardTitle>Достижения</CardTitle>
         <CardDescription>
-          У вас {achievements.length} {achievements.length === 1 ? "достижение" : "достижений"}
+          Всего достижений: {achievements.length}
         </CardDescription>
       </CardHeader>
       <CardContent>

@@ -72,10 +72,32 @@ export default function ProfilePage() {
             <div className="flex items-center gap-4">
               <Avatar className="h-20 w-20">
                 <AvatarImage src={profile.avatar_url ?? undefined} />
-                <AvatarFallback>
-                  {profile.display_name?.[0]?.toUpperCase() ??
-                    profile.email?.[0]?.toUpperCase() ??
-                    "U"}
+                <AvatarFallback className="text-3xl font-semibold">
+                  {(() => {
+                    // Инициалы берутся ТОЛЬКО из display_name (фамилия и имя)
+                    if (profile.display_name) {
+                      const trimmed = String(profile.display_name).trim();
+                      if (trimmed) {
+                        const parts = trimmed.split(/\s+/).filter(Boolean);
+                        if (parts.length >= 2) {
+                          // Есть фамилия и имя - берем первые буквы
+                          const firstInitial = parts[0][0] ?? "";
+                          const secondInitial = parts[1][0] ?? "";
+                          return `${firstInitial}${secondInitial}`.toUpperCase();
+                        }
+                        // Если только одно слово - берем первые две буквы
+                        if (parts.length === 1 && parts[0].length >= 2) {
+                          return parts[0].substring(0, 2).toUpperCase();
+                        }
+                        // Если только одна буква
+                        if (parts.length === 1 && parts[0].length === 1) {
+                          return parts[0].toUpperCase();
+                        }
+                      }
+                    }
+                    // Если нет display_name - возвращаем заглушку
+                    return "U";
+                  })()}
                 </AvatarFallback>
               </Avatar>
               <div>

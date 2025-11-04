@@ -29,29 +29,70 @@ async function loadPyodide(): Promise<Pyodide> {
   }
 
   loadPromise = (async () => {
+    // Динамический импорт Pyodide (только на клиенте)
     if (typeof window === "undefined") {
       throw new Error("Pyodide может быть загружен только на клиенте");
     }
 
     try {
-      if (typeof window.loadPyodide !== 'function') {
-        const script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';
-        script.async = true;
-        
-        const scriptLoadPromise = new Promise<void>((resolve, reject) => {
-          script.onload = () => resolve();
-          script.onerror = () => reject(new Error('Failed to load Pyodide script'));
+      // Проверяем, загружен ли уже Pyodide
+      if (typeof window.loadPyodide === 'function') {
+        // @ts-ignore
+        const pyodideInstance = await window.loadPyodide({
+          indexURL: "https://cdn.jsdelivr.net/pyodide/v0.25.0/full/",
         });
-        
-        document.head.appendChild(script);
-        await scriptLoadPromise;
+
+        // Настраиваем перехват print() для получения вывода
+        pyodideInstance.runPython(`
+import sys
+from io import StringIO
+
+class PyodideStdout:
+    def __init__(self):
+        self.buffer = StringIO()
+    
+    def write(self, s):
+        if s:
+            self.buffer.write(s)
+    
+    def flush(self):
+        pass
+    
+    def getvalue(self):
+        return self.buffer.getvalue()
+    
+    def reset(self):
+        self.buffer = StringIO()
+
+_stdout_capture = PyodideStdout()
+sys.stdout = _stdout_capture
+`);
+
+        pyodideCache = pyodideInstance;
+        return pyodideInstance;
       }
+
+      // Загружаем Pyodide напрямую с CDN
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';
+      script.async = true;
+      script.setAttribute('data-pyodide-base-url', 'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'); // Добавляем этот атрибут
       
+      const loadPromise = new Promise<void>((resolve, reject) => {
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error('Failed to load Pyodide script'));
+      });
+      
+      document.head.appendChild(script);
+      await loadPromise;
+      
+      // Теперь получаем доступ к глобальному объекту loadPyodide
+      // @ts-ignore
       const pyodideInstance = await window.loadPyodide({
         indexURL: "https://cdn.jsdelivr.net/pyodide/v0.25.0/full/",
       });
 
+      // Настраиваем перехват print() для получения вывода
       pyodideInstance.runPython(`
 import sys
 from io import StringIO

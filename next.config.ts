@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  turbopack: {},
   // Явно указываем использование старого PostCSS плагина для Tailwind CSS v3
   experimental: {
     optimizePackageImports: [],
@@ -18,12 +19,17 @@ const nextConfig: NextConfig = {
         fs: false,
         'node:net': false,
         net: false,
+        // Игнорируем загрузку проблемных модулей для Monaco Editor
+        'stackframe': false,
+        'error-stack-parser': false,
       } as any;
       config.resolve.fallback = {
         ...(config.resolve.fallback || {}),
         child_process: false,
         fs: false,
         net: false,
+        stackframe: false,
+        'error-stack-parser': false,
       };
       
       // Добавляем правило для обработки pyodide
@@ -43,6 +49,14 @@ const nextConfig: NextConfig = {
         fullySpecified: false,
       },
     });
+
+    // Игнорируем ошибки загрузки модулей Monaco Editor
+    config.ignoreWarnings = [
+      ...(config.ignoreWarnings || []),
+      { module: /monaco-editor/ },
+      { module: /stackframe/ },
+      { module: /error-stack-parser/ },
+    ];
 
     return config;
   },

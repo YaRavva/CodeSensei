@@ -28,7 +28,7 @@ export function ModuleCard({ module, status }: ModuleCardProps) {
   const statusInfo = statusConfig[status];
 
   return (
-    <Card className="hover:shadow-lg transition-shadow">
+    <Card className="hover:shadow-lg transition-shadow flex flex-col h-full">
       <CardHeader>
         <div className="flex items-start justify-between">
           <div className="flex-1">
@@ -38,11 +38,7 @@ export function ModuleCard({ module, status }: ModuleCardProps) {
           <div className="flex flex-col items-end gap-2">
             <Badge
               variant={statusInfo.color as "default" | "destructive" | "secondary"}
-              className={
-                status === "not_started"
-                  ? "bg-destructive/10 text-destructive border border-destructive/30"
-                  : undefined
-              }
+              className="bg-secondary/80 text-secondary-foreground border border-secondary/50"
             >
               <span className="mr-1">{statusInfo.icon}</span>
               {statusInfo.label}
@@ -51,14 +47,14 @@ export function ModuleCard({ module, status }: ModuleCardProps) {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="flex flex-col flex-1 space-y-4">
         {module.description && (
           <div className="text-sm text-muted-foreground line-clamp-3">
             {module.description.substring(0, 150)}
             {module.description.length > 150 ? "..." : ""}
           </div>
         )}
-        <Button asChild className="w-full">
+        <Button asChild className="w-full mt-auto">
           <Link href={`/modules/${module.id}`}>
             {status === "not_started" ? "Начать изучение" : "Продолжить"}
           </Link>

@@ -125,7 +125,10 @@ export function ModuleDetails({ module, tasks, completedTaskIds, moduleProgress 
                           {task.xp_reward ? ` · Награда: +${task.xp_reward} XP` : ""}
                         </CardDescription>
                       </div>
-                      <Badge variant={statusInfo.variant}>
+                      <Badge
+                        variant={statusInfo.variant}
+                        className="bg-secondary/80 text-secondary-foreground border border-secondary/50"
+                      >
                         <span className="mr-1">{statusInfo.icon}</span>
                         {statusInfo.label}
                       </Badge>

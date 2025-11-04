@@ -28,10 +28,10 @@ export function AchievementBadge({
     <div className="flex flex-col gap-1">
       <Badge
         variant={achievement.earned_at ? "default" : "outline"}
-        className={`flex items-center gap-1.5 ${size === "lg" ? "px-3 py-1.5" : size === "sm" ? "px-2 py-0.5" : "px-2.5 py-1"}`}
+        className={`flex items-center justify-center gap-1.5 ${size === "lg" ? "px-3 py-1.5" : size === "sm" ? "px-2 py-0.5" : "px-2.5 py-1"}`}
       >
         <span className={iconSizeClass}>{achievement.icon_name || "🏆"}</span>
-        <span className={size === "sm" ? "text-xs" : size === "lg" ? "text-base" : "text-sm"}>
+        <span className={`text-center ${size === "sm" ? "text-xs" : size === "lg" ? "text-base" : "text-sm"}`}>
           {achievement.title}
         </span>
         {achievement.earned_at && (

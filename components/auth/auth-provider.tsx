@@ -59,7 +59,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function loadProfile(userId: string) {
     try {
-      const { data, error } = await supabase.from("users").select("*").eq("id", userId).maybeSingle();
+      setLoading(true);
+      
+      // Используем более надежный запрос с явным указанием полей
+      const { data, error } = await supabase
+        .from("users")
+        .select("id, email, role, display_name, avatar_url, total_xp, current_level, created_at, last_active_at")
+        .eq("id", userId)
+        .maybeSingle();
 
       if (error && error.code !== "PGRST116") {
         // PGRST116 = not found, это нормально при первой регистрации
@@ -87,7 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const { data: inserted, error: insertError } = await supabase
           .from("users")
           .insert({ id: userId, email, role: roleFromAuth, display_name: displayName })
-          .select("*")
+          .select("id, email, role, display_name, avatar_url, total_xp, current_level, created_at, last_active_at")
           .maybeSingle();
 
         if (insertError) {
@@ -97,13 +104,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setProfile(inserted ?? null);
         }
       } else {
-        setProfile(data);
+        // Убеждаемся что роль точно установлена
+        if (!data.role) {
+          console.warn(`Profile for user ${userId} has no role, setting to 'student'`);
+          const { data: updated } = await supabase
+            .from("users")
+            .update({ role: "student" })
+            .eq("id", userId)
+            .select("id, email, role, display_name, avatar_url, total_xp, current_level, created_at, last_active_at")
+            .maybeSingle();
+          setProfile(updated ?? data);
+        } else {
+          setProfile(data);
+        }
       }
     } catch (error: any) {
       // Игнорируем ошибки infinite recursion
       if (error?.code !== "42P17") {
         console.error("Error loading profile:", error);
       }
+      setProfile(null);
     } finally {
       setLoading(false);
     }
@@ -116,18 +136,84 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   async function signOut() {
-    try {
-      // Сначала очищаем серверные httpOnly куки
-      await fetch("/api/auth/signout", { method: "POST", credentials: "include" });
-    } catch (e) {
-      // игнорируем сетевые ошибки
-    }
-    // Затем чистим клиентские токены на всякий случай
-    await supabase.auth.signOut();
+    // Очищаем состояние сразу, чтобы UI обновился
     setUser(null);
     setProfile(null);
-    if (typeof window !== "undefined") {
-      window.location.replace("/");
+    
+    try {
+      // Очищаем клиентские токены Supabase
+      await supabase.auth.signOut();
+      
+      // Очищаем все localStorage и sessionStorage связанные с Supabase
+      if (typeof window !== "undefined") {
+        // Очищаем все ключи, связанные с Supabase
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && (key.startsWith('sb-') || key.includes('supabase'))) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+        
+        // Очищаем sessionStorage
+        const sessionKeysToRemove: string[] = [];
+        for (let i = 0; i < sessionStorage.length; i++) {
+          const key = sessionStorage.key(i);
+          if (key && (key.startsWith('sb-') || key.includes('supabase'))) {
+            sessionKeysToRemove.push(key);
+          }
+        }
+        sessionKeysToRemove.forEach(key => sessionStorage.removeItem(key));
+      }
+      
+      // Очищаем серверные httpOnly куки
+      try {
+        await fetch("/api/auth/signout", { 
+          method: "POST", 
+          credentials: "include",
+          cache: "no-store"
+        });
+      } catch (e) {
+        console.error("Server signout error:", e);
+      }
+
+      // Принудительная очистка всех кук через document.cookie
+      if (typeof document !== "undefined") {
+        const cookies = document.cookie.split(";");
+        const domain = window.location.hostname;
+        const path = "/";
+        
+        cookies.forEach(cookie => {
+          const eqPos = cookie.indexOf("=");
+          const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+          
+          // Удаляем все куки, связанные с Supabase или auth
+          if (name.startsWith('sb-') || name.includes('auth') || name.includes('supabase')) {
+            // Удаляем для текущего домена
+            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=${path}`;
+            // Удаляем для домена без www
+            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=${path};domain=${domain}`;
+            // Удаляем для домена с www
+            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=${path};domain=.${domain}`;
+          }
+        });
+      }
+      
+      // Небольшая задержка перед редиректом, чтобы куки успели очиститься
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Редирект на страницу входа с полной перезагрузкой
+      if (typeof window !== "undefined") {
+        // Используем href вместо replace для гарантированной очистки
+        window.location.href = "/login";
+      }
+    } catch (error) {
+      console.error("SignOut error:", error);
+      // В случае ошибки все равно редиректим
+      if (typeof window !== "undefined") {
+        window.location.href = "/login";
+      }
     }
   }
 

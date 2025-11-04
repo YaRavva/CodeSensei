@@ -12,54 +12,120 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+
+/**
+ * Единая функция для определения состояния авторизации в навигации
+ * Переработана для надежной работы с профилем и ролью
+ */
+function useNavigationAuth() {
+  const { user, profile, loading, refreshProfile } = useAuth();
+  const pathname = usePathname();
+  const [isProtectedRoute, setIsProtectedRoute] = useState(false);
+  const [profileLoaded, setProfileLoaded] = useState(false);
+
+  // Определяем защищенные маршруты - если мы на такой странице, значит пользователь авторизован
+  useEffect(() => {
+    const protectedRoutes = [
+      "/modules",
+      "/dashboard",
+      "/leaderboard",
+      "/profile",
+      "/admin",
+    ];
+    setIsProtectedRoute(
+      protectedRoutes.some((route) => pathname.startsWith(route))
+    );
+  }, [pathname]);
+
+  // Принудительно обновляем профиль при монтировании, если пользователь авторизован
+  useEffect(() => {
+    if (user && !loading && !profile) {
+      // Если пользователь есть, но профиля нет - обновляем
+      refreshProfile().catch(console.error);
+    }
+    if (profile) {
+      setProfileLoaded(true);
+    }
+  }, [user, profile, loading, refreshProfile]);
+
+  // Если мы на защищенном маршруте, считаем пользователя авторизованным
+  // даже если loading=true (сервер уже проверил авторизацию)
+  const isAuthenticated = isProtectedRoute || (!!user && !loading);
+  
+  // showModulesLink: показываем если авторизован И не на страницах авторизации
+  const isAuthRoute = pathname === "/login" || pathname === "/register";
+  const showModulesLink = isAuthenticated && !isAuthRoute;
+
+  // Для роли - используем ТОЛЬКО данные из профиля, строгая проверка
+  // Если профиль еще не загружен, ждем его загрузки
+  const userRole = profile?.role;
+  const isAdmin = userRole === "admin" || userRole === "teacher";
+
+  // Если пользователь авторизован, но профиль еще загружается - показываем loading
+  const isLoadingProfile = isAuthenticated && user && !profile && loading;
+
+  return {
+    isAuthenticated,
+    showModulesLink,
+    user,
+    profile,
+    loading: isLoadingProfile || (loading && !isProtectedRoute),
+    userRole,
+    isAdmin,
+    profileLoaded,
+  };
+}
 
 export function Navigation() {
-  const { user, profile, signOut, loading } = useAuth();
+  const { user, profile, signOut } = useAuth();
   const pathname = usePathname();
-  const computedRole = profile?.role as string | undefined;
-  const isAuthRoute = pathname === "/login" || pathname === "/register";
-  const hideModulesLink = isAuthRoute;
-  const isAuthenticated = !!user && !loading && !isAuthRoute;
+  const router = useRouter();
+  const { isAuthenticated, showModulesLink, loading, isAdmin, profileLoaded } = useNavigationAuth();
 
+  // Функция для получения инициалов - ТОЛЬКО из фамилии и имени (profile.display_name)
   function getInitials(): string {
-    const nameSource =
-      profile?.display_name ||
-      (user?.user_metadata as any)?.full_name ||
-      (user?.user_metadata as any)?.name ||
-      user?.email ||
-      "";
-
-    const trimmed = String(nameSource).trim();
-    if (!trimmed) return "U";
-
-    const parts = trimmed.split(/\s+/).filter(Boolean);
-    if (parts.length >= 2) {
-      return `${parts[0][0] ?? ""}${parts[1][0] ?? ""}`.toUpperCase();
+    // Инициалы берутся ТОЛЬКО из display_name (фамилия и имя)
+    if (profile?.display_name) {
+      const trimmed = String(profile.display_name).trim();
+      if (trimmed) {
+        const parts = trimmed.split(/\s+/).filter(Boolean);
+        if (parts.length >= 2) {
+          // Есть фамилия и имя - берем первые буквы
+          const firstInitial = parts[0][0] ?? "";
+          const secondInitial = parts[1][0] ?? "";
+          return `${firstInitial}${secondInitial}`.toUpperCase();
+        }
+        // Если только одно слово - берем первые две буквы
+        if (parts.length === 1 && parts[0].length >= 2) {
+          return parts[0].substring(0, 2).toUpperCase();
+        }
+        // Если только одна буква
+        if (parts.length === 1 && parts[0].length === 1) {
+          return parts[0].toUpperCase();
+        }
+      }
     }
-    const token = parts[0] || trimmed;
-    const letters = token.replace(/@.*/, "");
-    const a = letters[0] ?? "U";
-    const b = letters[1] ?? "";
-    return `${a}${b}`.toUpperCase();
+
+    // Если нет display_name - возвращаем заглушку
+    return "U";
   }
 
   return (
     <nav className="border-b">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        <Link href="/" className="flex items-center gap-2 text-xl font-bold">
-          <span className="block h-16 overflow-hidden leading-none">
-            <img src="/CodeSensei.svg" alt="" aria-hidden className="h-28 w-auto -my-6" />
-          </span>
-          <span>CodeSensei</span>
+        <Link href="/" className="text-xl font-bold">
+          CodeSensei
         </Link>
         <div className="flex items-center gap-4">
-          {!hideModulesLink && (
+          {showModulesLink && (
             <Button variant="ghost" asChild>
               <Link href="/modules">Модули</Link>
             </Button>
           )}
-          {isAuthenticated && computedRole === "admin" && (
+          {/* Показываем кнопку админки только если профиль загружен, роль определена И пользователь не в процессе выхода */}
+          {isAuthenticated && profileLoaded && isAdmin && profile && user && (
             <Button variant="ghost" asChild>
               <Link href="/admin/modules">Админ-панель</Link>
             </Button>
@@ -77,7 +143,12 @@ export function Navigation() {
                   <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                     <Avatar className="h-10 w-10">
                       <AvatarImage src={profile?.avatar_url ?? undefined} />
-                      <AvatarFallback>{getInitials()}</AvatarFallback>
+                      <AvatarFallback 
+                        key={`${profile?.id || user?.id || "default"}-${profile?.display_name || user?.email || ""}`}
+                        className="text-lg font-semibold"
+                      >
+                        {getInitials()}
+                      </AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
@@ -87,9 +158,10 @@ export function Navigation() {
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
-                    onSelect={(e) => {
+                    onSelect={async (e) => {
                       e.preventDefault();
-                      void signOut();
+                      // Вызываем signOut - он сам обработает все и сделает редирект
+                      await signOut();
                     }}
                   >
                     Выйти
@@ -98,9 +170,11 @@ export function Navigation() {
               </DropdownMenu>
             </>
           ) : (
-            <Button variant="default" asChild>
-              <Link href="/login">Войти</Link>
-            </Button>
+            !loading && (
+              <Button variant="default" asChild>
+                <Link href="/login">Войти</Link>
+              </Button>
+            )
           )}
           <ThemeToggle />
         </div>
