@@ -41,14 +41,17 @@ function useNavigationAuth() {
 
   // Принудительно обновляем профиль при монтировании, если пользователь авторизован
   useEffect(() => {
-    if (user && !loading && !profile) {
-      // Если пользователь есть, но профиля нет - обновляем
+    if (user && !profile) {
+      // Если пользователь есть, но профиля нет - немедленно обновляем
       refreshProfile().catch(console.error);
     }
     if (profile) {
       setProfileLoaded(true);
+    } else if (user) {
+      // Если профиль еще не загружен, но пользователь есть - сбрасываем флаг
+      setProfileLoaded(false);
     }
-  }, [user, profile, loading, refreshProfile]);
+  }, [user, profile, refreshProfile]);
 
   // Если мы на защищенном маршруте, считаем пользователя авторизованным
   // даже если loading=true (сервер уже проверил авторизацию)
@@ -61,7 +64,9 @@ function useNavigationAuth() {
   // Для роли - используем ТОЛЬКО данные из профиля, строгая проверка
   // Если профиль еще не загружен, ждем его загрузки
   const userRole = profile?.role;
-  const isAdmin = userRole === "admin" || userRole === "teacher";
+  // Если пользователь на админ-странице, значит он точно админ (сервер уже проверил)
+  const isOnAdminRoute = pathname.startsWith("/admin");
+  const isAdmin = isOnAdminRoute || Boolean(profile && (userRole === "admin" || userRole === "teacher"));
 
   // Если пользователь авторизован, но профиль еще загружается - показываем loading
   const isLoadingProfile = isAuthenticated && user && !profile && loading;
@@ -113,7 +118,7 @@ export function Navigation() {
   }
 
   return (
-    <nav className="border-b">
+    <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <Link href="/" className="text-xl font-bold">
           CodeSensei
@@ -124,8 +129,8 @@ export function Navigation() {
               <Link href="/modules">Модули</Link>
             </Button>
           )}
-          {/* Показываем кнопку админки только если профиль загружен, роль определена И пользователь не в процессе выхода */}
-          {isAuthenticated && profileLoaded && isAdmin && profile && user && (
+          {/* Кнопка админки: показываем если пользователь авторизован, профиль загружен И роль admin/teacher */}
+          {isAuthenticated && profile && user && isAdmin && (
             <Button variant="ghost" asChild>
               <Link href="/admin/modules">Админ-панель</Link>
             </Button>
@@ -158,10 +163,17 @@ export function Navigation() {
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
-                    onSelect={async (e) => {
+                    onSelect={(e) => {
                       e.preventDefault();
-                      // Вызываем signOut - он сам обработает все и сделает редирект
-                      await signOut();
+                      e.stopPropagation();
+                      // Вызываем signOut - он сам сделает редирект через window.location.href
+                      signOut().catch((err) => {
+                        console.error("SignOut error:", err);
+                        // В случае ошибки все равно редиректим немедленно
+                        if (typeof window !== "undefined") {
+                          window.location.href = "/login";
+                        }
+                      });
                     }}
                   >
                     Выйти

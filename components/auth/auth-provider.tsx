@@ -140,81 +140,66 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
     setProfile(null);
     
-    try {
-      // Очищаем клиентские токены Supabase
-      await supabase.auth.signOut();
-      
-      // Очищаем все localStorage и sessionStorage связанные с Supabase
-      if (typeof window !== "undefined") {
-        // Очищаем все ключи, связанные с Supabase
-        const keysToRemove: string[] = [];
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key && (key.startsWith('sb-') || key.includes('supabase'))) {
-            keysToRemove.push(key);
-          }
+    // Очищаем все localStorage и sessionStorage связанные с Supabase
+    if (typeof window !== "undefined") {
+      // Очищаем все ключи, связанные с Supabase
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('sb-') || key.includes('supabase'))) {
+          keysToRemove.push(key);
         }
-        keysToRemove.forEach(key => localStorage.removeItem(key));
-        
-        // Очищаем sessionStorage
-        const sessionKeysToRemove: string[] = [];
-        for (let i = 0; i < sessionStorage.length; i++) {
-          const key = sessionStorage.key(i);
-          if (key && (key.startsWith('sb-') || key.includes('supabase'))) {
-            sessionKeysToRemove.push(key);
-          }
-        }
-        sessionKeysToRemove.forEach(key => sessionStorage.removeItem(key));
       }
+      keysToRemove.forEach(key => localStorage.removeItem(key));
       
-      // Очищаем серверные httpOnly куки
-      try {
-        await fetch("/api/auth/signout", { 
-          method: "POST", 
-          credentials: "include",
-          cache: "no-store"
-        });
-      } catch (e) {
-        console.error("Server signout error:", e);
+      // Очищаем sessionStorage
+      const sessionKeysToRemove: string[] = [];
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const key = sessionStorage.key(i);
+        if (key && (key.startsWith('sb-') || key.includes('supabase'))) {
+          sessionKeysToRemove.push(key);
+        }
       }
-
+      sessionKeysToRemove.forEach(key => sessionStorage.removeItem(key));
+      
       // Принудительная очистка всех кук через document.cookie
-      if (typeof document !== "undefined") {
-        const cookies = document.cookie.split(";");
-        const domain = window.location.hostname;
-        const path = "/";
+      const cookies = document.cookie.split(";");
+      const domain = window.location.hostname;
+      const path = "/";
+      
+      cookies.forEach(cookie => {
+        const eqPos = cookie.indexOf("=");
+        const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
         
-        cookies.forEach(cookie => {
-          const eqPos = cookie.indexOf("=");
-          const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
-          
-          // Удаляем все куки, связанные с Supabase или auth
-          if (name.startsWith('sb-') || name.includes('auth') || name.includes('supabase')) {
-            // Удаляем для текущего домена
-            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=${path}`;
-            // Удаляем для домена без www
-            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=${path};domain=${domain}`;
-            // Удаляем для домена с www
-            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=${path};domain=.${domain}`;
-          }
-        });
-      }
+        // Удаляем все куки, связанные с Supabase или auth
+        if (name.startsWith('sb-') || name.includes('auth') || name.includes('supabase')) {
+          // Удаляем для текущего домена
+          document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=${path}`;
+          // Удаляем для домена без www
+          document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=${path};domain=${domain}`;
+          // Удаляем для домена с www
+          document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=${path};domain=.${domain}`;
+        }
+      });
       
-      // Небольшая задержка перед редиректом, чтобы куки успели очиститься
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      // Редирект на страницу входа с полной перезагрузкой
-      if (typeof window !== "undefined") {
-        // Используем href вместо replace для гарантированной очистки
-        window.location.href = "/login";
-      }
-    } catch (error) {
-      console.error("SignOut error:", error);
-      // В случае ошибки все равно редиректим
-      if (typeof window !== "undefined") {
-        window.location.href = "/login";
-      }
+      // НЕМЕДЛЕННЫЙ редирект - сразу после очистки storage
+      // Используем window.location.href для гарантированного редиректа
+      window.location.href = "/login";
     }
+    
+    // Параллельно очищаем клиентские токены Supabase и серверные куки (не блокируем редирект)
+    Promise.allSettled([
+      supabase.auth.signOut(),
+      fetch("/api/auth/signout", { 
+        method: "POST", 
+        credentials: "include",
+        cache: "no-store"
+      }).catch((e) => {
+        console.error("Server signout error:", e);
+      })
+    ]).catch((error) => {
+      console.error("SignOut error:", error);
+    });
   }
 
   return (
