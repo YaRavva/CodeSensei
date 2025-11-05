@@ -561,24 +561,25 @@ export function ModuleForm({ moduleId, initialData, createdByUserId }: ModuleFor
                     <AccordionItem value="preview" className="border-none">
                       <AccordionTrigger className="py-2 text-sm">Предпросмотр</AccordionTrigger>
                       <AccordionContent>
-                        <div className="border rounded-md p-4 h-[400px] overflow-auto bg-card">
-                          <div className="prose prose-sm dark:prose-invert max-w-none [&_p]:mb-4 [&_p:last-child]:mb-0 [&_h1]:mb-4 [&_h2]:mb-3 [&_h3]:mb-2 [&_ul]:mb-4 [&_ol]:mb-4 [&_pre]:mb-4">
+                        <div className="border rounded-md p-4 h-[400px] overflow-auto bg-card font-ubuntu-mono">
+                          <div className="prose prose-sm dark:prose-invert max-w-none [&_p]:mb-4 [&_p:last-child]:mb-0 [&_h1]:mb-4 [&_h2]:mb-3 [&_h3]:mb-2 [&_ul]:mb-4 [&_ol]:mb-4 [&_pre]:mb-4 [&_*]:font-ubuntu-mono [&_h1]:font-ubuntu-mono [&_h2]:font-ubuntu-mono [&_h3]:font-ubuntu-mono [&_li]:font-ubuntu-mono [&_strong]:font-ubuntu-mono [&_em]:font-ubuntu-mono">
                             <ReactMarkdown
                               remarkPlugins={[remarkGfm, remarkBreaks]}
                               components={{
-                                code({ node, inline, className, children, ...props }) {
+                                code({ node, className, children, ...props }: any) {
                                   const match = /language-(\w+)/.exec(className || "");
                                   const isDark = mounted && (
                                     theme === "dark" || 
                                     (theme === "system" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches)
                                   );
+                                  const inline = (props as any).inline;
                                   return !inline && match ? (
                                     <SyntaxHighlighter
-                                      style={isDark ? oneDark : oneLight}
+                                      style={(isDark ? oneDark : oneLight) as any}
                                       language={match[1]}
                                       PreTag="div"
                                       className="font-ubuntu-mono rounded-md"
-                                      {...props}
+                                      customStyle={{ fontFamily: 'Ubuntu Mono, monospace' }}
                                     >
                                       {String(children).replace(/\n$/, "")}
                                     </SyntaxHighlighter>
@@ -588,7 +589,7 @@ export function ModuleForm({ moduleId, initialData, createdByUserId }: ModuleFor
                                     </code>
                                   );
                                 },
-                                p: ({ children }) => <p className="mb-4 last:mb-0 whitespace-pre-line">{children}</p>,
+                                p: ({ children }) => <p className="mb-4 last:mb-0 whitespace-pre-line font-ubuntu-mono">{children}</p>,
                               }}
                             >
                               {description || "*Введите текст выше для предпросмотра*"}
@@ -650,10 +651,65 @@ export function ModuleForm({ moduleId, initialData, createdByUserId }: ModuleFor
                     <Label>Название</Label>
                     <Input readOnly value={generatedTask.title || ""} />
                   </div>
-                  <div className="space-y-2">
-                    <Label>Описание (Markdown)</Label>
-                    <Textarea readOnly rows={8} value={generatedTask.description || ""} />
-                  </div>
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base">Описание (Markdown)</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <Accordion type="single" collapsible className="w-full">
+                        <AccordionItem value="description" className="border-none">
+                          <AccordionTrigger className="py-2 text-sm">Редактировать описание</AccordionTrigger>
+                          <AccordionContent>
+                            <Textarea
+                              readOnly
+                              value={generatedTask.description || ""}
+                              className="min-h-[300px] font-ubuntu-mono text-sm"
+                            />
+                          </AccordionContent>
+                        </AccordionItem>
+                        <AccordionItem value="preview" className="border-none">
+                          <AccordionTrigger className="py-2 text-sm">Предпросмотр</AccordionTrigger>
+                          <AccordionContent>
+                            <div className="border rounded-md p-4 h-[400px] overflow-auto bg-card font-ubuntu-mono">
+                              <div className="prose prose-sm dark:prose-invert max-w-none [&_p]:mb-4 [&_p:last-child]:mb-0 [&_h1]:mb-4 [&_h2]:mb-3 [&_h3]:mb-2 [&_ul]:mb-4 [&_ol]:mb-4 [&_pre]:mb-4 [&_*]:font-ubuntu-mono [&_h1]:font-ubuntu-mono [&_h2]:font-ubuntu-mono [&_h3]:font-ubuntu-mono [&_li]:font-ubuntu-mono [&_strong]:font-ubuntu-mono [&_em]:font-ubuntu-mono">
+                                <ReactMarkdown
+                                  remarkPlugins={[remarkGfm, remarkBreaks]}
+                                  components={{
+                                    code({ node, className, children, ...props }: any) {
+                                      const match = /language-(\w+)/.exec(className || "");
+                                      const isDark = mounted && (
+                                        theme === "dark" || 
+                                        (theme === "system" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches)
+                                      );
+                                      const inline = (props as any).inline;
+                                      return !inline && match ? (
+                                        <SyntaxHighlighter
+                                          style={(isDark ? oneDark : oneLight) as any}
+                                          language={match[1]}
+                                          PreTag="div"
+                                          className="font-ubuntu-mono rounded-md"
+                                          customStyle={{ fontFamily: 'Ubuntu Mono, monospace' }}
+                                        >
+                                          {String(children).replace(/\n$/, "")}
+                                        </SyntaxHighlighter>
+                                      ) : (
+                                        <code className={`font-ubuntu-mono ${className}`} {...props}>
+                                          {children}
+                                        </code>
+                                      );
+                                    },
+                                    p: ({ children }) => <p className="mb-4 last:mb-0 whitespace-pre-line font-ubuntu-mono">{children}</p>,
+                                  }}
+                                >
+                                  {generatedTask.description || "*Описание отсутствует*"}
+                                </ReactMarkdown>
+                              </div>
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      </Accordion>
+                    </CardContent>
+                  </Card>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label>Starter code</Label>
@@ -663,18 +719,6 @@ export function ModuleForm({ moduleId, initialData, createdByUserId }: ModuleFor
                       <Label>Solution code</Label>
                       <Textarea readOnly rows={8} value={generatedTask.solution_code || ""} />
                     </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Rubric (JSON)</Label>
-                    <Textarea readOnly rows={6} value={JSON.stringify(generatedTask.rubric ?? [], null, 2)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Eval Prompt</Label>
-                    <Textarea readOnly rows={4} value={generatedTask.eval_prompt || ""} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Тестовые случаи (JSON)</Label>
-                    <Textarea readOnly rows={8} value={JSON.stringify(generatedTask.test_cases ?? [], null, 2)} />
                   </div>
                 </div>
               )}

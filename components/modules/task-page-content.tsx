@@ -16,6 +16,7 @@ import type { TestCase, TestSuiteResult } from "@/types/test-case";
 import { ArrowLeft, ArrowRight, BookOpen, RotateCcw, Sparkles, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkBreaks from "remark-breaks";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark, oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { useTheme } from "@/components/theme-provider";
@@ -425,21 +426,22 @@ export function TaskPageContent({ module, task, prevTask, nextTask, lastAttempt 
               <CardContent>
                 <div className="prose prose-sm dark:prose-invert max-w-none">
                   <ReactMarkdown
-                    remarkPlugins={[remarkGfm]}
+                    remarkPlugins={[remarkGfm, remarkBreaks]}
                     components={{
-                      code({ node, inline, className, children, ...props }) {
+                      code({ node, inline, className, children, ...props }: any) {
                         const match = /language-(\w+)/.exec(className || "");
                         const isDark = mounted && (
                           theme === "dark" || 
                           (theme === "system" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches)
                         );
-                        return !inline && match ? (
+                        const inlineProp = (props as any).inline;
+                        return !inlineProp && match ? (
                           <SyntaxHighlighter
-                            style={isDark ? oneDark : oneLight}
+                            style={(isDark ? oneDark : oneLight) as any}
                             language={match[1]}
                             PreTag="div"
                             className="font-ubuntu-mono rounded-md"
-                            {...props}
+                            customStyle={{ fontFamily: 'Ubuntu Mono, monospace' }}
                           >
                             {String(children).replace(/\n$/, "")}
                           </SyntaxHighlighter>
@@ -449,6 +451,7 @@ export function TaskPageContent({ module, task, prevTask, nextTask, lastAttempt 
                           </code>
                         );
                       },
+                      p: ({ children }) => <p className="mb-4 last:mb-0 whitespace-pre-line">{children}</p>,
                     }}
                   >
                     {module.description}
@@ -465,7 +468,35 @@ export function TaskPageContent({ module, task, prevTask, nextTask, lastAttempt 
             </CardHeader>
             <CardContent>
               <div className="prose prose-sm dark:prose-invert max-w-none">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                <ReactMarkdown 
+                  remarkPlugins={[remarkGfm, remarkBreaks]}
+                  components={{
+                    code({ node, inline, className, children, ...props }: any) {
+                      const match = /language-(\w+)/.exec(className || "");
+                      const isDark = mounted && (
+                        theme === "dark" || 
+                        (theme === "system" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches)
+                      );
+                      const inlineProp = (props as any).inline;
+                      return !inlineProp && match ? (
+                        <SyntaxHighlighter
+                          style={(isDark ? oneDark : oneLight) as any}
+                          language={match[1]}
+                          PreTag="div"
+                          className="font-ubuntu-mono rounded-md"
+                          customStyle={{ fontFamily: 'Ubuntu Mono, monospace' }}
+                        >
+                          {String(children).replace(/\n$/, "")}
+                        </SyntaxHighlighter>
+                      ) : (
+                        <code className={`font-ubuntu-mono ${className}`} {...props}>
+                          {children}
+                        </code>
+                      );
+                    },
+                    p: ({ children }) => <p className="mb-4 last:mb-0 whitespace-pre-line">{children}</p>,
+                  }}
+                >
                   {task.description}
                 </ReactMarkdown>
               </div>
@@ -645,7 +676,12 @@ export function TaskPageContent({ module, task, prevTask, nextTask, lastAttempt 
           </DialogTitle>
         </DialogHeader>
         <div id="hint-description" className="prose prose-sm dark:prose-invert max-w-none">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+          <ReactMarkdown 
+            remarkPlugins={[remarkGfm, remarkBreaks]}
+            components={{
+              p: ({ children }) => <p className="mb-4 last:mb-0 whitespace-pre-line">{children}</p>,
+            }}
+          >
             {hintMarkdown}
           </ReactMarkdown>
         </div>
@@ -662,7 +698,12 @@ export function TaskPageContent({ module, task, prevTask, nextTask, lastAttempt 
           </DialogTitle>
         </DialogHeader>
         <div id="feedback-description" className="prose prose-sm dark:prose-invert max-w-none">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+          <ReactMarkdown 
+            remarkPlugins={[remarkGfm, remarkBreaks]}
+            components={{
+              p: ({ children }) => <p className="mb-4 last:mb-0 whitespace-pre-line">{children}</p>,
+            }}
+          >
             {feedbackMarkdown}
           </ReactMarkdown>
         </div>

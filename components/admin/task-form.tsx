@@ -345,24 +345,25 @@ export function TaskForm({ moduleId, taskId, onSuccess, onCancel }: TaskFormProp
               <AccordionItem value="preview" className="border-none">
                 <AccordionTrigger className="py-2 text-sm">Предпросмотр</AccordionTrigger>
                 <AccordionContent>
-                  <div className="border rounded-md p-4 h-[400px] overflow-auto bg-card">
-                    <div className="prose prose-sm dark:prose-invert max-w-none [&_p]:mb-4 [&_p:last-child]:mb-0 [&_h1]:mb-4 [&_h2]:mb-3 [&_h3]:mb-2 [&_ul]:mb-4 [&_ol]:mb-4 [&_pre]:mb-4">
+                  <div className="border rounded-md p-4 h-[400px] overflow-auto bg-card font-ubuntu-mono">
+                    <div className="prose prose-sm dark:prose-invert max-w-none [&_p]:mb-4 [&_p:last-child]:mb-0 [&_h1]:mb-4 [&_h2]:mb-3 [&_h3]:mb-2 [&_ul]:mb-4 [&_ol]:mb-4 [&_pre]:mb-4 [&_*]:font-ubuntu-mono [&_h1]:font-ubuntu-mono [&_h2]:font-ubuntu-mono [&_h3]:font-ubuntu-mono [&_li]:font-ubuntu-mono [&_strong]:font-ubuntu-mono [&_em]:font-ubuntu-mono">
                       <ReactMarkdown
                         remarkPlugins={[remarkGfm, remarkBreaks]}
                         components={{
-                          code({ node, inline, className, children, ...props }) {
+                          code({ node, inline, className, children, ...props }: any) {
                             const match = /language-(\w+)/.exec(className || "");
                             const isDark = mounted && (
                               theme === "dark" || 
                               (theme === "system" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches)
                             );
-                            return !inline && match ? (
+                            const inlineProp = (props as any).inline;
+                            return !inlineProp && match ? (
                               <SyntaxHighlighter
-                                style={isDark ? oneDark : oneLight}
+                                style={(isDark ? oneDark : oneLight) as any}
                                 language={match[1]}
                                 PreTag="div"
                                 className="font-ubuntu-mono rounded-md"
-                                {...props}
+                                customStyle={{ fontFamily: 'Ubuntu Mono, monospace' }}
                               >
                                 {String(children).replace(/\n$/, "")}
                               </SyntaxHighlighter>
@@ -372,7 +373,7 @@ export function TaskForm({ moduleId, taskId, onSuccess, onCancel }: TaskFormProp
                               </code>
                             );
                           },
-                          p: ({ children }) => <p className="mb-4 last:mb-0 whitespace-pre-line">{children}</p>,
+                          p: ({ children }) => <p className="mb-4 last:mb-0 whitespace-pre-line font-ubuntu-mono">{children}</p>,
                         }}
                       >
                         {description || "*Введите текст выше для предпросмотра*"}

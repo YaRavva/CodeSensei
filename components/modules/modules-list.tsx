@@ -72,56 +72,56 @@ export function ModulesList({ modules, userProgress }: ModulesListProps) {
 
   return (
     <div className="space-y-6">
-      {/* Фильтры */}
-      <div className="rounded-xl border border-border/60 bg-card/80 p-4 shadow-sm">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div className="flex flex-col gap-2">
-            <span className="text-sm font-medium text-muted-foreground">Статус</span>
-            <Select
-              value={statusValue}
-              onValueChange={(value) =>
-                setFilter((prev) => ({
-                  ...prev,
-                  status: value === "all" ? undefined : (value as ModuleStatus),
-                }))
-              }
-            >
-              <SelectTrigger className="w-full min-w-[200px] bg-card">
-                <SelectValue placeholder="Все статусы" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Все статусы</SelectItem>
-                <SelectItem value="not_started">Не начат</SelectItem>
-                <SelectItem value="in_progress">В процессе</SelectItem>
-                <SelectItem value="completed">Завершен</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+      {/* Заголовок и фильтры в одной строке */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Модули</h1>
+          <p className="text-muted-foreground mt-2">
+            Выберите модуль для изучения Python
+          </p>
+        </div>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+          <Select
+            value={statusValue}
+            onValueChange={(value) =>
+              setFilter((prev) => ({
+                ...prev,
+                status: value === "all" ? undefined : (value as ModuleStatus),
+              }))
+            }
+          >
+            <SelectTrigger className="w-full min-w-[200px] sm:w-auto">
+              <SelectValue placeholder="Все статусы" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Все статусы</SelectItem>
+              <SelectItem value="not_started">Не начат</SelectItem>
+              <SelectItem value="in_progress">В процессе</SelectItem>
+              <SelectItem value="completed">Завершен</SelectItem>
+            </SelectContent>
+          </Select>
 
-          <div className="flex flex-col gap-2">
-            <span className="text-sm font-medium text-muted-foreground">Уровень сложности</span>
-            <Select
-              value={levelValue}
-              onValueChange={(value) =>
-                setFilter((prev) => ({
-                  ...prev,
-                  level: value === "all" ? undefined : Number.parseInt(value, 10),
-                }))
-              }
-            >
-              <SelectTrigger className="w-full min-w-[220px] bg-card">
-                <SelectValue placeholder="Все уровни" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Все уровни</SelectItem>
-                <SelectItem value="1">Уровень 1 — Начальный</SelectItem>
-                <SelectItem value="2">Уровень 2 — Базовый</SelectItem>
-                <SelectItem value="3">Уровень 3 — Средний</SelectItem>
-                <SelectItem value="4">Уровень 4 — Продвинутый</SelectItem>
-                <SelectItem value="5">Уровень 5 — Эксперт</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <Select
+            value={levelValue}
+            onValueChange={(value) =>
+              setFilter((prev) => ({
+                ...prev,
+                level: value === "all" ? undefined : Number.parseInt(value, 10),
+              }))
+            }
+          >
+            <SelectTrigger className="w-full min-w-[220px] sm:w-auto">
+              <SelectValue placeholder="Все уровни" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Все уровни</SelectItem>
+              <SelectItem value="1">Уровень 1 — Начальный</SelectItem>
+              <SelectItem value="2">Уровень 2 — Базовый</SelectItem>
+              <SelectItem value="3">Уровень 3 — Средний</SelectItem>
+              <SelectItem value="4">Уровень 4 — Продвинутый</SelectItem>
+              <SelectItem value="5">Уровень 5 — Эксперт</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

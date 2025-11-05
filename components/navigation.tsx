@@ -129,12 +129,6 @@ export function Navigation() {
               <Link href="/modules">Модули</Link>
             </Button>
           )}
-          {/* Кнопка админки: показываем если пользователь авторизован, профиль загружен И роль admin/teacher */}
-          {isAuthenticated && profile && user && isAdmin && (
-            <Button variant="ghost" asChild>
-              <Link href="/admin/modules">Админ-панель</Link>
-            </Button>
-          )}
           {isAuthenticated ? (
             <>
               <Button variant="ghost" asChild>
@@ -143,6 +137,12 @@ export function Navigation() {
               <Button variant="ghost" asChild>
                 <Link href="/leaderboard">Лидеры</Link>
               </Button>
+              {/* Кнопка админки: показываем если пользователь авторизован, профиль загружен И роль admin/teacher */}
+              {profile && user && isAdmin && (
+                <Button variant="ghost" asChild>
+                  <Link href="/admin/modules">Админ-панель</Link>
+                </Button>
+              )}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-10 w-10 rounded-full">

@@ -9,6 +9,7 @@ import Link from "next/link";
 import { ArrowLeft, BookOpen } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkBreaks from "remark-breaks";
 
 type Module = Database["public"]["Tables"]["modules"]["Row"];
 type Task = Database["public"]["Tables"]["tasks"]["Row"];
@@ -77,7 +78,12 @@ export function ModuleDetails({ module, tasks, completedTaskIds, moduleProgress 
             </CardHeader>
             <CardContent>
               <div className="prose prose-sm dark:prose-invert max-w-none">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                <ReactMarkdown 
+                  remarkPlugins={[remarkGfm, remarkBreaks]}
+                  components={{
+                    p: ({ children }) => <p className="mb-4 last:mb-0 whitespace-pre-line">{children}</p>,
+                  }}
+                >
                   {module.description}
                 </ReactMarkdown>
               </div>

@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkBreaks from "remark-breaks";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark, oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { useTheme } from "@/components/theme-provider";
@@ -475,10 +476,30 @@ export function ModuleUnifiedPage({
   };
 
   const handleCodeChange = (taskId: string, value: string | undefined) => {
-    setTaskStates(prev => ({
-      ...prev,
-      [taskId]: { ...prev[taskId], code: value || "" },
-    }));
+    setTaskStates(prev => {
+      const currentState = prev[taskId];
+      const task = tasks.find(t => t.id === taskId);
+      if (!currentState && task) {
+        // Создаем новое состояние, если его еще нет
+        return {
+          ...prev,
+          [taskId]: {
+            code: value || task.starter_code || "",
+            initialCode: task.starter_code || "",
+            executionResult: null,
+            testResults: null,
+            running: false,
+            testing: false,
+            isCompleted: false,
+            lastAttempt: null,
+          },
+        };
+      }
+      return {
+        ...prev,
+        [taskId]: { ...currentState, code: value || "" },
+      };
+    });
   };
 
   const getStatusConfig = (status: TaskStatus) => {
@@ -652,21 +673,22 @@ export function ModuleUnifiedPage({
                 <AccordionContent className="px-6 pb-6">
                   <div className="prose prose-sm dark:prose-invert max-w-none">
                     <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
+                      remarkPlugins={[remarkGfm, remarkBreaks]}
                       components={{
-                        code({ node, inline, className, children, ...props }) {
+                        code({ node, inline, className, children, ...props }: any) {
                           const match = /language-(\w+)/.exec(className || "");
                           const isDark = mounted && (
                             theme === "dark" || 
                             (theme === "system" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches)
                           );
-                          return !inline && match ? (
+                          const inlineProp = (props as any).inline;
+                          return !inlineProp && match ? (
                             <SyntaxHighlighter
-                              style={isDark ? oneDark : oneLight}
+                              style={(isDark ? oneDark : oneLight) as any}
                               language={match[1]}
                               PreTag="div"
                               className="font-ubuntu-mono rounded-md"
-                              {...props}
+                              customStyle={{ fontFamily: 'Ubuntu Mono, monospace' }}
                             >
                               {String(children).replace(/\n$/, "")}
                             </SyntaxHighlighter>
@@ -676,6 +698,7 @@ export function ModuleUnifiedPage({
                             </code>
                           );
                         },
+                        p: ({ children }) => <p className="mb-4 last:mb-0 whitespace-pre-line">{children}</p>,
                       }}
                     >
                       {module.description}
@@ -783,7 +806,35 @@ export function ModuleUnifiedPage({
                         <div className="space-y-6">
                           {/* Описание задания */}
                           <div className="prose prose-sm dark:prose-invert max-w-none">
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            <ReactMarkdown 
+                              remarkPlugins={[remarkGfm, remarkBreaks]}
+                              components={{
+                                code({ node, inline, className, children, ...props }: any) {
+                                  const match = /language-(\w+)/.exec(className || "");
+                                  const isDark = mounted && (
+                                    theme === "dark" || 
+                                    (theme === "system" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches)
+                                  );
+                                  const inlineProp = (props as any).inline;
+                                  return !inlineProp && match ? (
+                                    <SyntaxHighlighter
+                                      style={(isDark ? oneDark : oneLight) as any}
+                                      language={match[1]}
+                                      PreTag="div"
+                                      className="font-ubuntu-mono rounded-md"
+                                      customStyle={{ fontFamily: 'Ubuntu Mono, monospace' }}
+                                    >
+                                      {String(children).replace(/\n$/, "")}
+                                    </SyntaxHighlighter>
+                                  ) : (
+                                    <code className={`font-ubuntu-mono ${className}`} {...props}>
+                                      {children}
+                                    </code>
+                                  );
+                                },
+                                p: ({ children }) => <p className="mb-4 last:mb-0 whitespace-pre-line">{children}</p>,
+                              }}
+                            >
                               {task.description}
                             </ReactMarkdown>
                           </div>
@@ -797,92 +848,88 @@ export function ModuleUnifiedPage({
                               </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
-                              {state && (
-                                <>
-                                  <CodeEditor
-                                    value={state.code}
-                                    onChange={(value) => handleCodeChange(task.id, value)}
-                                    height="400px"
-                                    language="python"
-                                  />
+                              <CodeEditor
+                                value={state?.code || task.starter_code || ""}
+                                onChange={(value) => handleCodeChange(task.id, value)}
+                                height="400px"
+                                language="python"
+                              />
 
-                                  {/* Кнопки управления */}
-                                  <div className="flex flex-wrap gap-2">
-                                    <Button
-                                      onClick={() => handleRunCode(task.id)}
-                                      variant="default"
-                                      disabled={state.running || pyodideLoading || !state.code.trim()}
-                                    >
-                                      {state.running ? (
-                                        <>
-                                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                          Выполнение...
-                                        </>
-                                      ) : (
-                                        "Запустить код"
-                                      )}
-                                    </Button>
-                                    <Button
-                                      onClick={() => handleTestTask(task.id)}
-                                      variant="default"
-                                      disabled={state.testing || pyodideLoading || !state.code.trim()}
-                                    >
-                                      {state.testing ? (
-                                        <>
-                                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                          Проверка...
-                                        </>
-                                      ) : (
-                                        "Проверить задание"
-                                      )}
-                                    </Button>
-                                    <Button
-                                      onClick={() => handleResetCode(task.id)}
-                                      variant="outline"
-                                      disabled={state.code === state.initialCode}
-                                    >
-                                      <RotateCcw className="mr-2 h-4 w-4" />
-                                      Сбросить код
-                                    </Button>
-                                    <Button onClick={() => handleAiHint(task.id)} variant="outline">
-                                      <Sparkles className="mr-2 h-4 w-4" />
-                                      AI-подсказка
-                                    </Button>
+                              {/* Кнопки управления */}
+                              <div className="flex flex-wrap gap-2">
+                                <Button
+                                  onClick={() => handleRunCode(task.id)}
+                                  variant="default"
+                                  disabled={state?.running || pyodideLoading || !(state?.code || task.starter_code || "").trim()}
+                                >
+                                  {state?.running ? (
+                                    <>
+                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                      Выполнение...
+                                    </>
+                                  ) : (
+                                    "Запустить код"
+                                  )}
+                                </Button>
+                                <Button
+                                  onClick={() => handleTestTask(task.id)}
+                                  variant="default"
+                                  disabled={state?.testing || pyodideLoading || !(state?.code || task.starter_code || "").trim()}
+                                >
+                                  {state?.testing ? (
+                                    <>
+                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                      Проверка...
+                                    </>
+                                  ) : (
+                                    "Проверить задание"
+                                  )}
+                                </Button>
+                                <Button
+                                  onClick={() => handleResetCode(task.id)}
+                                  variant="outline"
+                                  disabled={(state?.code || task.starter_code || "") === (state?.initialCode || task.starter_code || "")}
+                                >
+                                  <RotateCcw className="mr-2 h-4 w-4" />
+                                  Сбросить код
+                                </Button>
+                                <Button onClick={() => handleAiHint(task.id)} variant="outline">
+                                  <Sparkles className="mr-2 h-4 w-4" />
+                                  AI-подсказка
+                                </Button>
+                              </div>
+
+                              {/* Отображение ошибки Pyodide */}
+                              {pyodideError && (
+                                <div className="mt-4 p-4 rounded-md bg-destructive/10 border border-destructive">
+                                  <div className="flex items-start gap-2">
+                                    <AlertCircle className="h-5 w-5 text-destructive mt-0.5 flex-shrink-0" />
+                                    <div>
+                                      <h4 className="font-medium text-destructive">Ошибка загрузки Python среды</h4>
+                                      <p className="text-sm text-muted-foreground mt-1">
+                                        {pyodideError.message}
+                                      </p>
+                                      <Button
+                                        onClick={() => window.location.reload()}
+                                        variant="outline"
+                                        size="sm"
+                                        className="mt-2"
+                                      >
+                                        Перезагрузить страницу
+                                      </Button>
+                                    </div>
                                   </div>
+                                </div>
+                              )}
 
-                                  {/* Отображение ошибки Pyodide */}
-                                  {pyodideError && (
-                                    <div className="mt-4 p-4 rounded-md bg-destructive/10 border border-destructive">
-                                      <div className="flex items-start gap-2">
-                                        <AlertCircle className="h-5 w-5 text-destructive mt-0.5 flex-shrink-0" />
-                                        <div>
-                                          <h4 className="font-medium text-destructive">Ошибка загрузки Python среды</h4>
-                                          <p className="text-sm text-muted-foreground mt-1">
-                                            {pyodideError.message}
-                                          </p>
-                                          <Button
-                                            onClick={() => window.location.reload()}
-                                            variant="outline"
-                                            size="sm"
-                                            className="mt-2"
-                                          >
-                                            Перезагрузить страницу
-                                          </Button>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  {/* Индикатор загрузки Pyodide */}
-                                  {pyodideLoading && (
-                                    <div className="mt-4 p-4 rounded-md bg-muted">
-                                      <div className="flex items-center gap-2">
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                        <span className="text-sm">Загрузка Python среды... Это может занять несколько секунд</span>
-                                      </div>
-                                    </div>
-                                  )}
-                                </>
+                              {/* Индикатор загрузки Pyodide */}
+                              {pyodideLoading && (
+                                <div className="mt-4 p-4 rounded-md bg-muted">
+                                  <div className="flex items-center gap-2">
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                    <span className="text-sm">Загрузка Python среды... Это может занять несколько секунд</span>
+                                  </div>
+                                </div>
                               )}
 
                               {/* Выполнение кода */}
@@ -951,7 +998,12 @@ export function ModuleUnifiedPage({
           </DialogHeader>
           <div className="max-h-[60vh] overflow-y-auto">
             <div id="hint-description" className="prose prose-sm dark:prose-invert max-w-none pr-4">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              <ReactMarkdown 
+                remarkPlugins={[remarkGfm, remarkBreaks]}
+                components={{
+                  p: ({ children }) => <p className="mb-4 last:mb-0 whitespace-pre-line">{children}</p>,
+                }}
+              >
                 {hintMarkdown}
               </ReactMarkdown>
             </div>
@@ -970,7 +1022,12 @@ export function ModuleUnifiedPage({
           </DialogHeader>
           <div className="max-h-[60vh] overflow-y-auto">
             <div id="feedback-description" className="prose prose-sm dark:prose-invert max-w-none pr-4">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              <ReactMarkdown 
+                remarkPlugins={[remarkGfm, remarkBreaks]}
+                components={{
+                  p: ({ children }) => <p className="mb-4 last:mb-0 whitespace-pre-line">{children}</p>,
+                }}
+              >
                 {feedbackMarkdown}
               </ReactMarkdown>
             </div>
