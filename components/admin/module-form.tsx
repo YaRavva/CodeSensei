@@ -22,6 +22,10 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkBreaks from "remark-breaks";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { oneDark, oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { useTheme } from "@/components/theme-provider";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertTriangle } from "lucide-react";
 import { ToastAction } from "@/components/ui/toast";
@@ -43,6 +47,8 @@ export function ModuleForm({ moduleId, initialData, createdByUserId }: ModuleFor
   const [isPublished, setIsPublished] = useState(false);
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const { theme } = useTheme();
   const router = useRouter();
   const { toast } = useToast();
   const supabase = createClient();
@@ -51,6 +57,10 @@ export function ModuleForm({ moduleId, initialData, createdByUserId }: ModuleFor
   const [taskGenLoading, setTaskGenLoading] = useState(false);
   const [taskGenDifficulty, setTaskGenDifficulty] = useState<"easy" | "medium" | "hard">("easy");
   const [generatedTask, setGeneratedTask] = useState<any | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   // Сущности уроков больше нет — задания сохраняются напрямую в модуль
 
   useEffect(() => {
@@ -547,8 +557,35 @@ export function ModuleForm({ moduleId, initialData, createdByUserId }: ModuleFor
                       <AccordionTrigger className="py-2 text-sm">Предпросмотр</AccordionTrigger>
                       <AccordionContent>
                         <div className="border rounded-md p-4 h-[400px] overflow-auto bg-card">
-                          <div className="prose prose-sm dark:prose-invert max-w-none">
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          <div className="prose prose-sm dark:prose-invert max-w-none [&_p]:mb-4 [&_p:last-child]:mb-0 [&_h1]:mb-4 [&_h2]:mb-3 [&_h3]:mb-2 [&_ul]:mb-4 [&_ol]:mb-4 [&_pre]:mb-4">
+                            <ReactMarkdown
+                              remarkPlugins={[remarkGfm, remarkBreaks]}
+                              components={{
+                                code({ node, inline, className, children, ...props }) {
+                                  const match = /language-(\w+)/.exec(className || "");
+                                  const isDark = mounted && (
+                                    theme === "dark" || 
+                                    (theme === "system" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches)
+                                  );
+                                  return !inline && match ? (
+                                    <SyntaxHighlighter
+                                      style={isDark ? oneDark : oneLight}
+                                      language={match[1]}
+                                      PreTag="div"
+                                      className="font-ubuntu-mono rounded-md"
+                                      {...props}
+                                    >
+                                      {String(children).replace(/\n$/, "")}
+                                    </SyntaxHighlighter>
+                                  ) : (
+                                    <code className={`font-ubuntu-mono ${className}`} {...props}>
+                                      {children}
+                                    </code>
+                                  );
+                                },
+                                p: ({ children }) => <p className="mb-4 last:mb-0 whitespace-pre-line">{children}</p>,
+                              }}
+                            >
                               {description || "*Введите текст выше для предпросмотра*"}
                             </ReactMarkdown>
                           </div>

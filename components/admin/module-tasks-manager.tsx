@@ -23,59 +23,57 @@ export function ModuleTasksManager({ moduleId }: ModuleTasksManagerProps) {
   const [loading, setLoading] = useState(true);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const supabase = createClient();
   const { toast } = useToast();
   const router = useRouter();
 
-  const loadTasks = useCallback(async () => {
+  const loadTasks = async () => {
     if (!moduleId) {
-      console.error("ModuleTasksManager: moduleId is not provided");
       setLoading(false);
+      setTasks([]);
       return;
     }
 
     try {
       setLoading(true);
-      console.log("Loading tasks for module:", moduleId);
-      
-      const supabaseClient = createClient();
-      const { data, error } = await supabaseClient
+      const client = createClient();
+      const { data, error } = await client
         .from("tasks")
         .select("*")
         .eq("module_id", moduleId)
         .order("order_index");
 
       if (error) {
-        console.error("Supabase error loading tasks:", error);
+        console.error("Error loading tasks:", error);
         throw error;
       }
       
-      console.log("Loaded tasks:", data?.length || 0, data);
+      console.log("Loaded tasks:", data?.length || 0, "for module:", moduleId);
       setTasks(data || []);
     } catch (error) {
       console.error("Error loading tasks:", error);
-      const errorMessage = error instanceof Error ? error.message : "Неизвестная ошибка";
+      const errorMessage = error instanceof Error ? error.message : "Не удалось загрузить задания";
       toast({
-        title: "Ошибка загрузки заданий",
+        title: "Ошибка загрузки",
         description: errorMessage,
         variant: "destructive",
       });
+      setTasks([]);
     } finally {
       setLoading(false);
     }
-  }, [moduleId, toast]);
+  };
 
   useEffect(() => {
-    if (moduleId) {
-      loadTasks();
-    }
-  }, [moduleId, loadTasks]);
+    loadTasks();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [moduleId]);
 
   async function handleDelete(taskId: string, taskTitle: string) {
     if (!confirm(`Вы уверены, что хотите удалить задание "${taskTitle}"?`)) return;
 
     try {
-      const supabaseClient = createClient();
-      const { error } = await supabaseClient.from("tasks").delete().eq("id", taskId);
+      const { error } = await supabase.from("tasks").delete().eq("id", taskId);
 
       if (error) throw error;
 
@@ -104,10 +102,23 @@ export function ModuleTasksManager({ moduleId }: ModuleTasksManagerProps) {
     return <Badge variant={config.variant}>{config.label}</Badge>;
   }
 
+  if (!moduleId) {
+    return (
+      <Card>
+        <CardContent className="pt-6">
+          <p className="text-center text-muted-foreground">
+            ID модуля не указан
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <span className="ml-2 text-sm text-muted-foreground">Загрузка заданий...</span>
       </div>
     );
   }
@@ -223,9 +234,9 @@ export function ModuleTasksManager({ moduleId }: ModuleTasksManagerProps) {
           </DialogHeader>
           <TaskForm
             moduleId={moduleId}
-            onSuccess={() => {
+            onSuccess={async () => {
               setIsCreateDialogOpen(false);
-              loadTasks();
+              await loadTasks();
               router.refresh();
             }}
             onCancel={() => setIsCreateDialogOpen(false)}
@@ -242,9 +253,9 @@ export function ModuleTasksManager({ moduleId }: ModuleTasksManagerProps) {
             </DialogHeader>
             <TaskForm
               taskId={editingTaskId}
-              onSuccess={() => {
+              onSuccess={async () => {
                 setEditingTaskId(null);
-                loadTasks();
+                await loadTasks();
                 router.refresh();
               }}
               onCancel={() => setEditingTaskId(null)}

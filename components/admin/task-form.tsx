@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
 import { createClient } from "@/lib/supabase/client";
 import type { Database } from "@/types/supabase";
@@ -20,6 +21,12 @@ import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Sparkles, Loader2 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import remarkBreaks from "remark-breaks";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { oneDark, oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { useTheme } from "@/components/theme-provider";
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
   ssr: false,
@@ -56,13 +63,15 @@ export function TaskForm({ moduleId, taskId, onSuccess, onCancel }: TaskFormProp
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [topic, setTopic] = useState("");
-  const [rubric, setRubric] = useState<string>("\n[\n  { \"name\": \"Корректность\", \"weight\": 0.6, \"criteria\": \"Проходит базовые и граничные тесты\" },\n  { \"name\": \"Крайние случаи\", \"weight\": 0.2, \"criteria\": \"Учитывает пустые/некорректные входы, большие значения\" },\n  { \"name\": \"Стиль и читаемость\", \"weight\": 0.2, \"criteria\": \"Понятные имена, простота, отсутствие лишней сложности\" }\n]");
-  const [evalPrompt, setEvalPrompt] = useState<string>(
-    "Ты проверяешь решение ученика. Дай краткий отзыв (3-5 предложений) и числовую оценку 0..1 согласно rubric. Верни JSON {\\\"score\\\": number, \\\"feedback\\\": string}."
-  );
+  const [mounted, setMounted] = useState(false);
+  const { theme } = useTheme();
   const router = useRouter();
   const { toast } = useToast();
   const supabase = createClient();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (taskId) {
@@ -177,16 +186,6 @@ export function TaskForm({ moduleId, taskId, onSuccess, onCancel }: TaskFormProp
         }
         if (result.data.xp_reward) {
           setXpReward(result.data.xp_reward.toString());
-        }
-        if (result.data.rubric) {
-          try {
-            setRubric(JSON.stringify(result.data.rubric, null, 2));
-          } catch {
-            // игнорируем, если пришёл не-JSON
-          }
-        }
-        if (result.data.eval_prompt) {
-          setEvalPrompt(result.data.eval_prompt);
         }
 
         toast({
@@ -316,30 +315,6 @@ export function TaskForm({ moduleId, taskId, onSuccess, onCancel }: TaskFormProp
               </p>
             </div>
           )}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label htmlFor="rubric">Rubric (JSON, критерии и веса)</Label>
-              <Textarea
-                id="rubric"
-                value={rubric}
-                onChange={(e) => setRubric(e.target.value)}
-                rows={8}
-                disabled={loading}
-              />
-              <p className="text-xs text-muted-foreground">Рекомендуется сумма весов = 1. Используется ИИ для оценки качества решения.</p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="evalPrompt">Eval Prompt (шаблон для AI-оценки)</Label>
-              <Textarea
-                id="evalPrompt"
-                value={evalPrompt}
-                onChange={(e) => setEvalPrompt(e.target.value)}
-                rows={8}
-                disabled={loading}
-              />
-              <p className="text-xs text-muted-foreground">Краткая инструкция для модели как оценивать решение. Должна быть стабильной и выводить JSON.</p>
-            </div>
-          </div>
           <div className="space-y-2">
             <Label htmlFor="title">Название *</Label>
             <Input
@@ -351,15 +326,62 @@ export function TaskForm({ moduleId, taskId, onSuccess, onCancel }: TaskFormProp
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="description">Описание *</Label>
-            <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={4}
-              required
-              disabled={loading}
-            />
+            <Label htmlFor="description">Описание (Markdown) *</Label>
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="description" className="border-none">
+                <AccordionTrigger className="py-2 text-sm">Редактировать описание</AccordionTrigger>
+                <AccordionContent>
+                  <Textarea
+                    id="description"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className="min-h-[400px] font-ubuntu-mono text-sm"
+                    required
+                    disabled={loading}
+                    placeholder="Введите описание задания в формате Markdown..."
+                  />
+                </AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="preview" className="border-none">
+                <AccordionTrigger className="py-2 text-sm">Предпросмотр</AccordionTrigger>
+                <AccordionContent>
+                  <div className="border rounded-md p-4 h-[400px] overflow-auto bg-card">
+                    <div className="prose prose-sm dark:prose-invert max-w-none [&_p]:mb-4 [&_p:last-child]:mb-0 [&_h1]:mb-4 [&_h2]:mb-3 [&_h3]:mb-2 [&_ul]:mb-4 [&_ol]:mb-4 [&_pre]:mb-4">
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm, remarkBreaks]}
+                        components={{
+                          code({ node, inline, className, children, ...props }) {
+                            const match = /language-(\w+)/.exec(className || "");
+                            const isDark = mounted && (
+                              theme === "dark" || 
+                              (theme === "system" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches)
+                            );
+                            return !inline && match ? (
+                              <SyntaxHighlighter
+                                style={isDark ? oneDark : oneLight}
+                                language={match[1]}
+                                PreTag="div"
+                                className="font-ubuntu-mono rounded-md"
+                                {...props}
+                              >
+                                {String(children).replace(/\n$/, "")}
+                              </SyntaxHighlighter>
+                            ) : (
+                              <code className={`font-ubuntu-mono ${className}`} {...props}>
+                                {children}
+                              </code>
+                            );
+                          },
+                          p: ({ children }) => <p className="mb-4 last:mb-0 whitespace-pre-line">{children}</p>,
+                        }}
+                      >
+                        {description || "*Введите текст выше для предпросмотра*"}
+                      </ReactMarkdown>
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </div>
           <div className="space-y-2">
             <Label htmlFor="starterCode">Стартовый код *</Label>
