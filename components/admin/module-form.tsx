@@ -57,6 +57,7 @@ export function ModuleForm({ moduleId, initialData, createdByUserId }: ModuleFor
   const [taskGenLoading, setTaskGenLoading] = useState(false);
   const [taskGenDifficulty, setTaskGenDifficulty] = useState<"easy" | "medium" | "hard">("easy");
   const [generatedTask, setGeneratedTask] = useState<any | null>(null);
+  const [newTaskId, setNewTaskId] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -303,14 +304,18 @@ export function ModuleForm({ moduleId, initialData, createdByUserId }: ModuleFor
         return;
       }
       const { id: newId } = await res.json();
-      toast({ title: "Задание создано", description: "Задание добавлено в модуль" });
       if (newId) {
-        router.push(`/admin/tasks/${newId}/edit`);
+        setNewTaskId(newId);
+        setActiveTab("tasks");
+        setGeneratedTask(null);
+        toast({ title: "Задание создано", description: "Задание добавлено в модуль и открыто для редактирования" });
       } else {
-        // Если RLS не позволяет выбирать только что созданную запись, отправляем в список задач админки
-        router.push(`/admin/tasks`);
+        toast({
+          title: "Предупреждение",
+          description: "Задание создано, но не удалось получить его ID. Обновите страницу.",
+          variant: "destructive",
+        });
       }
-      router.refresh();
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Неизвестная ошибка";
       toast({
@@ -598,41 +603,46 @@ export function ModuleForm({ moduleId, initialData, createdByUserId }: ModuleFor
             </TabsContent>
 
             {moduleId && (
-              <TabsContent value="tasks" className="space-y-4">
-                <ModuleTasksManager moduleId={moduleId} />
+              <TabsContent value="tasks" className="space-y-4" forceMount>
+                <div className={activeTab !== "tasks" ? "hidden" : ""}>
+                  <ModuleTasksManager 
+                    key={`${moduleId}-${newTaskId || 'none'}`}
+                    moduleId={moduleId}
+                    newTaskId={newTaskId}
+                  />
+                </div>
               </TabsContent>
             )}
 
-            <TabsContent value="ai" className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2 md:col-span-2">
-                  <Label>Сложность задания для генерации</Label>
-                  <Select value={taskGenDifficulty} onValueChange={(v) => setTaskGenDifficulty(v as any)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="easy">Легкая</SelectItem>
-                      <SelectItem value="medium">Средняя</SelectItem>
-                      <SelectItem value="hard">Сложная</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground">Будет использована тема модуля и его теория как контекст</p>
+            <TabsContent value="ai" className="space-y-6">
+              <div className="space-y-3">
+                <Label>Сложность задания</Label>
+                <div className="flex flex-col sm:flex-row gap-3 items-center">
+                  <div className="w-full sm:w-48">
+                    <Select value={taskGenDifficulty} onValueChange={(v) => setTaskGenDifficulty(v as any)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="easy">Легкая</SelectItem>
+                        <SelectItem value="medium">Средняя</SelectItem>
+                        <SelectItem value="hard">Сложная</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex gap-2 w-full sm:w-auto">
+                    <Button type="button" onClick={handleGenerateTaskAI} disabled={taskGenLoading} className="flex-1 sm:flex-initial">
+                      {taskGenLoading ? "Генерация..." : "⚙️ Сгенерировать"}
+                    </Button>
+                    {moduleId && (
+                      <Button type="button" variant="secondary" onClick={handleCreateTaskFromGenerated} disabled={!generatedTask} className="flex-1 sm:flex-initial">
+                        Сохранить
+                      </Button>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-end">
-                  <Button type="button" onClick={handleGenerateTaskAI} disabled={taskGenLoading} className="w-full">
-                    {taskGenLoading ? "Генерация..." : "⚙️ Сгенерировать задание"}
-                  </Button>
-                </div>
+                <p className="text-xs text-muted-foreground">Будет использована тема модуля и его теория как контекст</p>
               </div>
-
-              {moduleId && (
-                <div className="flex items-end">
-                  <Button type="button" variant="secondary" onClick={handleCreateTaskFromGenerated} disabled={!generatedTask} className="w-full">
-                    Сохранить задание
-                  </Button>
-                </div>
-              )}
 
               {generatedTask && (
                 <div className="space-y-4">

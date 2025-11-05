@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Database } from "@/types/supabase";
 import { Button } from "@/components/ui/button";
@@ -9,65 +9,88 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { TaskForm } from "@/components/admin/task-form";
 import { useToast } from "@/hooks/use-toast";
-import { useRouter } from "next/navigation";
-import { Pencil, Trash2, Plus, Loader2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 
 type Task = Database["public"]["Tables"]["tasks"]["Row"];
 
 interface ModuleTasksManagerProps {
   moduleId: string;
+  newTaskId?: string | null;
 }
 
-export function ModuleTasksManager({ moduleId }: ModuleTasksManagerProps) {
+export function ModuleTasksManager({ moduleId, newTaskId }: ModuleTasksManagerProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [reloadTrigger, setReloadTrigger] = useState(0);
+  const [pendingTaskId, setPendingTaskId] = useState<string | null>(null);
   const supabase = createClient();
   const { toast } = useToast();
-  const router = useRouter();
 
-  const loadTasks = async () => {
-    if (!moduleId) {
-      setLoading(false);
+  useEffect(() => {
+    if (!moduleId || typeof moduleId !== "string" || moduleId.trim() === "") {
       setTasks([]);
       return;
     }
 
-    try {
-      setLoading(true);
-      const client = createClient();
-      const { data, error } = await client
-        .from("tasks")
-        .select("*")
-        .eq("module_id", moduleId)
-        .order("order_index");
+    let cancelled = false;
 
-      if (error) {
-        console.error("Error loading tasks:", error);
-        throw error;
+    async function loadTasks() {
+      try {
+        const client = createClient();
+        const { data, error } = await client
+          .from("tasks")
+          .select("*")
+          .eq("module_id", moduleId)
+          .order("order_index");
+
+        if (cancelled) return;
+
+        if (error) {
+          console.error("ModuleTasksManager: Error loading tasks:", error);
+          toast({
+            title: "Ошибка загрузки",
+            description: error.message,
+            variant: "destructive",
+          });
+          setTasks([]);
+          return;
+        }
+
+        console.log("ModuleTasksManager: Loaded", data?.length || 0, "tasks for module", moduleId);
+        setTasks(data || []);
+        
+        // Если есть ожидающее задание для редактирования, открываем его
+        if (pendingTaskId && data && data.some(t => t.id === pendingTaskId)) {
+          setEditingTaskId(pendingTaskId);
+          setPendingTaskId(null);
+        }
+      } catch (error) {
+        if (cancelled) return;
+        console.error("ModuleTasksManager: Exception loading tasks:", error);
+        toast({
+          title: "Ошибка загрузки",
+          description: error instanceof Error ? error.message : "Не удалось загрузить задания",
+          variant: "destructive",
+        });
+        setTasks([]);
       }
-      
-      console.log("Loaded tasks:", data?.length || 0, "for module:", moduleId);
-      setTasks(data || []);
-    } catch (error) {
-      console.error("Error loading tasks:", error);
-      const errorMessage = error instanceof Error ? error.message : "Не удалось загрузить задания";
-      toast({
-        title: "Ошибка загрузки",
-        description: errorMessage,
-        variant: "destructive",
-      });
-      setTasks([]);
-    } finally {
-      setLoading(false);
     }
-  };
 
-  useEffect(() => {
+    console.log("ModuleTasksManager: useEffect triggered, moduleId:", moduleId);
     loadTasks();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [moduleId]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [moduleId, reloadTrigger, toast, pendingTaskId]);
+  
+  // Обработка нового задания извне (из генерации)
+  useEffect(() => {
+    if (newTaskId) {
+      setPendingTaskId(newTaskId);
+      setReloadTrigger((prev) => prev + 1);
+    }
+  }, [newTaskId]);
 
   async function handleDelete(taskId: string, taskTitle: string) {
     if (!confirm(`Вы уверены, что хотите удалить задание "${taskTitle}"?`)) return;
@@ -81,8 +104,7 @@ export function ModuleTasksManager({ moduleId }: ModuleTasksManagerProps) {
         title: "Задание удалено",
         description: `Задание "${taskTitle}" успешно удалено`,
       });
-      await loadTasks();
-      router.refresh();
+      setReloadTrigger((prev) => prev + 1);
     } catch (error) {
       toast({
         title: "Ошибка",
@@ -102,7 +124,7 @@ export function ModuleTasksManager({ moduleId }: ModuleTasksManagerProps) {
     return <Badge variant={config.variant}>{config.label}</Badge>;
   }
 
-  if (!moduleId) {
+  if (!moduleId || typeof moduleId !== "string" || moduleId.trim() === "") {
     return (
       <Card>
         <CardContent className="pt-6">
@@ -114,50 +136,22 @@ export function ModuleTasksManager({ moduleId }: ModuleTasksManagerProps) {
     );
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        <span className="ml-2 text-sm text-muted-foreground">Загрузка заданий...</span>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold">Задания модуля</h3>
-          <p className="text-sm text-muted-foreground">
-            Всего заданий: {tasks.length}
-          </p>
-        </div>
-        <Button
-          type="button"
-          onClick={() => setIsCreateDialogOpen(true)}
-          className="gap-2"
-        >
-          <Plus className="h-4 w-4" />
-          Создать задание
-        </Button>
+      <div>
+        <h3 className="text-lg font-semibold">Задания модуля</h3>
+        <p className="text-sm text-muted-foreground">
+          Всего заданий: {tasks.length}
+        </p>
       </div>
 
       {tasks.length === 0 ? (
         <Card>
           <CardContent className="pt-6">
             <div className="text-center py-8">
-              <p className="text-muted-foreground mb-4">
-                В этом модуле пока нет заданий
+              <p className="text-muted-foreground">
+                В этом модуле пока нет заданий. Используйте вкладку "Генерация заданий ИИ" для создания заданий.
               </p>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsCreateDialogOpen(true)}
-                className="gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                Создать первое задание
-              </Button>
             </div>
           </CardContent>
         </Card>
@@ -226,24 +220,6 @@ export function ModuleTasksManager({ moduleId }: ModuleTasksManagerProps) {
         </div>
       )}
 
-      {/* Диалог создания нового задания */}
-      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Создать новое задание</DialogTitle>
-          </DialogHeader>
-          <TaskForm
-            moduleId={moduleId}
-            onSuccess={async () => {
-              setIsCreateDialogOpen(false);
-              await loadTasks();
-              router.refresh();
-            }}
-            onCancel={() => setIsCreateDialogOpen(false)}
-          />
-        </DialogContent>
-      </Dialog>
-
       {/* Диалог редактирования задания */}
       {editingTaskId && (
         <Dialog open={!!editingTaskId} onOpenChange={(open) => !open && setEditingTaskId(null)}>
@@ -255,8 +231,7 @@ export function ModuleTasksManager({ moduleId }: ModuleTasksManagerProps) {
               taskId={editingTaskId}
               onSuccess={async () => {
                 setEditingTaskId(null);
-                await loadTasks();
-                router.refresh();
+                setReloadTrigger((prev) => prev + 1);
               }}
               onCancel={() => setEditingTaskId(null)}
             />
