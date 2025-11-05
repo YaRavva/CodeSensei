@@ -6,7 +6,7 @@ import type { Database } from "@/types/supabase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { TaskForm } from "@/components/admin/task-form";
 import { useToast } from "@/hooks/use-toast";
 import { Pencil, Trash2 } from "lucide-react";
@@ -16,13 +16,14 @@ type Task = Database["public"]["Tables"]["tasks"]["Row"];
 interface ModuleTasksManagerProps {
   moduleId: string;
   newTaskId?: string | null;
+  refreshTrigger?: number;
 }
 
-export function ModuleTasksManager({ moduleId, newTaskId }: ModuleTasksManagerProps) {
+export function ModuleTasksManager({ moduleId, newTaskId, refreshTrigger }: ModuleTasksManagerProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [reloadTrigger, setReloadTrigger] = useState(0);
   const [pendingTaskId, setPendingTaskId] = useState<string | null>(null);
+  const [accordionValue, setAccordionValue] = useState<string | undefined>(undefined);
   const supabase = createClient();
   const { toast } = useToast();
 
@@ -57,11 +58,12 @@ export function ModuleTasksManager({ moduleId, newTaskId }: ModuleTasksManagerPr
         }
 
         console.log("ModuleTasksManager: Loaded", data?.length || 0, "tasks for module", moduleId);
-        setTasks(data || []);
+        const tasksData = (data as Task[]) || [];
+        setTasks(tasksData);
         
-        // Если есть ожидающее задание для редактирования, открываем его
-        if (pendingTaskId && data && data.some(t => t.id === pendingTaskId)) {
-          setEditingTaskId(pendingTaskId);
+        // Если есть ожидающее задание для редактирования, открываем его в accordion
+        // Accordion автоматически откроется если значение совпадает с task.id
+        if (pendingTaskId && tasksData && Array.isArray(tasksData) && tasksData.some(t => t.id === pendingTaskId)) {
           setPendingTaskId(null);
         }
       } catch (error) {
@@ -82,15 +84,23 @@ export function ModuleTasksManager({ moduleId, newTaskId }: ModuleTasksManagerPr
     return () => {
       cancelled = true;
     };
-  }, [moduleId, reloadTrigger, toast, pendingTaskId]);
+  }, [moduleId, reloadTrigger, toast, pendingTaskId, refreshTrigger]);
   
   // Обработка нового задания извне (из генерации)
   useEffect(() => {
     if (newTaskId) {
       setPendingTaskId(newTaskId);
+      setAccordionValue(newTaskId); // Открываем accordion для нового задания
       setReloadTrigger((prev) => prev + 1);
     }
   }, [newTaskId]);
+
+  // Принудительное обновление списка при изменении refreshTrigger
+  useEffect(() => {
+    if (refreshTrigger !== undefined) {
+      setReloadTrigger((prev) => prev + 1);
+    }
+  }, [refreshTrigger]);
 
   async function handleDelete(taskId: string, taskTitle: string) {
     if (!confirm(`Вы уверены, что хотите удалить задание "${taskTitle}"?`)) return;
@@ -116,12 +126,12 @@ export function ModuleTasksManager({ moduleId, newTaskId }: ModuleTasksManagerPr
 
   function getDifficultyBadge(difficulty: string) {
     const variants = {
-      easy: { variant: "default" as const, label: "Легкое" },
-      medium: { variant: "secondary" as const, label: "Среднее" },
-      hard: { variant: "destructive" as const, label: "Сложное" },
+      easy: { variant: "default" as const, label: "Легкое", className: "bg-green-500 hover:bg-green-600 text-white border-transparent" },
+      medium: { variant: "default" as const, label: "Среднее", className: "bg-yellow-500 hover:bg-yellow-600 text-white border-transparent" },
+      hard: { variant: "destructive" as const, label: "Сложное", className: undefined },
     };
     const config = variants[difficulty as keyof typeof variants] || variants.easy;
-    return <Badge variant={config.variant}>{config.label}</Badge>;
+    return <Badge variant={config.variant} className={config.className}>{config.label}</Badge>;
   }
 
   if (!moduleId || typeof moduleId !== "string" || moduleId.trim() === "") {
@@ -156,88 +166,82 @@ export function ModuleTasksManager({ moduleId, newTaskId }: ModuleTasksManagerPr
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4">
+        <Accordion type="single" collapsible value={accordionValue} onValueChange={setAccordionValue} className="grid gap-4">
           {tasks.map((task) => (
-            <Card key={task.id} className="hover:shadow-md transition-shadow">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-2">
-                      <CardTitle className="text-base font-semibold">
-                        {task.order_index}. {task.title}
-                      </CardTitle>
-                      {getDifficultyBadge(task.difficulty)}
-                      {task.xp_reward && (
-                        <Badge variant="outline" className="gap-1">
-                          +{task.xp_reward} XP
+            <AccordionItem key={task.id} value={task.id} className="border-none">
+              <Card className="hover:shadow-md transition-shadow">
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3 mb-2">
+                        <CardTitle className="text-base font-semibold">
+                          {task.order_index}. {task.title}
+                        </CardTitle>
+                        {getDifficultyBadge(task.difficulty)}
+                        <Badge variant="secondary" className="gap-1">
+                          +{(task.difficulty === "easy" ? 10 : task.difficulty === "medium" ? 20 : 30)} XP
                         </Badge>
+                      </div>
+                      {task.description && (
+                        <p className="text-sm text-muted-foreground line-clamp-2">
+                          {task.description.replace(/[#*`]/g, "").substring(0, 150)}
+                          {task.description.length > 150 ? "..." : ""}
+                        </p>
                       )}
                     </div>
-                    {task.description && (
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        {task.description.replace(/[#*`]/g, "").substring(0, 150)}
-                        {task.description.length > 150 ? "..." : ""}
-                      </p>
-                    )}
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <span>Порядок: {task.order_index}</span>
-                    <span>•</span>
-                    <span>
-                      Тестов: {Array.isArray(task.test_cases) ? task.test_cases.length : 0}
-                    </span>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <span>Порядок: {task.order_index}</span>
+                      <span>•</span>
+                      <span>
+                        Тестов: {Array.isArray(task.test_cases) ? task.test_cases.length : 0}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                        onClick={() => setAccordionValue(accordionValue === task.id ? undefined : task.id)}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                        Редактировать
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDelete(task.id, task.title)}
+                        className="gap-2 text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Удалить
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setEditingTaskId(task.id)}
-                      className="gap-2"
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                      Редактировать
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDelete(task.id, task.title)}
-                      className="gap-2 text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      Удалить
-                    </Button>
+                </CardContent>
+                <AccordionContent className="px-6 pb-6">
+                  <div className="pt-4 border-t">
+                    <TaskForm
+                      moduleId={moduleId}
+                      taskId={task.id}
+                      onSuccess={async () => {
+                        setReloadTrigger((prev) => prev + 1);
+                      }}
+                      onCancel={() => {}}
+                    />
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </AccordionContent>
+              </Card>
+            </AccordionItem>
           ))}
-        </div>
+        </Accordion>
       )}
 
-      {/* Диалог редактирования задания */}
-      {editingTaskId && (
-        <Dialog open={!!editingTaskId} onOpenChange={(open) => !open && setEditingTaskId(null)}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Редактировать задание</DialogTitle>
-            </DialogHeader>
-            <TaskForm
-              taskId={editingTaskId}
-              onSuccess={async () => {
-                setEditingTaskId(null);
-                setReloadTrigger((prev) => prev + 1);
-              }}
-              onCancel={() => setEditingTaskId(null)}
-            />
-          </DialogContent>
-        </Dialog>
-      )}
     </div>
   );
 }

@@ -18,7 +18,7 @@ export default async function DashboardPage() {
 
   const { data: attemptsData } = await supabase
     .from("task_attempts")
-    .select("is_successful, execution_time_ms, created_at")
+    .select("is_successful, execution_time_ms, solving_time_ms, created_at")
     .eq("user_id", user.id);
 
   // Подсчитываем статистику
@@ -30,6 +30,16 @@ export default async function DashboardPage() {
       ? Math.round(
           attemptsData.reduce((sum, a: any) => sum + (a.execution_time_ms ?? 0), 0) /
             attemptsData.length
+        )
+      : 0;
+  
+  // Среднее время решения (только попытки с solving_time_ms)
+  const attemptsWithSolvingTime = attemptsData?.filter((a: any) => a.solving_time_ms != null) ?? [];
+  const avgSolvingTime =
+    attemptsWithSolvingTime.length > 0
+      ? Math.round(
+          attemptsWithSolvingTime.reduce((sum, a: any) => sum + (a.solving_time_ms ?? 0), 0) /
+            attemptsWithSolvingTime.length
         )
       : 0;
 
@@ -45,6 +55,7 @@ export default async function DashboardPage() {
         successfulAttempts,
         totalAttempts,
         avgExecutionTime,
+        avgSolvingTime,
       }}
       achievements={achievements}
     />

@@ -136,6 +136,7 @@ export interface Database {
           is_successful: boolean;
           used_ai_hint: boolean;
           execution_time_ms: number | null;
+          solving_time_ms: number | null;
           error_message: string | null;
           created_at: string;
         };
@@ -148,6 +149,7 @@ export interface Database {
           is_successful: boolean;
           used_ai_hint?: boolean;
           execution_time_ms?: number | null;
+          solving_time_ms?: number | null;
           error_message?: string | null;
           created_at?: string;
         };
@@ -160,6 +162,7 @@ export interface Database {
           is_successful?: boolean;
           used_ai_hint?: boolean;
           execution_time_ms?: number | null;
+          solving_time_ms?: number | null;
           error_message?: string | null;
           created_at?: string;
         };

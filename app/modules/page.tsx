@@ -16,6 +16,23 @@ export default async function ModulesPage() {
     console.error("Error loading modules:", error);
   }
 
+  // Получаем количество заданий для каждого модуля
+  const typedModules = (modules || []) as Array<{ id: string }>;
+  const moduleIds = typedModules.map((m) => m.id);
+  const tasksCountMap: Record<string, number> = {};
+  
+  if (moduleIds.length > 0) {
+    const { data: tasksData } = await supabase
+      .from("tasks")
+      .select("module_id")
+      .in("module_id", moduleIds);
+    
+    const typedTasksData = (tasksData || []) as Array<{ module_id: string }>;
+    typedTasksData.forEach((task) => {
+      tasksCountMap[task.module_id] = (tasksCountMap[task.module_id] || 0) + 1;
+    });
+  }
+
   // Получаем прогресс пользователя для определения статуса модулей
   const { data: progressData } = await supabase
     .from("user_progress")
@@ -33,6 +50,7 @@ export default async function ModulesPage() {
       <ModulesList
         modules={modules || []}
         userProgress={progressData || []}
+        tasksCountMap={tasksCountMap}
         // lessons={lessonsData || []} // Удаляем lessons из пропсов
       />
     </div>

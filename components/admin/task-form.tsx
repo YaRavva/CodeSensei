@@ -58,6 +58,14 @@ export function TaskForm({ moduleId, taskId, onSuccess, onCancel }: TaskFormProp
   const [testCases, setTestCases] = useState<TestCase[]>([]);
   const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">("easy");
   const [xpReward, setXpReward] = useState("10");
+  
+  // Обновляем XP при изменении difficulty (только для новых заданий, когда xpReward еще не был установлен)
+  useEffect(() => {
+    if (difficulty && !taskId) {
+      const defaultXP = difficulty === "easy" ? 10 : difficulty === "medium" ? 20 : 30;
+      setXpReward(defaultXP.toString());
+    }
+  }, [difficulty, taskId]);
   const [orderIndex, setOrderIndex] = useState("0");
   const [currentModuleId, setCurrentModuleId] = useState(moduleId || "");
   const [loading, setLoading] = useState(false);
@@ -78,6 +86,17 @@ export function TaskForm({ moduleId, taskId, onSuccess, onCancel }: TaskFormProp
       loadTask();
     }
   }, [taskId]);
+
+  // Определяем тему редактора на основе системной темы
+  const getEditorTheme = () => {
+    if (!mounted) return "light";
+    if (theme === "system") {
+      return typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "vs-dark"
+        : "light";
+    }
+    return theme === "dark" ? "vs-dark" : "light";
+  };
 
   async function loadTask() {
     if (!taskId) return;
@@ -110,7 +129,9 @@ export function TaskForm({ moduleId, taskId, onSuccess, onCancel }: TaskFormProp
       setStarterCode(typedData.starter_code);
       setSolutionCode(typedData.solution_code || "");
       setDifficulty(typedData.difficulty);
-      setXpReward(typedData.xp_reward?.toString() || "10");
+      // Используем xp_reward из БД или дефолтное значение по сложности
+      const defaultXP = typedData.difficulty === "easy" ? 10 : typedData.difficulty === "medium" ? 20 : 30;
+      setXpReward(typedData.xp_reward?.toString() || defaultXP.toString());
       setOrderIndex(typedData.order_index.toString());
       setCurrentModuleId(typedData.module_id);
 
@@ -184,7 +205,12 @@ export function TaskForm({ moduleId, taskId, onSuccess, onCancel }: TaskFormProp
         if (result.data.test_cases && Array.isArray(result.data.test_cases)) {
           setTestCases(result.data.test_cases);
         }
-        if (result.data.xp_reward) {
+        // Используем xp_reward из результата генерации или дефолтное значение по сложности
+        if (result.data.difficulty) {
+          setDifficulty(result.data.difficulty);
+          const defaultXP = result.data.difficulty === "easy" ? 10 : result.data.difficulty === "medium" ? 20 : 30;
+          setXpReward(result.data.xp_reward?.toString() || defaultXP.toString());
+        } else if (result.data.xp_reward) {
           setXpReward(result.data.xp_reward.toString());
         }
 
@@ -219,6 +245,11 @@ export function TaskForm({ moduleId, taskId, onSuccess, onCancel }: TaskFormProp
       return;
     }
 
+    // Определяем правильное значение XP по сложности
+    const defaultXP = difficulty === "easy" ? 10 : difficulty === "medium" ? 20 : 30;
+    const parsedXP = Number.parseInt(xpReward, 10);
+    const finalXP = parsedXP > 0 ? parsedXP : defaultXP;
+
     const taskData = {
       title,
       description,
@@ -226,7 +257,7 @@ export function TaskForm({ moduleId, taskId, onSuccess, onCancel }: TaskFormProp
       solution_code: solutionCode || null,
       test_cases: testCases,
       difficulty,
-      xp_reward: Number.parseInt(xpReward),
+      xp_reward: finalXP,
       order_index: Number.parseInt(orderIndex),
       module_id: currentModuleId,
     } as Database["public"]["Tables"]["tasks"]["Insert"];
@@ -389,7 +420,7 @@ export function TaskForm({ moduleId, taskId, onSuccess, onCancel }: TaskFormProp
             <MonacoEditor
               height="300px"
               language="python"
-              theme="vs-dark"
+              theme={getEditorTheme()}
               value={starterCode}
               onChange={(value) => setStarterCode(value || "")}
               options={{
@@ -404,7 +435,7 @@ export function TaskForm({ moduleId, taskId, onSuccess, onCancel }: TaskFormProp
             <MonacoEditor
               height="200px"
               language="python"
-              theme="vs-dark"
+              theme={getEditorTheme()}
               value={solutionCode}
               onChange={(value) => setSolutionCode(value || "")}
               options={{
@@ -423,7 +454,13 @@ export function TaskForm({ moduleId, taskId, onSuccess, onCancel }: TaskFormProp
               <Label htmlFor="difficulty">Сложность *</Label>
               <Select
                 value={difficulty}
-                onValueChange={(v) => setDifficulty(v as "easy" | "medium" | "hard")}
+                onValueChange={(v) => {
+                  const newDifficulty = v as "easy" | "medium" | "hard";
+                  setDifficulty(newDifficulty);
+                  // Автоматически обновляем XP награду при изменении сложности
+                  const defaultXP = newDifficulty === "easy" ? 10 : newDifficulty === "medium" ? 20 : 30;
+                  setXpReward(defaultXP.toString());
+                }}
               >
                 <SelectTrigger>
                   <SelectValue />

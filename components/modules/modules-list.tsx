@@ -17,6 +17,7 @@ type UserProgress = Database["public"]["Tables"]["user_progress"]["Row"];
 interface ModulesListProps {
   modules: Module[];
   userProgress: UserProgress[];
+  tasksCountMap?: Record<string, number>;
 }
 
 type ModuleStatus = "not_started" | "in_progress" | "completed";
@@ -40,7 +41,7 @@ function getModuleStatus(
   return progressEntry.status;
 }
 
-export function ModulesList({ modules, userProgress }: ModulesListProps) {
+export function ModulesList({ modules, userProgress, tasksCountMap = {} }: ModulesListProps) {
   const [filter, setFilter] = useState<{
     status?: ModuleStatus;
     level?: number;
@@ -129,8 +130,9 @@ export function ModulesList({ modules, userProgress }: ModulesListProps) {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {filteredModules.map((module) => {
           const status = getModuleStatus(module.id, userProgress);
+          const tasksCount = tasksCountMap[module.id] || 0;
           return (
-            <ModuleCard key={module.id} module={module} status={status} />
+            <ModuleCard key={module.id} module={module} status={status} tasksCount={tasksCount} />
           );
         })}
       </div>

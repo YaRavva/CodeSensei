@@ -7,7 +7,6 @@ export default async function NewModulePage() {
 
   return (
     <AdminLayout>
-      <h2 className="text-2xl font-bold mb-6">Создать модуль</h2>
       <ModuleForm createdByUserId={user.id} />
     </AdminLayout>
   );

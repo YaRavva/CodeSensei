@@ -13,6 +13,7 @@ type ModuleStatus = "not_started" | "in_progress" | "completed";
 interface ModuleCardProps {
   module: Module;
   status: ModuleStatus;
+  tasksCount?: number;
 }
 
 const statusConfig: Record<
@@ -24,7 +25,7 @@ const statusConfig: Record<
   completed: { label: "Завершен", color: "secondary", icon: "🟢" },
 };
 
-export function ModuleCard({ module, status }: ModuleCardProps) {
+export function ModuleCard({ module, status, tasksCount }: ModuleCardProps) {
   const statusInfo = statusConfig[status];
 
   return (
@@ -44,6 +45,9 @@ export function ModuleCard({ module, status }: ModuleCardProps) {
               {statusInfo.label}
             </Badge>
             <Badge variant="outline">Уровень {module.level}</Badge>
+            {tasksCount !== undefined && (
+              <Badge variant="outline">Заданий: {tasksCount}</Badge>
+            )}
           </div>
         </div>
       </CardHeader>

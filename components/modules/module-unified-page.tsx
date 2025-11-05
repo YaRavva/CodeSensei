@@ -77,6 +77,22 @@ export function ModuleUnifiedPage({
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Состояние для открытых accordion items (для навигации)
+  const [openItems, setOpenItems] = useState<string[]>([]);
+
+  // Отслеживаем время открытия заданий в аккордеоне
+  // Время открытия обновляется при каждом открытии (если пользователь закрыл и открыл снова)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    
+    openItems.forEach((taskId) => {
+      const openTimeKey = `task_open_time_${taskId}`;
+      // Обновляем время открытия каждый раз, когда задание открывается
+      // Это позволяет считать время с момента последнего открытия
+      localStorage.setItem(openTimeKey, Date.now().toString());
+    });
+  }, [openItems]);
   const { toast } = useToast();
   const { pyodide, loading: pyodideLoading, error: pyodideError, executeCode } = usePyodide();
   
@@ -323,6 +339,13 @@ export function ModuleUnifiedPage({
               },
             }),
           });
+          if (!evalRes.ok) {
+            throw new Error(`HTTP error! status: ${evalRes.status}`);
+          }
+          const contentType = evalRes.headers.get("content-type");
+          if (!contentType || !contentType.includes("application/json")) {
+            throw new Error("Response is not JSON");
+          }
           const evalJson = await evalRes.json();
           if (evalRes.ok && evalJson.success) {
             setFeedbackTitle(`AI-оценка: ${(evalJson.score * 100).toFixed(0)}%`);
@@ -354,6 +377,20 @@ export function ModuleUnifiedPage({
 
           const isFirstSuccessfulAttempt = results.allPassed && (!successfulAttempts || successfulAttempts.length === 0);
 
+          // Вычисляем время решения (от открытия до проверки)
+          let solvingTimeMs: number | null = null;
+          if (typeof window !== "undefined") {
+            const openTimeKey = `task_open_time_${taskId}`;
+            const openTimeStr = localStorage.getItem(openTimeKey);
+            if (openTimeStr) {
+              const openTime = parseInt(openTimeStr, 10);
+              const currentTime = Date.now();
+              solvingTimeMs = currentTime - openTime;
+              // Удаляем время открытия после использования
+              localStorage.removeItem(openTimeKey);
+            }
+          }
+
           await (supabase.from("task_attempts") as any).insert({
             user_id: user.id,
             task_id: taskId,
@@ -361,6 +398,7 @@ export function ModuleUnifiedPage({
             test_results: results as any,
             is_successful: results.allPassed,
             execution_time_ms: results.executionTime,
+            solving_time_ms: solvingTimeMs,
             error_message: results.results.find((r) => !r.passed)?.error ?? null,
             used_ai_hint: false,
           });
@@ -378,6 +416,13 @@ export function ModuleUnifiedPage({
             }),
           });
 
+          if (!xpResponse.ok) {
+            throw new Error(`HTTP error! status: ${xpResponse.status}`);
+          }
+          const contentType = xpResponse.headers.get("content-type");
+          if (!contentType || !contentType.includes("application/json")) {
+            throw new Error("Response is not JSON");
+          }
           const xpData = await xpResponse.json();
 
           if (xpResponse.ok && xpData.success) {
@@ -448,14 +493,17 @@ export function ModuleUnifiedPage({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ taskId, code: state.code }),
       });
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Response is not JSON");
+      }
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || `${res.status}`);
       const hint = data?.hint;
 
       let md = ``;
-      if (hint?.type) {
-        md += `**Тип подсказки:** ${hint.type}\n\n`;
-      }
       if (Array.isArray(hint?.steps) && hint.steps.length) {
         md += `### Шаги к решению\n\n${hint.steps.map((step: string, i: number) => `${i + 1}. ${step}`).join("\n")}`;
       } else {
@@ -527,9 +575,6 @@ export function ModuleUnifiedPage({
         };
     }
   };
-
-  // Состояние для открытых accordion items (для навигации)
-  const [openItems, setOpenItems] = useState<string[]>([]);
 
   // Функция для прокрутки к заданию
   const scrollToTask = (taskId: string) => {
@@ -776,7 +821,7 @@ export function ModuleUnifiedPage({
                   : [];
 
                 return (
-                  <Card key={task.id} id={`task-${task.id}`} className="overflow-hidden scroll-mt-24">
+                  <Card key={task.id} id={`task-${task.id}`} className="overflow-hidden scroll-mt-24 hover:shadow-lg transition-shadow">
                     <AccordionItem value={task.id} className="border-none">
                       <AccordionTrigger className="px-6 hover:no-underline">
                         <div className="flex items-center justify-between w-full pr-4">
@@ -785,16 +830,23 @@ export function ModuleUnifiedPage({
                               <span className="font-semibold text-lg">Задание {task.order_index}</span>
                               <span className="text-lg font-bold">{task.title}</span>
                             </div>
-                            <Badge variant="outline">
+                            <Badge 
+                              variant={task.difficulty === "hard" ? "destructive" : "default"}
+                              className={
+                                task.difficulty === "easy" 
+                                  ? "bg-green-500 hover:bg-green-600 text-white border-transparent"
+                                  : task.difficulty === "medium"
+                                  ? "bg-yellow-500 hover:bg-yellow-600 text-white border-transparent"
+                                  : undefined
+                              }
+                            >
                               {task.difficulty === "easy"
                                 ? "Легкое"
                                 : task.difficulty === "medium"
                                   ? "Среднее"
                                   : "Сложное"}
                             </Badge>
-                            {task.xp_reward && (
-                              <Badge variant="secondary">+{task.xp_reward} XP</Badge>
-                            )}
+                            <Badge variant="secondary">+{(task.difficulty === "easy" ? 10 : task.difficulty === "medium" ? 20 : 30)} XP</Badge>
                           </div>
                           <Badge variant={statusConfig.variant} className={statusConfig.className}>
                             <span className="mr-1">{statusConfig.icon}</span>
@@ -997,16 +1049,46 @@ export function ModuleUnifiedPage({
             </DialogTitle>
           </DialogHeader>
           <div className="max-h-[60vh] overflow-y-auto">
-            <div id="hint-description" className="prose prose-sm dark:prose-invert max-w-none pr-4">
-              <ReactMarkdown 
-                remarkPlugins={[remarkGfm, remarkBreaks]}
-                components={{
-                  p: ({ children }) => <p className="mb-4 last:mb-0 whitespace-pre-line">{children}</p>,
-                }}
-              >
-                {hintMarkdown}
-              </ReactMarkdown>
-            </div>
+            <Card className="font-ubuntu-mono">
+              <CardContent className="pt-6">
+                <div className="prose prose-sm dark:prose-invert max-w-none [&_*]:font-ubuntu-mono [&_h1]:font-ubuntu-mono [&_h2]:font-ubuntu-mono [&_h3]:font-ubuntu-mono [&_li]:font-ubuntu-mono [&_strong]:font-ubuntu-mono [&_em]:font-ubuntu-mono">
+                  <ReactMarkdown 
+                    remarkPlugins={[remarkGfm, remarkBreaks]}
+                    components={{
+                      code({ node, inline, className, children, ...props }: any) {
+                        const match = /language-(\w+)/.exec(className || "");
+                        const isDark = mounted && (
+                          theme === "dark" || 
+                          (theme === "system" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches)
+                        );
+                        const inlineProp = (props as any).inline;
+                        return !inlineProp && match ? (
+                          <SyntaxHighlighter
+                            style={(isDark ? oneDark : oneLight) as any}
+                            language={match[1]}
+                            PreTag="div"
+                            className="font-ubuntu-mono rounded-md"
+                            customStyle={{ fontFamily: 'Ubuntu Mono, monospace' }}
+                          >
+                            {String(children).replace(/\n$/, "")}
+                          </SyntaxHighlighter>
+                        ) : (
+                          <code className={`font-ubuntu-mono ${className}`} {...props}>
+                            {children}
+                          </code>
+                        );
+                      },
+                      p: ({ children }) => <p className="mb-4 last:mb-0 whitespace-pre-line font-ubuntu-mono">{children}</p>,
+                    }}
+                  >
+                    {hintMarkdown}
+                  </ReactMarkdown>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          <div className="flex justify-center mt-4">
+            <Button onClick={() => setHintOpen(false)}>Ok</Button>
           </div>
         </DialogContent>
       </Dialog>

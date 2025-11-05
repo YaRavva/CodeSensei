@@ -28,6 +28,7 @@ interface DashboardStats {
   successfulAttempts: number;
   totalAttempts: number;
   avgExecutionTime: number;
+  avgSolvingTime: number;
 }
 
 interface DashboardContentProps {
@@ -145,8 +146,20 @@ export function DashboardContent({ profile, stats, achievements }: DashboardCont
             )}
             {stats.avgExecutionTime > 0 && (
               <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">Среднее время решения:</span>
+                <span className="text-sm text-muted-foreground">Среднее время выполнения кода:</span>
                 <span className="font-medium">{stats.avgExecutionTime} мс</span>
+              </div>
+            )}
+            {stats.avgSolvingTime > 0 && (
+              <div className="flex justify-between">
+                <span className="text-sm text-muted-foreground">Среднее время решения:</span>
+                <span className="font-medium">
+                  {stats.avgSolvingTime >= 60000
+                    ? `${Math.round(stats.avgSolvingTime / 60000)} мин ${Math.round((stats.avgSolvingTime % 60000) / 1000)} сек`
+                    : stats.avgSolvingTime >= 1000
+                    ? `${Math.round(stats.avgSolvingTime / 1000)} сек`
+                    : `${stats.avgSolvingTime} мс`}
+                </span>
               </div>
             )}
           </CardContent>

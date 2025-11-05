@@ -38,6 +38,8 @@ interface ModuleFormProps {
   createdByUserId?: string;
 }
 
+type Module = Database["public"]["Tables"]["modules"]["Row"];
+
 export function ModuleForm({ moduleId, initialData, createdByUserId }: ModuleFormProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -58,11 +60,45 @@ export function ModuleForm({ moduleId, initialData, createdByUserId }: ModuleFor
   const [taskGenDifficulty, setTaskGenDifficulty] = useState<"easy" | "medium" | "hard">("easy");
   const [generatedTask, setGeneratedTask] = useState<any | null>(null);
   const [newTaskId, setNewTaskId] = useState<string | null>(null);
+  const [allModules, setAllModules] = useState<Module[]>([]);
+  const [modulesLoading, setModulesLoading] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
   // Сущности уроков больше нет — задания сохраняются напрямую в модуль
+
+  // Загружаем список всех модулей для дропдауна (только если редактируем модуль)
+  useEffect(() => {
+    if (moduleId) {
+      loadAllModules();
+    }
+  }, [moduleId]);
+
+  async function loadAllModules() {
+    setModulesLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("modules")
+        .select("*")
+        .order("order_index");
+      
+      if (error) {
+        console.error("Error loading modules:", error);
+        toast({
+          title: "Ошибка",
+          description: "Не удалось загрузить список модулей",
+          variant: "destructive",
+        });
+      } else {
+        setAllModules(data || []);
+      }
+    } catch (error) {
+      console.error("Error loading modules:", error);
+    } finally {
+      setModulesLoading(false);
+    }
+  }
 
   useEffect(() => {
     if (initialData) {
@@ -306,8 +342,13 @@ export function ModuleForm({ moduleId, initialData, createdByUserId }: ModuleFor
       const { id: newId } = await res.json();
       if (newId) {
         setNewTaskId(newId);
-        setActiveTab("tasks");
         setGeneratedTask(null);
+        // Переключаемся на вкладку заданий и обновляем список
+        setActiveTab("tasks");
+        // Небольшая задержка для обновления списка заданий
+        setTimeout(() => {
+          router.refresh();
+        }, 200);
         toast({ title: "Задание создано", description: "Задание добавлено в модуль и открыто для редактирования" });
       } else {
         toast({
@@ -443,62 +484,80 @@ export function ModuleForm({ moduleId, initialData, createdByUserId }: ModuleFor
   }
 
   return (
+    <>
     <Card>
       <form onSubmit={handleSubmit}>
         <CardHeader>
-          <CardTitle>{moduleId ? "Редактировать модуль" : "Новый модуль"}</CardTitle>
+          <CardTitle>{moduleId ? "" : ""}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Поле Название вынесено наружу */}
-          <div className="space-y-2">
-            <Label htmlFor="title">Название *</Label>
-            <Input
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-              disabled={loading}
-            />
-          </div>
+          {/* Выбор модуля для редактирования (только если редактируем) */}
+          {moduleId && (
+            <div className="space-y-2">
+              <Label htmlFor="module-select">Выберите модуль для редактирования *</Label>
+              <Select
+                value={moduleId}
+                onValueChange={(value) => {
+                  router.push(`/admin/modules/${value}/edit`);
+                }}
+                disabled={loading || modulesLoading}
+              >
+                <SelectTrigger id="module-select">
+                  <SelectValue placeholder="Выберите модуль" />
+                </SelectTrigger>
+                <SelectContent>
+                  {allModules.map((module) => (
+                    <SelectItem key={module.id} value={module.id}>
+                      {module.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          {/* Поле Название (только если создаем новый модуль) */}
+          {!moduleId && (
+            <div className="space-y-2">
+              <Label htmlFor="title">Название *</Label>
+              <Input
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                required
+                disabled={loading}
+              />
+            </div>
+          )}
           <Tabs defaultValue="module" value={activeTab} onValueChange={setActiveTab}>
             <TabsList>
               <TabsTrigger value="module">Данные модуля</TabsTrigger>
               {moduleId && <TabsTrigger value="tasks">Задания</TabsTrigger>}
-              <TabsTrigger value="ai">Генерация заданий ИИ</TabsTrigger>
+              <TabsTrigger value="ai">Генерация заданий с AI</TabsTrigger>
             </TabsList>
 
             <TabsContent value="module" className="space-y-6">
               {/* Основные параметры */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-card rounded-lg border">
-                <div className="space-y-2">
+                  <div className="space-y-2">
                   <Label htmlFor="topic">Тема *</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="topic"
-                      value={topic}
-                      onChange={(e) => {
-                        setTopic(e.target.value);
-                        if (!title && e.target.value.trim()) {
-                          setTitle(e.target.value.trim());
+                  <Input
+                    id="topic"
+                    value={topic}
+                    onChange={(e) => {
+                      const newTopic = e.target.value;
+                      setTopic(newTopic);
+                      // Автоматически заполняем название из темы, если название пустое
+                      // или если название совпадает с предыдущим значением темы (было заполнено автоматически)
+                      if (newTopic.trim()) {
+                        if (!title || title === topic.trim()) {
+                          setTitle(newTopic.trim());
                         }
-                      }}
-                      placeholder="Например: Переменные, Циклы, Функции"
-                      required
-                      disabled={loading || generating}
-                    />
-                    {!moduleId && (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={handleGenerateAI}
-                        disabled={loading || generating || !topic.trim()}
-                        className="shrink-0"
-                      >
-                        {generating ? "..." : "🎨 AI"}
-                      </Button>
-                    )}
-                  </div>
+                      }
+                    }}
+                    placeholder="Например: Переменные, Циклы, Функции"
+                    required
+                    disabled={loading || generating}
+                  />
                   {generating && (
                     <p className="text-xs text-muted-foreground">ИИ генерирует контент модуля...</p>
                   )}
@@ -562,7 +621,7 @@ export function ModuleForm({ moduleId, initialData, createdByUserId }: ModuleFor
                       <AccordionTrigger className="py-2 text-sm">Предпросмотр</AccordionTrigger>
                       <AccordionContent>
                         <div className="border rounded-md p-4 h-[400px] overflow-auto bg-card font-ubuntu-mono">
-                          <div className="prose prose-sm dark:prose-invert max-w-none [&_p]:mb-4 [&_p:last-child]:mb-0 [&_h1]:mb-4 [&_h2]:mb-3 [&_h3]:mb-2 [&_ul]:mb-4 [&_ol]:mb-4 [&_pre]:mb-4 [&_*]:font-ubuntu-mono [&_h1]:font-ubuntu-mono [&_h2]:font-ubuntu-mono [&_h3]:font-ubuntu-mono [&_li]:font-ubuntu-mono [&_strong]:font-ubuntu-mono [&_em]:font-ubuntu-mono">
+                          <div className="prose prose-sm dark:prose-invert max-w-none">
                             <ReactMarkdown
                               remarkPlugins={[remarkGfm, remarkBreaks]}
                               components={{
@@ -590,6 +649,12 @@ export function ModuleForm({ moduleId, initialData, createdByUserId }: ModuleFor
                                   );
                                 },
                                 p: ({ children }) => <p className="mb-4 last:mb-0 whitespace-pre-line font-ubuntu-mono">{children}</p>,
+                                h1: ({ children }) => <h1 className="mb-4 font-ubuntu-mono">{children}</h1>,
+                                h2: ({ children }) => <h2 className="mb-3 font-ubuntu-mono">{children}</h2>,
+                                h3: ({ children }) => <h3 className="mb-2 font-ubuntu-mono">{children}</h3>,
+                                li: ({ children }) => <li className="font-ubuntu-mono">{children}</li>,
+                                strong: ({ children }) => <strong className="font-ubuntu-mono">{children}</strong>,
+                                em: ({ children }) => <em className="font-ubuntu-mono">{children}</em>,
                               }}
                             >
                               {description || "*Введите текст выше для предпросмотра*"}
@@ -602,18 +667,6 @@ export function ModuleForm({ moduleId, initialData, createdByUserId }: ModuleFor
                 </CardContent>
               </Card>
             </TabsContent>
-
-            {moduleId && (
-              <TabsContent value="tasks" className="space-y-4" forceMount>
-                <div className={activeTab !== "tasks" ? "hidden" : ""}>
-                  <ModuleTasksManager 
-                    key={`${moduleId}-${newTaskId || 'none'}`}
-                    moduleId={moduleId}
-                    newTaskId={newTaskId}
-                  />
-                </div>
-              </TabsContent>
-            )}
 
             <TabsContent value="ai" className="space-y-6">
               <div className="space-y-3">
@@ -671,7 +724,7 @@ export function ModuleForm({ moduleId, initialData, createdByUserId }: ModuleFor
                           <AccordionTrigger className="py-2 text-sm">Предпросмотр</AccordionTrigger>
                           <AccordionContent>
                             <div className="border rounded-md p-4 h-[400px] overflow-auto bg-card font-ubuntu-mono">
-                              <div className="prose prose-sm dark:prose-invert max-w-none [&_p]:mb-4 [&_p:last-child]:mb-0 [&_h1]:mb-4 [&_h2]:mb-3 [&_h3]:mb-2 [&_ul]:mb-4 [&_ol]:mb-4 [&_pre]:mb-4 [&_*]:font-ubuntu-mono [&_h1]:font-ubuntu-mono [&_h2]:font-ubuntu-mono [&_h3]:font-ubuntu-mono [&_li]:font-ubuntu-mono [&_strong]:font-ubuntu-mono [&_em]:font-ubuntu-mono">
+                              <div className="prose prose-sm dark:prose-invert max-w-none">
                                 <ReactMarkdown
                                   remarkPlugins={[remarkGfm, remarkBreaks]}
                                   components={{
@@ -699,6 +752,12 @@ export function ModuleForm({ moduleId, initialData, createdByUserId }: ModuleFor
                                       );
                                     },
                                     p: ({ children }) => <p className="mb-4 last:mb-0 whitespace-pre-line font-ubuntu-mono">{children}</p>,
+                                    h1: ({ children }) => <h1 className="mb-4 font-ubuntu-mono">{children}</h1>,
+                                    h2: ({ children }) => <h2 className="mb-3 font-ubuntu-mono">{children}</h2>,
+                                    h3: ({ children }) => <h3 className="mb-2 font-ubuntu-mono">{children}</h3>,
+                                    li: ({ children }) => <li className="font-ubuntu-mono">{children}</li>,
+                                    strong: ({ children }) => <strong className="font-ubuntu-mono">{children}</strong>,
+                                    em: ({ children }) => <em className="font-ubuntu-mono">{children}</em>,
                                   }}
                                 >
                                   {generatedTask.description || "*Описание отсутствует*"}
@@ -729,6 +788,16 @@ export function ModuleForm({ moduleId, initialData, createdByUserId }: ModuleFor
           <Button type="button" variant="outline" onClick={() => router.back()} disabled={loading}>
             Отмена
           </Button>
+          {!moduleId && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleGenerateAI}
+              disabled={loading || generating || !topic.trim()}
+            >
+              {generating ? "Генерация..." : "🎨 Сгенерировать с AI"}
+            </Button>
+          )}
           {moduleId && (
             <Button
               type="button"
@@ -788,5 +857,16 @@ export function ModuleForm({ moduleId, initialData, createdByUserId }: ModuleFor
         )}
       </form>
     </Card>
+    {moduleId && activeTab === "tasks" && (
+      <div className="mt-4">
+        <ModuleTasksManager 
+          key={`${moduleId}-${newTaskId || 'none'}`}
+          moduleId={moduleId}
+          newTaskId={newTaskId}
+          refreshTrigger={newTaskId ? Date.now() : undefined}
+        />
+      </div>
+    )}
+    </>
   );
 }

@@ -47,7 +47,12 @@ export function TaskPageContent({ module, task, prevTask, nextTask, lastAttempt 
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    // Сохраняем время открытия задания в localStorage
+    if (typeof window !== "undefined") {
+      const openTimeKey = `task_open_time_${task.id}`;
+      localStorage.setItem(openTimeKey, Date.now().toString());
+    }
+  }, [task.id]);
 
   // Состояние кода
   const [code, setCode] = useState(task.starter_code || "");
@@ -196,6 +201,13 @@ export function TaskPageContent({ module, task, prevTask, nextTask, lastAttempt 
               testSummary: { allPassed: results.allPassed, passedCount: results.passedCount, total: results.totalCount },
             }),
           });
+          if (!evalRes.ok) {
+            throw new Error(`HTTP error! status: ${evalRes.status}`);
+          }
+          const contentType = evalRes.headers.get("content-type");
+          if (!contentType || !contentType.includes("application/json")) {
+            throw new Error("Response is not JSON");
+          }
           const evalJson = await evalRes.json();
           if (evalRes.ok && evalJson.success) {
             setFeedbackTitle(`AI-оценка: ${(evalJson.score * 100).toFixed(0)}%`);
@@ -230,6 +242,20 @@ export function TaskPageContent({ module, task, prevTask, nextTask, lastAttempt 
           const isFirstSuccessfulAttempt =
             results.allPassed && (!successfulAttempts || successfulAttempts.length === 0);
 
+          // Вычисляем время решения (от открытия до проверки)
+          let solvingTimeMs: number | null = null;
+          if (typeof window !== "undefined") {
+            const openTimeKey = `task_open_time_${task.id}`;
+            const openTimeStr = localStorage.getItem(openTimeKey);
+            if (openTimeStr) {
+              const openTime = parseInt(openTimeStr, 10);
+              const currentTime = Date.now();
+              solvingTimeMs = currentTime - openTime;
+              // Удаляем время открытия после использования
+              localStorage.removeItem(openTimeKey);
+            }
+          }
+
           // Сохраняем попытку
           const { error: attemptError } = await (supabase
             .from("task_attempts") as any)
@@ -240,6 +266,7 @@ export function TaskPageContent({ module, task, prevTask, nextTask, lastAttempt 
               test_results: results as any,
               is_successful: results.allPassed,
               execution_time_ms: results.executionTime,
+              solving_time_ms: solvingTimeMs,
               error_message: results.results.find((r) => !r.passed)?.error ?? null,
               used_ai_hint: false, // TODO: отслеживать использование AI-подсказок
             });
@@ -264,6 +291,13 @@ export function TaskPageContent({ module, task, prevTask, nextTask, lastAttempt 
             }),
           });
 
+          if (!xpResponse.ok) {
+            throw new Error(`HTTP error! status: ${xpResponse.status}`);
+          }
+          const contentType = xpResponse.headers.get("content-type");
+          if (!contentType || !contentType.includes("application/json")) {
+            throw new Error("Response is not JSON");
+          }
           const xpData = await xpResponse.json();
 
           if (xpResponse.ok && xpData.success) {
@@ -329,14 +363,17 @@ export function TaskPageContent({ module, task, prevTask, nextTask, lastAttempt 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ taskId: task.id, code }),
       });
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        throw new Error("Response is not JSON");
+      }
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || `${res.status}`);
       const hint = data?.hint;
 
       let md = ``;
-      if (hint?.type) {
-        md += `**Тип подсказки:** ${hint.type}\n\n`;
-      }
       if (Array.isArray(hint?.steps) && hint.steps.length) {
         md += `### Шаги к решению\n\n${hint.steps.map((step: string, i: number) => `${i + 1}. ${step}`).join("\n")}`;
       } else {
@@ -390,16 +427,23 @@ export function TaskPageContent({ module, task, prevTask, nextTask, lastAttempt 
           <div>
             <h1 className="text-3xl font-bold mb-2">{task.title}</h1>
             <div className="flex items-center gap-4 flex-wrap">
-              <Badge variant="outline">
+              <Badge 
+                variant={task.difficulty === "hard" ? "destructive" : "default"}
+                className={
+                  task.difficulty === "easy" 
+                    ? "bg-green-500 hover:bg-green-600 text-white border-transparent"
+                    : task.difficulty === "medium"
+                    ? "bg-yellow-500 hover:bg-yellow-600 text-white border-transparent"
+                    : undefined
+                }
+              >
                 {task.difficulty === "easy"
                   ? "Легкое"
                   : task.difficulty === "medium"
                     ? "Среднее"
                     : "Сложное"}
               </Badge>
-              {task.xp_reward && (
-                <Badge variant="secondary">+{task.xp_reward} XP</Badge>
-              )}
+              <Badge variant="secondary">+{(task.difficulty === "easy" ? 10 : task.difficulty === "medium" ? 20 : 30)} XP</Badge>
               {(lastAttempt?.is_successful || isCompleted) && (
                 <Badge className="bg-green-600 text-white">
                   <CheckCircle2 className="mr-1 h-3 w-3" />
@@ -675,15 +719,45 @@ export function TaskPageContent({ module, task, prevTask, nextTask, lastAttempt 
             {hintTitle}
           </DialogTitle>
         </DialogHeader>
-        <div id="hint-description" className="prose prose-sm dark:prose-invert max-w-none">
-          <ReactMarkdown 
-            remarkPlugins={[remarkGfm, remarkBreaks]}
-            components={{
-              p: ({ children }) => <p className="mb-4 last:mb-0 whitespace-pre-line">{children}</p>,
-            }}
-          >
-            {hintMarkdown}
-          </ReactMarkdown>
+        <Card className="font-ubuntu-mono">
+          <CardContent className="pt-6">
+            <div className="prose prose-sm dark:prose-invert max-w-none [&_*]:font-ubuntu-mono [&_h1]:font-ubuntu-mono [&_h2]:font-ubuntu-mono [&_h3]:font-ubuntu-mono [&_li]:font-ubuntu-mono [&_strong]:font-ubuntu-mono [&_em]:font-ubuntu-mono">
+              <ReactMarkdown 
+                remarkPlugins={[remarkGfm, remarkBreaks]}
+                components={{
+                  code({ node, inline, className, children, ...props }: any) {
+                    const match = /language-(\w+)/.exec(className || "");
+                    const isDark = mounted && (
+                      theme === "dark" || 
+                      (theme === "system" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches)
+                    );
+                    const inlineProp = (props as any).inline;
+                    return !inlineProp && match ? (
+                      <SyntaxHighlighter
+                        style={(isDark ? oneDark : oneLight) as any}
+                        language={match[1]}
+                        PreTag="div"
+                        className="font-ubuntu-mono rounded-md"
+                        customStyle={{ fontFamily: 'Ubuntu Mono, monospace' }}
+                      >
+                        {String(children).replace(/\n$/, "")}
+                      </SyntaxHighlighter>
+                    ) : (
+                      <code className={`font-ubuntu-mono ${className}`} {...props}>
+                        {children}
+                      </code>
+                    );
+                  },
+                  p: ({ children }) => <p className="mb-4 last:mb-0 whitespace-pre-line font-ubuntu-mono">{children}</p>,
+                }}
+              >
+                {hintMarkdown}
+              </ReactMarkdown>
+            </div>
+          </CardContent>
+        </Card>
+        <div className="flex justify-center mt-4">
+          <Button onClick={() => setHintOpen(false)}>Ok</Button>
         </div>
       </DialogContent>
     </Dialog>

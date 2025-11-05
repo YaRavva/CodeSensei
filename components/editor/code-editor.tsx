@@ -130,11 +130,11 @@ export function CodeEditor({
           minimap: { enabled: false },
           lineNumbers: "on",
           wordWrap: "on",
-          fontSize: 14,
+          fontSize: 16,
           tabSize: 4,
           automaticLayout: true,
           scrollBeyondLastLine: false,
-          fontFamily: "Monaco, Menlo, 'Courier New', monospace",
+          fontFamily: "'Ubuntu Mono', monospace",
           padding: { top: 12, bottom: 12 },
           suggest: {
             showWords: true,

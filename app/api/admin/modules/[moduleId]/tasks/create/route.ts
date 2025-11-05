@@ -54,6 +54,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ mod
     const serviceKey = serviceKeyProbe;
     const admin = createServiceClient<Database>(url, serviceKey, { auth: { persistSession: false } });
 
+    // Определяем дефолтное значение XP по сложности
+    const defaultXP = difficulty === "easy" ? 10 : difficulty === "medium" ? 20 : 30;
+    const finalXpReward = typeof xp_reward === "number" && xp_reward > 0 ? xp_reward : defaultXP;
+
     const { data, error } = await admin
       .from("tasks")
       .insert({
@@ -63,7 +67,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ mod
         solution_code: solution_code ?? null,
         test_cases,
         difficulty,
-        xp_reward: typeof xp_reward === "number" ? xp_reward : null,
+        xp_reward: finalXpReward,
         order_index: typeof order_index === "number" ? order_index : 0,
         module_id: moduleId,
       } as any)

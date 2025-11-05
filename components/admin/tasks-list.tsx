@@ -72,13 +72,14 @@ export function TasksList({ lessonId }: TasksListProps) {
 
   const getDifficultyBadge = (difficulty: string) => {
     const variants = {
-      easy: "default",
-      medium: "secondary",
-      hard: "destructive",
+      easy: { variant: "default" as const, className: "bg-green-500 hover:bg-green-600 text-white border-transparent" },
+      medium: { variant: "default" as const, className: "bg-yellow-500 hover:bg-yellow-600 text-white border-transparent" },
+      hard: { variant: "destructive" as const, className: undefined },
     } as const;
 
+    const config = variants[difficulty as keyof typeof variants] || variants.easy;
     return (
-      <Badge variant={variants[difficulty as keyof typeof variants]}>
+      <Badge variant={config.variant} className={config.className}>
         {difficulty === "easy" ? "Легкое" : difficulty === "medium" ? "Среднее" : "Сложное"}
       </Badge>
     );
