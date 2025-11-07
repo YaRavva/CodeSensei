@@ -87,12 +87,6 @@ export function LoginForm() {
         return;
       }
 
-      // Все проверки пройдены - можно входить
-      toast({
-        title: "Вход выполнен",
-        description: "Добро пожаловать в CodeSensei!",
-      });
-      
       // Синхронизируем сессию в httpOnly куки через API, чтобы SSR-страницы увидели пользователя
       try {
         const syncResponse = await fetch("/api/auth/set-session", {
@@ -113,6 +107,39 @@ export function LoginForm() {
         console.error("Session sync error", syncErr);
         // Не блокируем вход, но логируем ошибку
       }
+
+      // Проверяем имя пользователя после успешной авторизации
+      try {
+        const { data: userProfile } = await supabase
+          .from("users")
+          .select("display_name")
+          .eq("id", data.user.id)
+          .maybeSingle();
+
+        const { isValidRussianName } = await import("@/lib/utils/name-validation");
+        
+        // Если имя не соответствует формату "Фамилия Имя" на русском, редиректим на профиль
+        if (!isValidRussianName(userProfile?.display_name)) {
+          toast({
+            title: "Требуется заполнить имя",
+            description: "Пожалуйста, укажите ваше имя в формате 'Фамилия Имя' на русском языке",
+            variant: "default",
+          });
+          router.replace("/profile");
+          router.refresh();
+          navigated = true;
+          return;
+        }
+      } catch (profileError) {
+        console.error("Error checking user profile:", profileError);
+        // Если не удалось проверить профиль, продолжаем обычный вход
+      }
+
+      // Все проверки пройдены - можно входить
+      toast({
+        title: "Вход выполнен",
+        description: "Добро пожаловать в CodeSensei!",
+      });
 
       router.replace("/modules");
       router.refresh();

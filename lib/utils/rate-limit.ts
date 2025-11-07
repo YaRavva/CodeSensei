@@ -56,20 +56,41 @@ export async function logGeneration(
 ): Promise<void> {
   const supabase = await createClient();
 
-  const { error } = await (supabase
-    .from("ai_generation_logs") as any)
-    .insert(
-      {
-        user_id: userId,
-        generation_type: generationType,
-      },
-      {
-        onConflict: "user_id,generation_type,created_date",
-        ignoreDuplicates: true,
-      }
-    );
+  // Получаем текущую дату
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD
+
+  // Сначала проверяем, существует ли уже запись
+  const { data: existing } = await supabase
+    .from("ai_generation_logs")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("generation_type", generationType)
+    .eq("created_date", todayStr)
+    .maybeSingle();
+
+  // Если запись уже существует, ничего не делаем
+  if (existing) {
+    return;
+  }
+
+  // Вставляем новую запись
+  const { error } = await supabase
+    .from("ai_generation_logs")
+    .insert({
+      user_id: userId,
+      generation_type: generationType,
+      created_date: todayStr,
+    });
 
   if (error) {
+    // Игнорируем ошибку уникальности (23505) - это нормально, если запись уже существует
+    // (может произойти в случае race condition)
+    if (error.code === "23505") {
+      // Запись уже существует, это нормально - просто игнорируем
+      return;
+    }
     console.error("Error logging generation:", error);
     // Не бросаем ошибку, так как это не критично
   }

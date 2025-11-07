@@ -1,9 +1,16 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireAuth } from "@/lib/utils/auth";
 import { ModulesList } from "@/components/modules/modules-list";
+import { isValidRussianName } from "@/lib/utils/name-validation";
+import { redirect } from "next/navigation";
 
 export default async function ModulesPage() {
-  const { user, supabase } = await requireAuth();
+  const { user, profile, supabase } = await requireAuth();
+
+  // Проверяем имя пользователя - если не соответствует формату, редиректим на профиль
+  if (!isValidRussianName(profile?.display_name)) {
+    redirect("/profile");
+  }
 
   // Получаем только опубликованные модули
   const { data: modules, error } = await supabase

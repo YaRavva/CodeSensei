@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { createClient } from "@/lib/supabase/client";
 import { calculateLevelProgress } from "@/lib/utils/levels";
+import { isValidRussianName, getNameValidationError } from "@/lib/utils/name-validation";
 import { useState } from "react";
 import { AchievementsList } from "@/components/achievements/achievements-list";
 
@@ -17,6 +18,7 @@ export default function ProfilePage() {
   const { user, profile, refreshProfile } = useAuth();
   const [displayName, setDisplayName] = useState(profile?.display_name || "");
   const [loading, setLoading] = useState(false);
+  const [nameError, setNameError] = useState<string | null>(null);
   const { toast } = useToast();
   const supabase = createClient();
 
@@ -34,12 +36,27 @@ export default function ProfilePage() {
   async function handleUpdate(e: React.FormEvent) {
     e.preventDefault();
     if (!user) return;
+
+    // Валидация имени
+    const trimmedName = displayName.trim();
+    if (!isValidRussianName(trimmedName)) {
+      const errorMessage = getNameValidationError(trimmedName);
+      setNameError(errorMessage);
+      toast({
+        title: "Ошибка валидации",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setNameError(null);
     setLoading(true);
 
     const { error } = await (supabase
       .from("users") as any)
       .update({
-        display_name: displayName || null,
+        display_name: trimmedName || null,
       })
       .eq("id", user.id);
 
@@ -113,14 +130,41 @@ export default function ProfilePage() {
                 <Input id="email" type="email" value={profile.email ?? ""} disabled />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="displayName">Имя</Label>
+                <Label htmlFor="displayName">Имя *</Label>
                 <Input
                   id="displayName"
                   type="text"
                   value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
+                  onChange={(e) => {
+                    setDisplayName(e.target.value);
+                    // Очищаем ошибку при вводе
+                    if (nameError) {
+                      setNameError(null);
+                    }
+                  }}
+                  onBlur={() => {
+                    // Проверяем валидность при потере фокуса
+                    const trimmed = displayName.trim();
+                    if (trimmed && !isValidRussianName(trimmed)) {
+                      setNameError(getNameValidationError(trimmed));
+                    } else {
+                      setNameError(null);
+                    }
+                  }}
                   disabled={loading}
+                  placeholder="Иванов Иван"
+                  className={nameError ? "border-destructive" : ""}
+                  aria-invalid={!!nameError}
+                  aria-describedby={nameError ? "name-error" : undefined}
                 />
+                {nameError && (
+                  <p id="name-error" className="text-sm text-destructive">
+                    {nameError}
+                  </p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Имя должно быть в формате "Фамилия Имя" на русском языке (например: Иванов Иван)
+                </p>
               </div>
               <div className="space-y-2">
                 <Label>Роль</Label>
