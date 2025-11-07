@@ -29,6 +29,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Функция для восстановления сессии из серверных cookies
     async function restoreSessionFromServer() {
       try {
+        console.log("Attempting to restore session from server...");
         const response = await fetch("/api/auth/restore-session", {
           method: "GET",
           credentials: "include",
@@ -36,25 +37,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
         
         if (response.ok) {
-          const { session } = await response.json();
+          const { session, error: sessionError } = await response.json();
+          
+          if (sessionError) {
+            console.error("Session restore error from API:", sessionError);
+            return false;
+          }
+          
           if (session?.access_token && session?.refresh_token) {
+            console.log("Session tokens received, setting session on client...");
             // Восстанавливаем сессию на клиенте
             const { data, error } = await supabase.auth.setSession({
               access_token: session.access_token,
               refresh_token: session.refresh_token,
             });
             
-            if (!error && data?.user) {
-              setUser(data.user);
-              await loadProfile(data.user.id);
-              return true;
+            if (error) {
+              console.error("Error setting session on client:", error);
+              return false;
             }
+            
+            if (data?.user) {
+              console.log("Session restored successfully, user:", data.user.id);
+              setUser(data.user);
+              // Загружаем профиль и ждем завершения
+              // Не устанавливаем loading в false здесь, так как loadProfile сам управляет loading
+              await loadProfile(data.user.id);
+              // После загрузки профиля убеждаемся, что loading установлен в false
+              setLoading(false);
+              return true;
+            } else {
+              console.warn("Session restored but no user data");
+              setLoading(false);
+              return false;
+            }
+          } else {
+            console.log("No session tokens in response");
+            return false;
           }
+        } else {
+          const errorText = await response.text();
+          console.error("Failed to restore session, status:", response.status, errorText);
+          return false;
         }
       } catch (error) {
         console.error("Error restoring session from server:", error);
+        return false;
       }
-      return false;
     }
 
     // Получаем текущую сессию и пользователя
@@ -69,21 +98,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const currentUser = data.session?.user ?? null;
       
       if (currentUser) {
-        // Сессия есть - загружаем профиль
+        // Сессия есть на клиенте - загружаем профиль
+        console.log("Session found on client, user:", currentUser.id);
         setUser(currentUser);
         await loadProfile(currentUser.id);
+        setLoading(false);
       } else {
         // Сессии нет на клиенте - пытаемся восстановить из серверных cookies
-        // Добавляем таймаут для восстановления (5 секунд)
+        console.log("No session on client, attempting to restore from server...");
+        // Увеличиваем таймаут до 10 секунд для надежности
         const restorePromise = restoreSessionFromServer();
         const timeoutPromise = new Promise<boolean>((resolve) => {
-          setTimeout(() => resolve(false), 5000);
+          setTimeout(() => {
+            console.warn("Session restore timeout");
+            resolve(false);
+          }, 10000);
         });
         
         const restored = await Promise.race([restorePromise, timeoutPromise]);
         if (!restored) {
+          console.warn("Failed to restore session, setting loading to false");
           setLoading(false);
         }
+        // Если восстановление успешно, loading уже установлен в false в restoreSessionFromServer
       }
     }).catch((error) => {
       console.error("Unexpected error in getSession:", error);

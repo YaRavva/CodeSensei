@@ -16,13 +16,16 @@ export async function GET() {
     } = await supabase.auth.getSession();
 
     if (error) {
-      console.error("Error getting session from server:", error);
+      console.error("Error getting session from server in restore-session API:", error);
       return NextResponse.json({ session: null, error: error.message }, { status: 401 });
     }
 
     if (!session) {
+      console.log("No active session found in restore-session API");
       return NextResponse.json({ session: null }, { status: 200 });
     }
+
+    console.log("Session found in restore-session API, user:", session.user.id);
 
     // Возвращаем токены для восстановления на клиенте
     return NextResponse.json({
@@ -39,7 +42,7 @@ export async function GET() {
       },
     });
   } catch (e: any) {
-    console.error("Error in restore-session:", e);
+    console.error("Error in restore-session API:", e);
     return NextResponse.json(
       { session: null, error: e?.message ?? "Unknown error" },
       { status: 500 }
