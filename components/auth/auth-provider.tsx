@@ -25,9 +25,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
+    let hasTriedRestore = false;
 
     // Функция для восстановления сессии из серверных cookies
     async function restoreSessionFromServer() {
+      // Предотвращаем множественные попытки
+      if (hasTriedRestore) {
+        return false;
+      }
+      hasTriedRestore = true;
       try {
         console.log("Attempting to restore session from server...");
         const response = await fetch("/api/auth/restore-session", {
@@ -148,9 +154,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
+    // Дополнительная проверка: если после небольшой задержки сессия все еще не восстановлена,
+    // пытаемся восстановить еще раз (на случай, если OAuth callback только что произошел)
+    const delayedRestore = setTimeout(async () => {
+      if (!mounted) return;
+      
+      // Проверяем, есть ли уже пользователь
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        console.log("Delayed restore: no session found, attempting restore...");
+        // Сбрасываем флаг для повторной попытки
+        hasTriedRestore = false;
+        await restoreSessionFromServer();
+      }
+    }, 1500); // Проверяем через 1.5 секунды после загрузки
+
     return () => {
       mounted = false;
       listener.subscription.unsubscribe();
+      clearTimeout(delayedRestore);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
