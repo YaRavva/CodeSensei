@@ -182,8 +182,25 @@ export function usePyodide(): UsePyodideReturn {
       const startTime = Date.now();
 
       try {
-        // Сбрасываем буфер вывода
-        pyodide.runPython("_stdout_capture.reset()");
+        // Сбрасываем буфер вывода и очищаем предыдущие ошибки
+        try {
+          pyodide.runPython("_stdout_capture.reset()");
+        } catch {
+          // Игнорируем ошибки при сбросе буфера
+        }
+
+        // Очищаем возможные остаточные переменные из предыдущих выполнений
+        try {
+          pyodide.runPython(`
+try:
+    # Очищаем тестовые переменные, если они остались
+    del _test_result, _test_passed, _test_error, _test_expected, _test_compare
+except:
+    pass
+`);
+        } catch {
+          // Игнорируем ошибки при очистке
+        }
 
         // Создаем промис для выполнения кода с timeout
         const executionPromise = pyodide.runPythonAsync(code);
@@ -200,8 +217,14 @@ export function usePyodide(): UsePyodideReturn {
         await Promise.race([executionPromise, timeoutPromise]);
 
         // Получаем вывод из stdout
-        const outputResult = pyodide.runPython("_stdout_capture.getvalue()");
-        const output = outputResult !== null && outputResult !== undefined ? String(outputResult) : "";
+        let output = "";
+        try {
+          const outputResult = pyodide.runPython("_stdout_capture.getvalue()");
+          output = outputResult !== null && outputResult !== undefined ? String(outputResult) : "";
+        } catch {
+          // Если не удалось получить вывод, оставляем пустым
+        }
+
         const executionTime = Date.now() - startTime;
 
         return {
@@ -211,12 +234,68 @@ export function usePyodide(): UsePyodideReturn {
         };
       } catch (err) {
         const executionTime = Date.now() - startTime;
-        const errorMessage =
-          err instanceof Error ? err.message : String(err);
+        
+        // Улучшенная обработка ошибок Python
+        let errorMessage = "";
+        
+        if (err instanceof Error) {
+          errorMessage = err.message;
+          
+          // Извлекаем более понятное сообщение из traceback Python
+          // Pyodide обычно включает traceback в сообщение об ошибке
+          // Извлекаем последнюю строку с типом ошибки и сообщением
+          const lines = errorMessage.split('\n');
+          const errorLine = lines[lines.length - 1] || errorMessage;
+          
+          // Проверяем, есть ли traceback в сообщении
+          const hasTraceback = errorMessage.includes('Traceback');
+          
+          if (hasTraceback || errorLine.trim()) {
+            
+            // Упрощаем сообщение, убирая технические детали
+            if (errorLine.includes('UnboundLocalError')) {
+              const match = errorLine.match(/UnboundLocalError: (.+)/);
+              errorMessage = match ? `Ошибка: ${match[1]}` : errorLine;
+            } else if (errorLine.includes('NameError')) {
+              const match = errorLine.match(/NameError: (.+)/);
+              errorMessage = match ? `Ошибка: ${match[1]}` : errorLine;
+            } else if (errorLine.includes('SyntaxError')) {
+              const match = errorLine.match(/SyntaxError: (.+)/);
+              errorMessage = match ? `Синтаксическая ошибка: ${match[1]}` : errorLine;
+            } else if (errorLine.includes('TypeError')) {
+              const match = errorLine.match(/TypeError: (.+)/);
+              errorMessage = match ? `Ошибка типа: ${match[1]}` : errorLine;
+            } else if (errorLine.includes('IndentationError')) {
+              const match = errorLine.match(/IndentationError: (.+)/);
+              errorMessage = match ? `Ошибка отступов: ${match[1]}` : errorLine;
+            } else {
+              // Берем последнюю строку traceback как основное сообщение
+              errorMessage = errorLine.trim();
+            }
+          } else {
+            // Если нет traceback, используем исходное сообщение
+            errorMessage = errorLine.trim() || errorMessage;
+          }
+        } else {
+          errorMessage = String(err);
+        }
+
+        // Очищаем состояние Pyodide после ошибки, чтобы не блокировать следующие выполнения
+        try {
+          // Пытаемся очистить возможные глобальные переменные, которые могли остаться
+          pyodide.runPython(`
+try:
+    del _test_result, _test_passed, _test_error, _test_expected
+except:
+    pass
+`);
+        } catch {
+          // Игнорируем ошибки при очистке
+        }
 
         return {
           output: "",
-          error: errorMessage,
+          error: errorMessage || "Произошла ошибка при выполнении кода",
           executionTime,
         };
       }

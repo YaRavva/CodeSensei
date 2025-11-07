@@ -58,12 +58,12 @@ export function ModuleTasksManager({ moduleId, newTaskId, refreshTrigger }: Modu
         }
 
         console.log("ModuleTasksManager: Loaded", data?.length || 0, "tasks for module", moduleId);
-        const tasksData = (data as Task[]) || [];
+        const tasksData = (data || []) as Task[];
         setTasks(tasksData);
         
-        // Если есть ожидающее задание для редактирования, открываем его в accordion
-        // Accordion автоматически откроется если значение совпадает с task.id
+        // Если есть ожидающее задание для редактирования, открываем его
         if (pendingTaskId && tasksData && Array.isArray(tasksData) && tasksData.some(t => t.id === pendingTaskId)) {
+          setEditingTaskId(pendingTaskId);
           setPendingTaskId(null);
         }
       } catch (error) {

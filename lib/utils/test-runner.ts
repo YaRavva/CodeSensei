@@ -189,31 +189,98 @@ except Exception as e:
     await pyodide.runPythonAsync(testCode);
 
     // Получаем результаты
-    const passed = pyodide.runPython("bool(_test_passed)");
-    const result = pyodide.runPython("_test_result");
-    const error = pyodide.runPython("_test_error");
+    let passed = false;
+    let result: any = undefined;
+    let error: string | undefined = undefined;
+
+    try {
+      passed = Boolean(pyodide.runPython("bool(_test_passed)"));
+    } catch {
+      passed = false;
+    }
+
+    try {
+      const resultValue = pyodide.runPython("_test_result");
+      result = resultValue !== undefined && resultValue !== null && resultValue !== "None"
+        ? resultValue
+        : undefined;
+    } catch {
+      result = undefined;
+    }
+
+    try {
+      const errorValue = pyodide.runPython("_test_error");
+      error = errorValue && errorValue !== "None" && errorValue !== null 
+        ? String(errorValue) 
+        : undefined;
+    } catch {
+      error = undefined;
+    }
+
+    // Очищаем тестовые переменные после получения результатов
+    try {
+      pyodide.runPython(`
+try:
+    del _test_result, _test_passed, _test_error, _test_expected, _test_compare
+except:
+    pass
+`);
+    } catch {
+      // Игнорируем ошибки при очистке
+    }
 
     const executionTime = Date.now() - startTime;
 
     return {
       testCaseId: testCase.id,
-      passed: Boolean(passed),
-      actualOutput:
-        result !== undefined && result !== null && result !== "None"
-          ? result
-          : undefined,
-      error: error && error !== "None" && error !== null ? String(error) : undefined,
+      passed,
+      actualOutput: result,
+      error,
       executionTime,
     };
   } catch (err) {
     const executionTime = Date.now() - startTime;
-    const errorMessage =
-      err instanceof Error ? err.message : String(err);
+    
+    // Улучшенная обработка ошибок
+    let errorMessage = "";
+    
+    if (err instanceof Error) {
+      errorMessage = err.message;
+      
+      // Извлекаем более понятное сообщение из traceback Python
+      const lines = errorMessage.split('\n');
+      const errorLine = lines[lines.length - 1] || errorMessage;
+      
+      // Упрощаем сообщение для пользователя
+      if (errorLine.includes('UnboundLocalError')) {
+        const match = errorLine.match(/UnboundLocalError: (.+)/);
+        errorMessage = match ? `Ошибка: ${match[1]}` : errorLine;
+      } else if (errorLine.includes('NameError')) {
+        const match = errorLine.match(/NameError: (.+)/);
+        errorMessage = match ? `Ошибка: ${match[1]}` : errorLine;
+      } else {
+        errorMessage = errorLine.trim();
+      }
+    } else {
+      errorMessage = String(err);
+    }
+
+    // Очищаем состояние после ошибки
+    try {
+      pyodide.runPython(`
+try:
+    del _test_result, _test_passed, _test_error, _test_expected, _test_compare
+except:
+    pass
+`);
+    } catch {
+      // Игнорируем ошибки при очистке
+    }
 
     return {
       testCaseId: testCase.id,
       passed: false,
-      error: errorMessage,
+      error: errorMessage || "Произошла ошибка при выполнении теста",
       executionTime,
     };
   }

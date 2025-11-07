@@ -720,25 +720,27 @@ export function ModuleUnifiedPage({
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm, remarkBreaks]}
                       components={{
-                        code({ node, inline, className, children, ...props }: any) {
+                        code(props) {
+                          const { node, className, children, ...rest } = props as any;
+                          const inline = !className || !className.includes('language-');
                           const match = /language-(\w+)/.exec(className || "");
                           const isDark = mounted && (
                             theme === "dark" || 
                             (theme === "system" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches)
                           );
-                          const inlineProp = (props as any).inline;
-                          return !inlineProp && match ? (
+                          return !inline && match ? (
                             <SyntaxHighlighter
                               style={(isDark ? oneDark : oneLight) as any}
                               language={match[1]}
                               PreTag="div"
                               className="font-ubuntu-mono rounded-md"
                               customStyle={{ fontFamily: 'Ubuntu Mono, monospace' }}
+                              {...rest}
                             >
                               {String(children).replace(/\n$/, "")}
                             </SyntaxHighlighter>
                           ) : (
-                            <code className={`font-ubuntu-mono ${className}`} {...props}>
+                            <code className={`font-ubuntu-mono ${className}`} {...rest}>
                               {children}
                             </code>
                           );

@@ -11,5 +11,10 @@ export async function GET(request: Request) {
     await supabase.auth.exchangeCodeForSession(code);
   }
 
-  return NextResponse.redirect(new URL(next, requestUrl.origin));
+  // Получаем правильный origin из заголовков запроса
+  const host = request.headers.get("host");
+  const protocol = request.headers.get("x-forwarded-proto") || (requestUrl.protocol === "https:" ? "https" : "http");
+  const origin = `${protocol}://${host}`;
+
+  return NextResponse.redirect(new URL(next, origin));
 }

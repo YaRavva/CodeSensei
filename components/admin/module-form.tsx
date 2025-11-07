@@ -625,13 +625,14 @@ export function ModuleForm({ moduleId, initialData, createdByUserId }: ModuleFor
                             <ReactMarkdown
                               remarkPlugins={[remarkGfm, remarkBreaks]}
                               components={{
-                                code({ node, className, children, ...props }: any) {
+                                code(props) {
+                                  const { node, className, children, ...rest } = props as any;
+                                  const inline = !className || !className.includes('language-');
                                   const match = /language-(\w+)/.exec(className || "");
                                   const isDark = mounted && (
                                     theme === "dark" || 
                                     (theme === "system" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches)
                                   );
-                                  const inline = (props as any).inline;
                                   return !inline && match ? (
                                     <SyntaxHighlighter
                                       style={(isDark ? oneDark : oneLight) as any}
@@ -639,11 +640,12 @@ export function ModuleForm({ moduleId, initialData, createdByUserId }: ModuleFor
                                       PreTag="div"
                                       className="font-ubuntu-mono rounded-md"
                                       customStyle={{ fontFamily: 'Ubuntu Mono, monospace' }}
+                                      {...rest}
                                     >
                                       {String(children).replace(/\n$/, "")}
                                     </SyntaxHighlighter>
                                   ) : (
-                                    <code className={`font-ubuntu-mono ${className}`} {...props}>
+                                    <code className={`font-ubuntu-mono ${className}`} {...rest}>
                                       {children}
                                     </code>
                                   );
