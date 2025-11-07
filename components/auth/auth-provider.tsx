@@ -93,10 +93,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     // Слушаем изменения аутентификации
-    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
+      
+      // Логируем события для отладки
+      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+        console.log("Auth state changed:", event, session?.user?.id);
+      }
+      
       setUser(session?.user ?? null);
       if (session?.user) {
+        // Принудительно загружаем профиль при входе через OAuth
         await loadProfile(session.user.id);
       } else {
         setProfile(null);

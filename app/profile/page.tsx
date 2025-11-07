@@ -11,21 +11,50 @@ import { useToast } from "@/hooks/use-toast";
 import { createClient } from "@/lib/supabase/client";
 import { calculateLevelProgress } from "@/lib/utils/levels";
 import { isValidRussianName, getNameValidationError } from "@/lib/utils/name-validation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AchievementsList } from "@/components/achievements/achievements-list";
 
 export default function ProfilePage() {
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile, loading: authLoading, refreshProfile } = useAuth();
   const [displayName, setDisplayName] = useState(profile?.display_name || "");
   const [loading, setLoading] = useState(false);
   const [nameError, setNameError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   const { toast } = useToast();
   const supabase = createClient();
 
-  if (!user || !profile) {
+  // Обновляем displayName когда профиль загружается
+  useEffect(() => {
+    if (profile?.display_name) {
+      setDisplayName(profile.display_name);
+    }
+  }, [profile?.display_name]);
+
+  // Повторная попытка загрузки профиля, если он не загрузился
+  useEffect(() => {
+    if (user && !profile && !authLoading && retryCount < 3) {
+      const timer = setTimeout(async () => {
+        console.log(`Retrying profile load, attempt ${retryCount + 1}`);
+        await refreshProfile();
+        setRetryCount((prev) => prev + 1);
+      }, 1000 * (retryCount + 1)); // Увеличиваем задержку с каждой попыткой
+      
+      return () => clearTimeout(timer);
+    }
+  }, [user, profile, authLoading, retryCount, refreshProfile]);
+
+  // Показываем загрузку, если пользователь или профиль не загружены
+  if (authLoading || !user || !profile) {
     return (
       <div className="container mx-auto px-4 py-16">
-        <p>Загрузка...</p>
+        <div className="flex flex-col items-center justify-center gap-4">
+          <p>Загрузка...</p>
+          {user && !profile && retryCount > 0 && (
+            <p className="text-sm text-muted-foreground">
+              Загрузка профиля... (попытка {retryCount + 1}/3)
+            </p>
+          )}
+        </div>
       </div>
     );
   }
