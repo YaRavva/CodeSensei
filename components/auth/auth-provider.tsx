@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/client";
 import type { Database } from "@/types/supabase";
 import type { User } from "@supabase/supabase-js";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useRef } from "react";
 
 type UserProfile = Database["public"]["Tables"]["users"]["Row"];
 
@@ -22,6 +22,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const supabase = createClient();
+  const loadingProfileRef = useRef<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -186,17 +187,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   async function loadProfile(userId: string) {
+    // Защита от множественных одновременных вызовов
+    if (loadingProfileRef.current === userId) {
+      console.log("loadProfile already in progress for userId:", userId);
+      return;
+    }
+    
     try {
+      loadingProfileRef.current = userId;
       console.log("loadProfile called for userId:", userId);
       setLoading(true);
       
       // Проверяем, что пользователь все еще авторизован
-      const { data: { session } } = await supabase.auth.getSession();
+      console.log("Checking session for userId:", userId);
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      console.log("Session check result:", { 
+        hasSession: !!session, 
+        sessionUserId: session?.user?.id, 
+        expectedUserId: userId,
+        sessionError: sessionError?.message 
+      });
+      
+      if (sessionError) {
+        console.error("Error getting session in loadProfile:", sessionError);
+        setProfile(null);
+        setLoading(false);
+        loadingProfileRef.current = null;
+        return;
+      }
+      
       if (!session || session.user.id !== userId) {
-        console.warn("User session expired while loading profile");
+        console.warn("User session expired while loading profile", {
+          hasSession: !!session,
+          sessionUserId: session?.user?.id,
+          expectedUserId: userId
+        });
         setUser(null);
         setProfile(null);
         setLoading(false);
+        loadingProfileRef.current = null;
         return;
       }
       
@@ -279,6 +308,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       console.log("loadProfile finished, setting loading to false");
       setLoading(false);
+      loadingProfileRef.current = null;
     }
   }
 
