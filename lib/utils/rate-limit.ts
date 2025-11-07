@@ -76,8 +76,8 @@ export async function logGeneration(
   }
 
   // Вставляем новую запись
-  const { error } = await supabase
-    .from("ai_generation_logs")
+  const { error } = await (supabase
+    .from("ai_generation_logs") as any)
     .insert({
       user_id: userId,
       generation_type: generationType,
