@@ -61,9 +61,9 @@ export function ModuleTasksManager({ moduleId, newTaskId, refreshTrigger }: Modu
         const tasksData = (data || []) as Task[];
         setTasks(tasksData);
         
-        // Если есть ожидающее задание для редактирования, открываем его
+        // Если есть ожидающее задание для редактирования, открываем его в accordion
         if (pendingTaskId && tasksData && Array.isArray(tasksData) && tasksData.some(t => t.id === pendingTaskId)) {
-          setEditingTaskId(pendingTaskId);
+          setAccordionValue(pendingTaskId);
           setPendingTaskId(null);
         }
       } catch (error) {

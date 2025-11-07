@@ -24,11 +24,12 @@ export default function RegisterPage() {
     setLoading(true);
 
     // Регистрация в Supabase Auth
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: `${baseUrl}/auth/callback`,
       },
     });
 
@@ -74,10 +75,11 @@ export default function RegisterPage() {
 
   async function handleGoogleLogin() {
     setLoading(true);
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${baseUrl}/auth/callback`,
       },
     });
 
@@ -93,10 +95,11 @@ export default function RegisterPage() {
 
   async function handleGithubLogin() {
     setLoading(true);
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "github",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${baseUrl}/auth/callback`,
       },
     });
 
