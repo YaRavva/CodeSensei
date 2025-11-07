@@ -118,8 +118,12 @@ export function LoginForm() {
 
         const { isValidRussianName } = await import("@/lib/utils/name-validation");
         
+        // Типизируем профиль
+        type UserProfile = { display_name: string | null } | null;
+        const typedProfile = userProfile as UserProfile;
+        
         // Если имя не соответствует формату "Фамилия Имя" на русском, редиректим на профиль
-        if (!isValidRussianName(userProfile?.display_name)) {
+        if (!isValidRussianName(typedProfile?.display_name)) {
           toast({
             title: "Требуется заполнить имя",
             description: "Пожалуйста, укажите ваше имя в формате 'Фамилия Имя' на русском языке",
