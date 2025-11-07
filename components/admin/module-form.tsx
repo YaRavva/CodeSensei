@@ -62,11 +62,19 @@ export function ModuleForm({ moduleId, initialData, createdByUserId }: ModuleFor
   const [newTaskId, setNewTaskId] = useState<string | null>(null);
   const [allModules, setAllModules] = useState<Module[]>([]);
   const [modulesLoading, setModulesLoading] = useState(false);
+  // Состояние для текущего выбранного модуля (может отличаться от moduleId из URL)
+  // Всегда инициализируем из moduleId, если он есть
+  const [currentModuleId, setCurrentModuleId] = useState<string | undefined>(moduleId || undefined);
 
   useEffect(() => {
     setMounted(true);
   }, []);
   // Сущности уроков больше нет — задания сохраняются напрямую в модуль
+
+  // Инициализируем currentModuleId при изменении moduleId из пропсов
+  useEffect(() => {
+    setCurrentModuleId(moduleId);
+  }, [moduleId]);
 
   // Загружаем список всех модулей для дропдауна (только если редактируем модуль)
   useEffect(() => {
@@ -101,7 +109,8 @@ export function ModuleForm({ moduleId, initialData, createdByUserId }: ModuleFor
   }
 
   useEffect(() => {
-    if (initialData) {
+    if (initialData && currentModuleId === moduleId) {
+      // Используем initialData только при первой загрузке (когда currentModuleId совпадает с moduleId из URL)
       setTitle(initialData.title || "");
       setDescription(initialData.description || "");
       setTopic(initialData.topic || "");
@@ -111,15 +120,20 @@ export function ModuleForm({ moduleId, initialData, createdByUserId }: ModuleFor
       setLoading(false);
       return;
     }
-    if (moduleId) {
-      loadModule();
+    if (currentModuleId && currentModuleId !== moduleId) {
+      // Если currentModuleId отличается от moduleId из URL, загружаем данные нового модуля
+      loadModule(currentModuleId);
+    } else if (currentModuleId && !initialData) {
+      // Если нет initialData, загружаем модуль
+      loadModule(currentModuleId);
     }
-  }, [moduleId, initialData]);
+  }, [currentModuleId, initialData, moduleId]);
 
-  async function loadModule() {
-    if (!moduleId) return;
+  async function loadModule(moduleIdToLoad?: string) {
+    const targetModuleId = moduleIdToLoad || currentModuleId;
+    if (!targetModuleId) return;
 
-    const { data, error } = await supabase.from("modules").select("*").eq("id", moduleId).single();
+    const { data, error } = await supabase.from("modules").select("*").eq("id", targetModuleId).single();
 
     if (error) {
       toast({
@@ -295,7 +309,8 @@ export function ModuleForm({ moduleId, initialData, createdByUserId }: ModuleFor
   function copyGeneratedField(_value: string) {}
 
   async function handleCreateTaskFromGenerated() {
-    if (!moduleId) {
+    const targetModuleId = currentModuleId || moduleId;
+    if (!targetModuleId) {
       toast({ title: "Сначала сохраните модуль", description: "Создайте модуль, затем добавьте в него задания", variant: "destructive" });
       return;
     }
@@ -315,7 +330,16 @@ export function ModuleForm({ moduleId, initialData, createdByUserId }: ModuleFor
         order_index: 0,
       };
 
-      const res = await fetch(`/api/admin/modules/${moduleId}/tasks/create`, {
+      const targetModuleId = currentModuleId || moduleId;
+      if (!targetModuleId) {
+        toast({
+          title: "Ошибка",
+          description: "Не выбран модуль для создания задания",
+          variant: "destructive",
+        });
+        return;
+      }
+      const res = await fetch(`/api/admin/modules/${targetModuleId}/tasks/create`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -410,11 +434,12 @@ export function ModuleForm({ moduleId, initialData, createdByUserId }: ModuleFor
     };
 
     try {
-      console.log("ModuleForm: before save, moduleId=", moduleId);
-      if (moduleId) {
-        console.log("ModuleForm: updating module via API", { moduleId, level: moduleData.level, order_index: moduleData.order_index, title: moduleData.title, topic: moduleData.topic, descLength });
+      const targetModuleId = currentModuleId || moduleId;
+      console.log("ModuleForm: before save, moduleId=", targetModuleId);
+      if (targetModuleId) {
+        console.log("ModuleForm: updating module via API", { moduleId: targetModuleId, level: moduleData.level, order_index: moduleData.order_index, title: moduleData.title, topic: moduleData.topic, descLength });
         console.time("ModuleForm:updateDuration");
-        const res = await fetch(`/api/admin/modules/${moduleId}/update`, {
+        const res = await fetch(`/api/admin/modules/${targetModuleId}/update`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
@@ -496,9 +521,16 @@ export function ModuleForm({ moduleId, initialData, createdByUserId }: ModuleFor
             <div className="space-y-2">
               <Label htmlFor="module-select">Выберите модуль для редактирования *</Label>
               <Select
-                value={moduleId}
-                onValueChange={(value) => {
-                  router.push(`/admin/modules/${value}/edit`);
+                value={currentModuleId || ""}
+                onValueChange={async (value) => {
+                  // Обновляем текущий модуль без редиректа
+                  setCurrentModuleId(value);
+                  // Загружаем данные выбранного модуля
+                  await loadModule(value);
+                  // Обновляем URL без перезагрузки страницы
+                  router.replace(`/admin/modules/${value}/edit`, { scroll: false });
+                  // Компонент ModuleTasksManager автоматически перезагрузится благодаря изменению key
+                  // который включает currentModuleId
                 }}
                 disabled={loading || modulesLoading}
               >
@@ -508,7 +540,7 @@ export function ModuleForm({ moduleId, initialData, createdByUserId }: ModuleFor
                 <SelectContent>
                   {allModules.map((module) => (
                     <SelectItem key={module.id} value={module.id}>
-                      {module.title}
+                      {module.topic || module.title}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -528,10 +560,20 @@ export function ModuleForm({ moduleId, initialData, createdByUserId }: ModuleFor
               />
             </div>
           )}
-          <Tabs defaultValue="module" value={activeTab} onValueChange={setActiveTab}>
+          <Tabs 
+            defaultValue="module" 
+            value={activeTab} 
+            onValueChange={(value) => {
+              setActiveTab(value);
+              // При переключении на вкладку "Задания" убеждаемся, что currentModuleId установлен
+              if (value === "tasks" && !currentModuleId && moduleId) {
+                setCurrentModuleId(moduleId);
+              }
+            }}
+          >
             <TabsList>
               <TabsTrigger value="module">Данные модуля</TabsTrigger>
-              {moduleId && <TabsTrigger value="tasks">Задания</TabsTrigger>}
+              {(currentModuleId || moduleId) && <TabsTrigger value="tasks">Задания</TabsTrigger>}
               <TabsTrigger value="ai">Генерация заданий с AI</TabsTrigger>
             </TabsList>
 
@@ -687,11 +729,23 @@ export function ModuleForm({ moduleId, initialData, createdByUserId }: ModuleFor
                     </Select>
                   </div>
                   <div className="flex gap-2 w-full sm:w-auto">
-                    <Button type="button" onClick={handleGenerateTaskAI} disabled={taskGenLoading} className="flex-1 sm:flex-initial">
-                      {taskGenLoading ? "Генерация..." : "⚙️ Сгенерировать"}
+                    <Button 
+                      type="button" 
+                      variant="outline"
+                      onClick={handleGenerateTaskAI} 
+                      disabled={taskGenLoading} 
+                      className="flex-1 sm:flex-initial"
+                    >
+                      {taskGenLoading ? "Генерация..." : "🎨 Сгенерировать"}
                     </Button>
-                    {moduleId && (
-                      <Button type="button" variant="secondary" onClick={handleCreateTaskFromGenerated} disabled={!generatedTask} className="flex-1 sm:flex-initial">
+                    {currentModuleId && (
+                      <Button 
+                        type="button" 
+                        variant="default"
+                        onClick={handleCreateTaskFromGenerated} 
+                        disabled={!generatedTask} 
+                        className="flex-1 sm:flex-initial"
+                      >
                         Сохранить
                       </Button>
                     )}
@@ -837,8 +891,9 @@ export function ModuleForm({ moduleId, initialData, createdByUserId }: ModuleFor
                   type="button"
                   variant="destructive"
                   onClick={async () => {
-                    if (!moduleId) return;
-                    const res = await fetch(`/api/admin/modules/${moduleId}/delete`, { method: "POST" });
+                    const targetModuleId = currentModuleId || moduleId;
+                    if (!targetModuleId) return;
+                    const res = await fetch(`/api/admin/modules/${targetModuleId}/delete`, { method: "POST" });
                     setConfirmOpen(false);
                     if (!res.ok) {
                       const body = await res.json().catch(() => ({}));
@@ -859,11 +914,12 @@ export function ModuleForm({ moduleId, initialData, createdByUserId }: ModuleFor
         )}
       </form>
     </Card>
-    {moduleId && activeTab === "tasks" && (
+    {/* Вкладка "Задания" - всегда показываем, если есть currentModuleId или moduleId */}
+    {((currentModuleId || moduleId) && activeTab === "tasks") && (
       <div className="mt-4">
         <ModuleTasksManager 
-          key={`${moduleId}-${newTaskId || 'none'}`}
-          moduleId={moduleId}
+          key={`${currentModuleId || moduleId}-${newTaskId || 'none'}-${activeTab}`}
+          moduleId={currentModuleId || moduleId || ""}
           newTaskId={newTaskId}
           refreshTrigger={newTaskId ? Date.now() : undefined}
         />

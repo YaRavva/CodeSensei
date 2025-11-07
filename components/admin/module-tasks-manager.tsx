@@ -28,7 +28,9 @@ export function ModuleTasksManager({ moduleId, newTaskId, refreshTrigger }: Modu
   const { toast } = useToast();
 
   useEffect(() => {
+    // Строгая проверка валидности moduleId
     if (!moduleId || typeof moduleId !== "string" || moduleId.trim() === "") {
+      console.warn("ModuleTasksManager: Invalid moduleId, clearing tasks", { moduleId });
       setTasks([]);
       return;
     }
@@ -37,6 +39,7 @@ export function ModuleTasksManager({ moduleId, newTaskId, refreshTrigger }: Modu
 
     async function loadTasks() {
       try {
+        console.log("ModuleTasksManager: Starting to load tasks for module:", moduleId);
         const client = createClient();
         const { data, error } = await client
           .from("tasks")
@@ -44,7 +47,10 @@ export function ModuleTasksManager({ moduleId, newTaskId, refreshTrigger }: Modu
           .eq("module_id", moduleId)
           .order("order_index");
 
-        if (cancelled) return;
+        if (cancelled) {
+          console.log("ModuleTasksManager: Load cancelled for module:", moduleId);
+          return;
+        }
 
         if (error) {
           console.error("ModuleTasksManager: Error loading tasks:", error);
@@ -57,8 +63,8 @@ export function ModuleTasksManager({ moduleId, newTaskId, refreshTrigger }: Modu
           return;
         }
 
-        console.log("ModuleTasksManager: Loaded", data?.length || 0, "tasks for module", moduleId);
         const tasksData = (data || []) as Task[];
+        console.log("ModuleTasksManager: Successfully loaded", tasksData.length, "tasks for module", moduleId);
         setTasks(tasksData);
         
         // Если есть ожидающее задание для редактирования, открываем его в accordion
@@ -78,7 +84,7 @@ export function ModuleTasksManager({ moduleId, newTaskId, refreshTrigger }: Modu
       }
     }
 
-    console.log("ModuleTasksManager: useEffect triggered, moduleId:", moduleId);
+    // Всегда загружаем задания при изменении moduleId
     loadTasks();
 
     return () => {

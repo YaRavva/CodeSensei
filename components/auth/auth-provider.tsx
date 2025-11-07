@@ -26,14 +26,68 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
+    // Функция для восстановления сессии из серверных cookies
+    async function restoreSessionFromServer() {
+      try {
+        const response = await fetch("/api/auth/restore-session", {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+        });
+        
+        if (response.ok) {
+          const { session } = await response.json();
+          if (session?.access_token && session?.refresh_token) {
+            // Восстанавливаем сессию на клиенте
+            const { data, error } = await supabase.auth.setSession({
+              access_token: session.access_token,
+              refresh_token: session.refresh_token,
+            });
+            
+            if (!error && data?.user) {
+              setUser(data.user);
+              await loadProfile(data.user.id);
+              return true;
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error restoring session from server:", error);
+      }
+      return false;
+    }
+
     // Получаем текущую сессию и пользователя
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(async ({ data, error }) => {
       if (!mounted) return;
+      
+      // Если есть ошибка получения сессии, логируем
+      if (error) {
+        console.error("Error getting session:", error);
+      }
+      
       const currentUser = data.session?.user ?? null;
-      setUser(currentUser);
+      
       if (currentUser) {
-        loadProfile(currentUser.id);
+        // Сессия есть - загружаем профиль
+        setUser(currentUser);
+        await loadProfile(currentUser.id);
       } else {
+        // Сессии нет на клиенте - пытаемся восстановить из серверных cookies
+        // Добавляем таймаут для восстановления (5 секунд)
+        const restorePromise = restoreSessionFromServer();
+        const timeoutPromise = new Promise<boolean>((resolve) => {
+          setTimeout(() => resolve(false), 5000);
+        });
+        
+        const restored = await Promise.race([restorePromise, timeoutPromise]);
+        if (!restored) {
+          setLoading(false);
+        }
+      }
+    }).catch((error) => {
+      console.error("Unexpected error in getSession:", error);
+      if (mounted) {
         setLoading(false);
       }
     });
@@ -61,6 +115,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setLoading(true);
       
+      // Проверяем, что пользователь все еще авторизован
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session || session.user.id !== userId) {
+        console.warn("User session expired while loading profile");
+        setUser(null);
+        setProfile(null);
+        setLoading(false);
+        return;
+      }
+      
       // Используем более надежный запрос с явным указанием полей
       const { data, error } = await supabase
         .from("users")
@@ -73,6 +137,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // 42P17 = infinite recursion - игнорируем, так как это проблема RLS политики
         if (error.code !== "42P17") {
           console.error("Error loading profile:", error);
+          // При критических ошибках не сбрасываем профиль, чтобы не потерять данные
+          if (error.code === "42501" || error.code === "PGRST301") {
+            // Ошибка доступа - возможно проблема с RLS
+            console.error("RLS policy error - user may not have access to their profile");
+          }
         }
       }
 
