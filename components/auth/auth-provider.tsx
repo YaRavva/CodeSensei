@@ -148,15 +148,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session?.user ?? null);
       if (session?.user) {
         // Принудительно загружаем профиль при входе через OAuth
+        // Добавляем небольшую задержку, чтобы дать время сессии синхронизироваться
         console.log("Loading profile for user:", session.user.id);
-        try {
-          await loadProfile(session.user.id);
-          console.log("Profile loaded successfully for user:", session.user.id);
-        } catch (error) {
-          console.error("Error loading profile in onAuthStateChange:", error);
-          // Убеждаемся, что loading установлен в false даже при ошибке
-          setLoading(false);
-        }
+        // Используем setTimeout, чтобы дать время сессии синхронизироваться на клиенте
+        setTimeout(async () => {
+          if (!mounted) return;
+          try {
+            await loadProfile(session.user.id);
+            console.log("Profile loaded successfully for user:", session.user.id);
+          } catch (error) {
+            console.error("Error loading profile in onAuthStateChange:", error);
+            // Убеждаемся, что loading установлен в false даже при ошибке
+            setLoading(false);
+          }
+        }, 100); // Небольшая задержка для синхронизации сессии
       } else {
         setProfile(null);
         setLoading(false);
@@ -199,27 +204,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(true);
       
       // Проверяем, что пользователь все еще авторизован
-      console.log("Checking session for userId:", userId);
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      console.log("Session check result:", { 
-        hasSession: !!session, 
-        sessionUserId: session?.user?.id, 
+      // Используем getUser() вместо getSession(), так как getUser() более надежен
+      console.log("Checking user for userId:", userId);
+      const { data: { user: authUser }, error: userError } = await supabase.auth.getUser();
+      console.log("User check result:", { 
+        hasUser: !!authUser, 
+        userId: authUser?.id, 
         expectedUserId: userId,
-        sessionError: sessionError?.message 
+        userError: userError?.message 
       });
       
-      if (sessionError) {
-        console.error("Error getting session in loadProfile:", sessionError);
+      if (userError) {
+        console.error("Error getting user in loadProfile:", userError);
         setProfile(null);
         setLoading(false);
         loadingProfileRef.current = null;
         return;
       }
       
-      if (!session || session.user.id !== userId) {
-        console.warn("User session expired while loading profile", {
-          hasSession: !!session,
-          sessionUserId: session?.user?.id,
+      if (!authUser || authUser.id !== userId) {
+        console.warn("User not found or mismatch while loading profile", {
+          hasUser: !!authUser,
+          userId: authUser?.id,
           expectedUserId: userId
         });
         setUser(null);
