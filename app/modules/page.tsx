@@ -3,12 +3,16 @@ import { requireAuth } from "@/lib/utils/auth";
 import { ModulesList } from "@/components/modules/modules-list";
 import { isValidRussianName } from "@/lib/utils/name-validation";
 import { redirect } from "next/navigation";
+import type { Database } from "@/types/supabase";
+
+type UserProfile = Database["public"]["Tables"]["users"]["Row"];
 
 export default async function ModulesPage() {
   const { user, profile, supabase } = await requireAuth();
 
   // Проверяем имя пользователя - если не соответствует формату, редиректим на профиль
-  if (!isValidRussianName(profile?.display_name)) {
+  const typedProfile = profile as UserProfile | null;
+  if (!isValidRussianName(typedProfile?.display_name)) {
     redirect("/profile");
   }
 

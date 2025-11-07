@@ -24,7 +24,8 @@ export default function RegisterPage() {
     setLoading(true);
 
     // Регистрация в Supabase Auth
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
+    const { getBaseUrl } = await import("@/lib/utils/get-base-url");
+    const baseUrl = getBaseUrl();
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
       password,
@@ -75,7 +76,8 @@ export default function RegisterPage() {
 
   async function handleGoogleLogin() {
     setLoading(true);
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
+    const { getBaseUrl } = await import("@/lib/utils/get-base-url");
+    const baseUrl = getBaseUrl();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
@@ -95,7 +97,8 @@ export default function RegisterPage() {
 
   async function handleGithubLogin() {
     setLoading(true);
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
+    const { getBaseUrl } = await import("@/lib/utils/get-base-url");
+    const baseUrl = getBaseUrl();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "github",
       options: {

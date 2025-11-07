@@ -161,8 +161,8 @@ export function LoginForm() {
 
   async function handleGoogleLogin() {
     setLoading(true);
-    // Используем переменную окружения, если она есть, иначе window.location.origin
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
+    const { getBaseUrl } = await import("@/lib/utils/get-base-url");
+    const baseUrl = getBaseUrl();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
@@ -182,8 +182,8 @@ export function LoginForm() {
 
   async function handleGithubLogin() {
     setLoading(true);
-    // Используем переменную окружения, если она есть, иначе window.location.origin
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
+    const { getBaseUrl } = await import("@/lib/utils/get-base-url");
+    const baseUrl = getBaseUrl();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "github",
       options: {

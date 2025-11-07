@@ -27,8 +27,10 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     setLoading(true);
 
+    const { getBaseUrl } = await import("@/lib/utils/get-base-url");
+    const baseUrl = getBaseUrl();
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/auth/reset-password`,
+      redirectTo: `${baseUrl}/auth/reset-password`,
     });
 
     if (error) {
