@@ -1,0 +1,204 @@
+{
+  "project_name": "CodeSensei",
+  "project_type": "fullstack",
+  "description": "Интерактивный Python-тренажер для школьников с геймификацией, персонализацией и модульной системой обучения",
+  "tech_stack": {
+    "frontend": {
+      "framework": "Next.js 16 (App Router)",
+      "language": "TypeScript",
+      "ui_library": "React 19",
+      "styling": "Tailwind CSS 4.1 + shadcn/ui",
+      "code_editor": "Monaco Editor",
+      "state_management": "React Context API",
+      "form_handling": "react-hook-form + zod"
+    },
+    "backend": {
+      "runtime": "Next.js API Routes (Serverless Functions)",
+      "database": "Supabase (PostgreSQL)",
+      "authentication": "Supabase Auth",
+      "api_style": "REST API"
+    },
+    "code_execution": {
+      "technology": "Pyodide (WebAssembly)",
+      "language": "Python 3"
+    },
+    "ai_services": {
+      "provider": "Hugging Face Inference API",
+      "model": "openai/gpt-oss-20b"
+    }
+  },
+  "key_features": [
+    "Аутентификация и профили пользователей (студенты, учителя, админы)",
+    "Просмотр модулей и заданий с теорией",
+    "Редактор кода с выполнением через Pyodide",
+    "Тестирование решений (локальные тесты + AI-оценка)",
+    "Система прогресса и XP с уровнями",
+    "Таблица лидеров",
+    "Админ-панель для управления модулями и заданиями",
+    "AI-генерация контента (модули и задания)",
+    "AI-подсказки для студентов",
+    "Система достижений (achievements)"
+  ],
+  "main_pages": [
+    {
+      "path": "/",
+      "description": "Главная страница с редиректом на /modules или /login"
+    },
+    {
+      "path": "/login",
+      "description": "Страница входа"
+    },
+    {
+      "path": "/register",
+      "description": "Страница регистрации"
+    },
+    {
+      "path": "/modules",
+      "description": "Список всех модулей обучения"
+    },
+    {
+      "path": "/modules/[moduleId]",
+      "description": "Страница модуля с теорией и списком заданий"
+    },
+    {
+      "path": "/modules/[moduleId]/tasks/[taskId]",
+      "description": "Страница задания с редактором кода, тестами и AI-оценкой"
+    },
+    {
+      "path": "/dashboard",
+      "description": "Личный кабинет с прогрессом, XP, уровнем и достижениями"
+    },
+    {
+      "path": "/leaderboard",
+      "description": "Таблица лидеров по XP"
+    },
+    {
+      "path": "/profile",
+      "description": "Профиль пользователя"
+    },
+    {
+      "path": "/admin/modules",
+      "description": "Админ-панель: управление модулями"
+    },
+    {
+      "path": "/admin/modules/[moduleId]/edit",
+      "description": "Редактирование модуля"
+    },
+    {
+      "path": "/admin/tasks/[taskId]/edit",
+      "description": "Редактирование задания"
+    }
+  ],
+  "api_endpoints": [
+    {
+      "path": "/api/auth/set-session",
+      "method": "POST",
+      "description": "Установка сессии аутентификации"
+    },
+    {
+      "path": "/api/auth/signout",
+      "method": "POST",
+      "description": "Выход из системы"
+    },
+    {
+      "path": "/api/tasks/evaluate",
+      "method": "POST",
+      "description": "AI-оценка решения задачи"
+    },
+    {
+      "path": "/api/tasks/award-xp",
+      "method": "POST",
+      "description": "Начисление XP за выполнение задачи"
+    },
+    {
+      "path": "/api/ai/hint",
+      "method": "POST",
+      "description": "Получение AI-подсказки для задачи"
+    },
+    {
+      "path": "/api/ai/generate-module",
+      "method": "POST",
+      "description": "Генерация модуля с помощью AI"
+    },
+    {
+      "path": "/api/ai/generate-task",
+      "method": "POST",
+      "description": "Генерация задания с помощью AI"
+    },
+    {
+      "path": "/api/admin/modules/create",
+      "method": "POST",
+      "description": "Создание нового модуля (только для админов)"
+    },
+    {
+      "path": "/api/admin/modules/[moduleId]/update",
+      "method": "PUT",
+      "description": "Обновление модуля (только для админов)"
+    },
+    {
+      "path": "/api/admin/modules/[moduleId]/delete",
+      "method": "DELETE",
+      "description": "Удаление модуля (только для админов)"
+    },
+    {
+      "path": "/api/admin/modules/[moduleId]/tasks/create",
+      "method": "POST",
+      "description": "Создание задания в модуле (только для админов)"
+    }
+  ],
+  "authentication": {
+    "provider": "Supabase Auth",
+    "methods": ["email/password", "magic link"],
+    "roles": ["student", "teacher", "admin"],
+    "protected_routes": [
+      "/dashboard",
+      "/modules",
+      "/profile",
+      "/leaderboard",
+      "/admin/*"
+    ]
+  },
+  "database_tables": [
+    "users",
+    "modules",
+    "tasks",
+    "user_progress",
+    "task_attempts",
+    "achievements",
+    "user_achievements"
+  ],
+  "key_components": [
+    "CodeEditor - редактор кода на базе Monaco Editor",
+    "CodeRunner - выполнение Python кода через Pyodide",
+    "TestResults - отображение результатов тестов",
+    "TaskPageContent - основная страница задания",
+    "ModuleDetails - страница модуля с теорией",
+    "DashboardContent - личный кабинет",
+    "LeaderboardContent - таблица лидеров",
+    "AuthProvider - провайдер аутентификации",
+    "ThemeProvider - провайдер темы (светлая/темная)",
+    "AdminLayout - layout для админ-панели",
+    "ModuleForm - форма создания/редактирования модуля",
+    "TaskForm - форма создания/редактирования задания"
+  ],
+  "testing_approach": {
+    "code_execution": "Pyodide в браузере (WebAssembly)",
+    "test_format": "JSON с тестовыми случаями",
+    "ai_evaluation": "Серверная AI-оценка через Hugging Face API",
+    "test_runner": "Клиентский test-runner на базе Pyodide"
+  },
+  "gamification": {
+    "xp_system": "Начисление XP за выполнение задач (10/20/30 XP в зависимости от сложности)",
+    "level_system": "12 уровней с порогами XP",
+    "achievements": "Система достижений с различными категориями",
+    "leaderboard": "Глобальный рейтинг по XP"
+  },
+  "development_server": {
+    "port": 3000,
+    "command": "npm run dev",
+    "framework": "Next.js"
+  },
+  "language": "ru",
+  "target_audience": "Школьники 7-9 классов (14-16 лет)"
+}
+

@@ -16,13 +16,27 @@ export async function updateSession(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value));
+          // Сначала обновляем cookies в request
+          cookiesToSet.forEach(({ name, value, options }) => {
+            request.cookies.set(name, value);
+          });
+          
+          // Создаем новый response с обновленными cookies
           supabaseResponse = NextResponse.next({
             request,
           });
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          );
+          
+          // Устанавливаем cookies в response с правильными опциями
+          cookiesToSet.forEach(({ name, value, options }) => {
+            supabaseResponse.cookies.set(name, value, {
+              ...options,
+              // Убеждаемся, что куки устанавливаются с правильными параметрами
+              httpOnly: options?.httpOnly ?? true,
+              secure: options?.secure ?? process.env.NODE_ENV === "production",
+              sameSite: options?.sameSite ?? "lax",
+              path: options?.path ?? "/",
+            });
+          });
         },
       },
     }

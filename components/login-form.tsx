@@ -25,9 +25,27 @@ export function LoginForm() {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
+      // КРИТИЧНО: Проверяем ошибку ПЕРЕД любыми дальнейшими действиями
       if (error) {
         console.error("signIn error", error);
-        toast({ title: "Ошибка входа", description: error.message, variant: "destructive" });
+        toast({ 
+          title: "Ошибка входа", 
+          description: error.message || "Неверный email или пароль", 
+          variant: "destructive" 
+        });
+        setLoading(false);
+        return;
+      }
+
+      // Проверяем, что есть валидная сессия
+      if (!data?.session) {
+        console.error("No session returned from signIn");
+        toast({ 
+          title: "Ошибка входа", 
+          description: "Не удалось создать сессию. Проверьте данные и попробуйте снова", 
+          variant: "destructive" 
+        });
+        setLoading(false);
         return;
       }
 
@@ -35,46 +53,70 @@ export function LoginForm() {
       const { data: sessionData, error: sessionErr } = await supabase.auth.getSession();
       if (sessionErr) {
         console.error("getSession error", sessionErr);
+        toast({ 
+          title: "Ошибка сессии", 
+          description: "Не удалось получить сессию. Попробуйте снова", 
+          variant: "destructive" 
+        });
+        setLoading(false);
+        return;
       }
 
       const activeSession = sessionData?.session ?? data?.session ?? null;
 
-      if (activeSession) {
-        toast({
-          title: "Вход выполнен",
-          description: "Добро пожаловать в CodeSensei!",
+      // КРИТИЧНО: Проверяем наличие валидной сессии перед редиректом
+      if (!activeSession || !activeSession.access_token) {
+        console.error("No valid session found");
+        toast({ 
+          title: "Ошибка входа", 
+          description: "Неверный email или пароль", 
+          variant: "destructive" 
         });
-        // Синхронизируем сессию в httpOnly куки через API, чтобы SSR-страницы увидели пользователя
-        try {
-          await fetch("/api/auth/set-session", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify({
-              access_token: activeSession.access_token,
-              refresh_token: activeSession.refresh_token,
-            }),
-          });
-        } catch (syncErr) {
-          console.error("Session sync error", syncErr);
+        setLoading(false);
+        return;
+      }
+
+      // Проверяем, что есть пользователь
+      if (!data?.user) {
+        console.error("No user returned from signIn");
+        toast({ 
+          title: "Требуется подтверждение email", 
+          description: "Мы создали ваш аккаунт, но вход завершится после подтверждения email. Проверьте почту.",
+        });
+        setLoading(false);
+        return;
+      }
+
+      // Все проверки пройдены - можно входить
+      toast({
+        title: "Вход выполнен",
+        description: "Добро пожаловать в CodeSensei!",
+      });
+      
+      // Синхронизируем сессию в httpOnly куки через API, чтобы SSR-страницы увидели пользователя
+      try {
+        const syncResponse = await fetch("/api/auth/set-session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            access_token: activeSession.access_token,
+            refresh_token: activeSession.refresh_token,
+          }),
+        });
+        
+        if (!syncResponse.ok) {
+          console.error("Session sync failed:", await syncResponse.text());
+          // Не блокируем вход, но логируем ошибку
         }
-
-        router.replace("/modules");
-        router.refresh();
-        navigated = true;
-        return;
+      } catch (syncErr) {
+        console.error("Session sync error", syncErr);
+        // Не блокируем вход, но логируем ошибку
       }
 
-      if (data?.user && !activeSession) {
-        toast({
-          title: "Требуется подтверждение email",
-          description:
-            "Мы создали ваш аккаунт, но вход завершится после подтверждения email. Проверьте почту.",
-        });
-        return;
-      }
-
-      toast({ title: "Не удалось войти", description: "Проверьте данные и попробуйте снова" });
+      router.replace("/modules");
+      router.refresh();
+      navigated = true;
     } catch (err: any) {
       console.error("Unexpected login error", err);
       toast({
@@ -82,6 +124,7 @@ export function LoginForm() {
         description: err?.message || "Попробуйте снова чуть позже",
         variant: "destructive",
       });
+      setLoading(false);
     } finally {
       if (!navigated) {
         setLoading(false);

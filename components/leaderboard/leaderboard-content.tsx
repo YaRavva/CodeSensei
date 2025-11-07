@@ -108,42 +108,35 @@ export function LeaderboardContent({
         </div>
 
         {/* Информация о текущем пользователе */}
-        {(currentUserRank || currentUserData) && (
-          <Card className="mb-6 bg-primary/5 border-primary/20">
-            <CardHeader>
-              <CardTitle className="text-lg">Ваша позиция</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {currentUserRank && currentUserRank <= users.length ? (
+        {(currentUserRank || currentUserData) && (() => {
+          // Находим текущего пользователя в списке или используем currentUserData
+          const currentUser = users.find((u) => u.id === currentUserId) || currentUserData;
+          const displayRank = currentUserRank || currentUserData?.rank || null;
+          
+          if (!currentUser || !displayRank) return null;
+          
+          return (
+            <Card className="mb-6 bg-primary/5 border-primary/20">
+              <CardHeader>
+                <CardTitle className="text-lg">Ваша позиция</CardTitle>
+              </CardHeader>
+              <CardContent>
                 <div className="flex items-center gap-4">
-                  <div className="text-2xl font-bold">#{currentUserRank}</div>
+                  <div className="text-2xl font-bold">#{displayRank}</div>
                   <div className="flex-1">
                     <p className="font-medium">
-                      {getUserDisplayName(users[currentUserRank - 1])}
+                      {getUserDisplayName(currentUser)}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      {users[currentUserRank - 1].total_xp || 0} XP • Уровень{" "}
-                      {users[currentUserRank - 1].current_level || 1}
+                      {currentUser.total_xp || 0} XP • Уровень{" "}
+                      {currentUser.current_level || 1}
                     </p>
                   </div>
                 </div>
-              ) : currentUserData ? (
-                <div className="flex items-center gap-4">
-                  <div className="text-2xl font-bold">#{currentUserData.rank}</div>
-                  <div className="flex-1">
-                    <p className="font-medium">
-                      {getUserDisplayName(currentUserData)}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {currentUserData.total_xp || 0} XP • Уровень{" "}
-                      {currentUserData.current_level || 1}
-                    </p>
-                  </div>
-                </div>
-              ) : null}
-            </CardContent>
-          </Card>
-        )}
+              </CardContent>
+            </Card>
+          );
+        })()}
       </div>
 
       {/* Таблица лидеров */}

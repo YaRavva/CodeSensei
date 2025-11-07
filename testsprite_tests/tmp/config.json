@@ -1,0 +1,18 @@
+{
+  "status": "commited",
+  "type": "frontend",
+  "scope": "codebase",
+  "localEndpoint": "http://localhost:3000",
+  "loginUser": "ravva@bk.ru",
+  "loginPassword": "klk12cfw",
+  "executionArgs": {
+    "projectName": "codesensei",
+    "projectPath": "C:\\Users\\Ravva\\codesensei",
+    "testIds": [],
+    "additionalInstruction": "",
+    "envs": {
+      "API_KEY": "sk-user-5nYdmDZ8WWDwKvM9vL49qmVE7STWXWuJvI7HfXue6DwKzzHZ9HipXVyJ1teFM6Lrm6DhJF5U65lFEhu48Q4gKDKmg7MxCwUcwXtNjBg-YzBz409JQUEkkGoaJi9ehTXFGdo"
+    }
+  },
+  "proxy": "http://c16dfd05-d2f2-47a1-b695-77aa550e198f:ad5Qu7yCZVmGBUalE9Ptq8svlVEc1Quy@tun.testsprite.com:8080"
+}

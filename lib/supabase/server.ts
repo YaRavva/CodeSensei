@@ -15,13 +15,22 @@ export async function createClient() {
         },
         setAll(cookiesToSet) {
           try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              // Устанавливаем куки с правильными опциями для безопасности
+              cookieStore.set(name, value, {
+                ...options,
+                // Убеждаемся, что куки устанавливаются с правильными параметрами
+                httpOnly: options?.httpOnly ?? true,
+                secure: options?.secure ?? process.env.NODE_ENV === "production",
+                sameSite: options?.sameSite ?? "lax",
+                path: options?.path ?? "/",
+              });
+            });
+          } catch (error) {
             // The `setAll` method was called from a Server Component.
             // This can be ignored if you have middleware refreshing
-            // user sessions.
+            // user sessions, but мы логируем для отладки
+            console.warn("Failed to set cookies in Server Component (this is expected):", error);
           }
         },
       },

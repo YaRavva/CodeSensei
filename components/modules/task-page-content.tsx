@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { CodeEditor } from "@/components/editor/code-editor";
 import { TestResults } from "@/components/editor/test-results";
+import { ErrorDisplay } from "@/components/editor/error-display";
 import { useAuth } from "@/components/auth/auth-provider";
 import { createClient } from "@/lib/supabase/client";
 import { runTestSuite } from "@/lib/utils/test-runner";
@@ -648,36 +649,35 @@ export function TaskPageContent({ module, task, prevTask, nextTask, lastAttempt 
 
               {/* Выполнение кода */}
           {executionResult && (
-            <Card>
-              <CardHeader>
-                <CardTitle>
-                  {executionResult.error ? "Ошибка выполнения" : "Код выполнен успешно"}
-                </CardTitle>
-                {executionResult.executionTime > 0 && (
-                  <CardDescription>
-                    Время выполнения: {executionResult.executionTime} мс
-                  </CardDescription>
-                )}
-              </CardHeader>
-              <CardContent>
-                {executionResult.error ? (
-                  <div className="rounded-md bg-destructive/10 p-4">
-                    <pre className="text-sm text-destructive whitespace-pre-wrap font-mono">
-                      {executionResult.error}
-                    </pre>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-medium">Вывод:</h4>
-                    <div className="rounded-md bg-muted p-4">
-                      <pre className="text-sm whitespace-pre-wrap font-mono">
-                        {executionResult.output || "(нет вывода)"}
-                      </pre>
+            <>
+              {executionResult.error ? (
+                <ErrorDisplay error={executionResult.error} code={code} />
+              ) : (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <CheckCircle2 className="h-5 w-5 text-green-600" />
+                      Код выполнен успешно
+                    </CardTitle>
+                    {executionResult.executionTime > 0 && (
+                      <CardDescription>
+                        Время выполнения: {executionResult.executionTime} мс
+                      </CardDescription>
+                    )}
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium">Вывод:</h4>
+                      <div className="rounded-md bg-muted p-4">
+                        <pre className="text-sm whitespace-pre-wrap font-mono">
+                          {executionResult.output || "(нет вывода)"}
+                        </pre>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                  </CardContent>
+                </Card>
+              )}
+            </>
           )}
 
           {/* Результаты тестов */}
@@ -773,15 +773,45 @@ export function TaskPageContent({ module, task, prevTask, nextTask, lastAttempt 
             {feedbackTitle}
           </DialogTitle>
         </DialogHeader>
-        <div id="feedback-description" className="prose prose-sm dark:prose-invert max-w-none">
-          <ReactMarkdown 
-            remarkPlugins={[remarkGfm, remarkBreaks]}
-            components={{
-              p: ({ children }) => <p className="mb-4 last:mb-0 whitespace-pre-line">{children}</p>,
-            }}
-          >
-            {feedbackMarkdown}
-          </ReactMarkdown>
+        <Card className="font-ubuntu-mono">
+          <CardContent className="pt-6">
+            <div id="feedback-description" className="prose prose-sm dark:prose-invert max-w-none [&_*]:font-ubuntu-mono [&_h1]:font-ubuntu-mono [&_h2]:font-ubuntu-mono [&_h3]:font-ubuntu-mono [&_li]:font-ubuntu-mono [&_strong]:font-ubuntu-mono [&_em]:font-ubuntu-mono">
+              <ReactMarkdown 
+                remarkPlugins={[remarkGfm, remarkBreaks]}
+                components={{
+                  code({ node, inline, className, children, ...props }: any) {
+                    const match = /language-(\w+)/.exec(className || "");
+                    const isDark = mounted && (
+                      theme === "dark" || 
+                      (theme === "system" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches)
+                    );
+                    const inlineProp = (props as any).inline;
+                    return !inlineProp && match ? (
+                      <SyntaxHighlighter
+                        style={(isDark ? oneDark : oneLight) as any}
+                        language={match[1]}
+                        PreTag="div"
+                        className="font-ubuntu-mono rounded-md"
+                        customStyle={{ fontFamily: 'Ubuntu Mono, monospace' }}
+                      >
+                        {String(children).replace(/\n$/, "")}
+                      </SyntaxHighlighter>
+                    ) : (
+                      <code className={`font-ubuntu-mono ${className}`} {...props}>
+                        {children}
+                      </code>
+                    );
+                  },
+                  p: ({ children }) => <p className="mb-4 last:mb-0 whitespace-pre-line font-ubuntu-mono">{children}</p>,
+                }}
+              >
+                {feedbackMarkdown}
+              </ReactMarkdown>
+            </div>
+          </CardContent>
+        </Card>
+        <div className="flex justify-center mt-4">
+          <Button onClick={() => setFeedbackOpen(false)}>Ok</Button>
         </div>
       </DialogContent>
     </Dialog>

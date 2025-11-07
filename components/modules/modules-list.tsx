@@ -21,6 +21,7 @@ interface ModulesListProps {
 }
 
 type ModuleStatus = "not_started" | "in_progress" | "completed";
+type SortOption = "order" | "level" | "status" | "title";
 
 /**
  * Определяет статус модуля на основе прогресса пользователя
@@ -46,6 +47,7 @@ export function ModulesList({ modules, userProgress, tasksCountMap = {} }: Modul
     status?: ModuleStatus;
     level?: number;
   }>({});
+  const [sortOption, setSortOption] = useState<SortOption>("order");
 
   const statusValue = filter.status ?? "all";
   const levelValue = filter.level ? String(filter.level) : "all";
@@ -60,6 +62,32 @@ export function ModulesList({ modules, userProgress, tasksCountMap = {} }: Modul
       return true;
     });
   }, [modules, filter, userProgress]);
+
+  const sortedModules = useMemo(() => {
+    const sorted = [...filteredModules];
+    
+    switch (sortOption) {
+      case "order":
+        return sorted.sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
+      case "level":
+        return sorted.sort((a, b) => a.level - b.level);
+      case "status":
+        const statusOrder: Record<ModuleStatus, number> = {
+          not_started: 0,
+          in_progress: 1,
+          completed: 2,
+        };
+        return sorted.sort((a, b) => {
+          const statusA = getModuleStatus(a.id, userProgress);
+          const statusB = getModuleStatus(b.id, userProgress);
+          return statusOrder[statusA] - statusOrder[statusB];
+        });
+      case "title":
+        return sorted.sort((a, b) => a.title.localeCompare(b.title, "ru"));
+      default:
+        return sorted;
+    }
+  }, [filteredModules, sortOption, userProgress]);
 
   if (modules.length === 0) {
     return (
@@ -84,14 +112,14 @@ export function ModulesList({ modules, userProgress, tasksCountMap = {} }: Modul
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
           <Select
             value={statusValue}
-            onValueChange={(value) =>
+            onValueChange={(value) => {
               setFilter((prev) => ({
                 ...prev,
                 status: value === "all" ? undefined : (value as ModuleStatus),
-              }))
-            }
+              }));
+            }}
           >
-            <SelectTrigger className="w-full min-w-[200px] sm:w-auto">
+            <SelectTrigger className="w-full min-w-[200px] sm:w-auto" onClick={(e) => e.stopPropagation()}>
               <SelectValue placeholder="Все статусы" />
             </SelectTrigger>
             <SelectContent>
@@ -104,14 +132,14 @@ export function ModulesList({ modules, userProgress, tasksCountMap = {} }: Modul
 
           <Select
             value={levelValue}
-            onValueChange={(value) =>
+            onValueChange={(value) => {
               setFilter((prev) => ({
                 ...prev,
                 level: value === "all" ? undefined : Number.parseInt(value, 10),
-              }))
-            }
+              }));
+            }}
           >
-            <SelectTrigger className="w-full min-w-[220px] sm:w-auto">
+            <SelectTrigger className="w-full min-w-[220px] sm:w-auto" onClick={(e) => e.stopPropagation()}>
               <SelectValue placeholder="Все уровни" />
             </SelectTrigger>
             <SelectContent>
@@ -123,12 +151,29 @@ export function ModulesList({ modules, userProgress, tasksCountMap = {} }: Modul
               <SelectItem value="5">Уровень 5 — Эксперт</SelectItem>
             </SelectContent>
           </Select>
+
+          <Select
+            value={sortOption}
+            onValueChange={(value) => {
+              setSortOption(value as SortOption);
+            }}
+          >
+            <SelectTrigger className="w-full min-w-[200px] sm:w-auto" onClick={(e) => e.stopPropagation()}>
+              <SelectValue placeholder="Сортировка" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="order">По порядку</SelectItem>
+              <SelectItem value="level">По уровню</SelectItem>
+              <SelectItem value="status">По статусу</SelectItem>
+              <SelectItem value="title">По названию</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
       {/* Список модулей */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {filteredModules.map((module) => {
+        {sortedModules.map((module) => {
           const status = getModuleStatus(module.id, userProgress);
           const tasksCount = tasksCountMap[module.id] || 0;
           return (
@@ -137,7 +182,7 @@ export function ModulesList({ modules, userProgress, tasksCountMap = {} }: Modul
         })}
       </div>
 
-      {filteredModules.length === 0 && (
+      {sortedModules.length === 0 && (
         <div className="text-center py-12">
           <p className="text-muted-foreground">
             Модули не найдены по выбранным фильтрам
