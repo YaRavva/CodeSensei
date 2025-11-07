@@ -140,22 +140,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
       
-      // Логируем события для отладки
-      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
-        console.log("Auth state changed:", event, session?.user?.id);
-      }
-      
       setUser(session?.user ?? null);
       if (session?.user) {
         // Принудительно загружаем профиль при входе через OAuth
         // Добавляем небольшую задержку, чтобы дать время сессии синхронизироваться
-        console.log("Loading profile for user:", session.user.id);
         // Используем setTimeout, чтобы дать время сессии синхронизироваться на клиенте
         setTimeout(async () => {
           if (!mounted) return;
           try {
             await loadProfile(session.user.id);
-            console.log("Profile loaded successfully for user:", session.user.id);
           } catch (error) {
             console.error("Error loading profile in onAuthStateChange:", error);
             // Убеждаемся, что loading установлен в false даже при ошибке
@@ -194,25 +187,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   async function loadProfile(userId: string) {
     // Защита от множественных одновременных вызовов
     if (loadingProfileRef.current === userId) {
-      console.log("loadProfile already in progress for userId:", userId);
+      // Уже загружается для этого пользователя
       return;
     }
     
     try {
       loadingProfileRef.current = userId;
-      console.log("loadProfile called for userId:", userId);
       setLoading(true);
       
       // Проверяем, что пользователь все еще авторизован
       // Используем getUser() вместо getSession(), так как getUser() более надежен
-      console.log("Checking user for userId:", userId);
       const { data: { user: authUser }, error: userError } = await supabase.auth.getUser();
-      console.log("User check result:", { 
-        hasUser: !!authUser, 
-        userId: authUser?.id, 
-        expectedUserId: userId,
-        userError: userError?.message 
-      });
       
       if (userError) {
         console.error("Error getting user in loadProfile:", userError);
@@ -223,11 +208,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       
       if (!authUser || authUser.id !== userId) {
-        console.warn("User not found or mismatch while loading profile", {
-          hasUser: !!authUser,
-          userId: authUser?.id,
-          expectedUserId: userId
-        });
         setUser(null);
         setProfile(null);
         setLoading(false);
@@ -235,15 +215,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       
-      console.log("Fetching profile from database for userId:", userId);
       // Используем более надежный запрос с явным указанием полей
       const { data, error } = await supabase
         .from("users")
         .select("id, email, role, display_name, avatar_url, total_xp, current_level, created_at, last_active_at")
         .eq("id", userId)
         .maybeSingle();
-      
-      console.log("Profile query result:", { data: data ? "found" : "not found", error: error?.message });
 
       if (error && error.code !== "PGRST116") {
         // PGRST116 = not found, это нормально при первой регистрации
@@ -261,7 +238,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const typedData = data as UserProfile | null;
 
       if (!typedData) {
-        console.log("Profile not found, creating new profile for userId:", userId);
         // Создаем запись профиля при первом входе
         const authUser = (await supabase.auth.getUser()).data.user;
         const roleFromAuth = (
@@ -286,14 +262,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.error("Error creating user profile:", insertError);
           setProfile(null);
         } else {
-          console.log("Profile created successfully:", inserted?.id);
           setProfile(inserted ?? null);
         }
       } else {
-        console.log("Profile found, setting profile:", typedData.id, typedData.display_name);
         // Убеждаемся что роль точно установлена
         if (!typedData.role) {
-          console.warn(`Profile for user ${userId} has no role, setting to 'student'`);
           const { data: updated } = await (supabase
             .from("users") as any)
             .update({ role: "student" })
@@ -312,7 +285,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       setProfile(null);
     } finally {
-      console.log("loadProfile finished, setting loading to false");
       setLoading(false);
       loadingProfileRef.current = null;
     }
