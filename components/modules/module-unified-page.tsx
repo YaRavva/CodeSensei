@@ -611,7 +611,7 @@ export function ModuleUnifiedPage({
                   >
                     📚 Теория
                   </button>
-                  {sortedTasks.map((task) => {
+                  {sortedTasks.map((task, index) => {
                     const statusConfig = getStatusConfig(task.status);
                     return (
                       <button
@@ -622,7 +622,7 @@ export function ModuleUnifiedPage({
                         }`}
                       >
                         <span className="truncate">
-                          {task.order_index}. {task.title}
+                          {index + 1}. {task.title}
                         </span>
                         <span className="ml-2 text-xs opacity-70 group-hover:opacity-100">
                           {statusConfig.icon}
@@ -829,7 +829,7 @@ export function ModuleUnifiedPage({
                         <div className="flex items-center justify-between w-full pr-4">
                           <div className="flex items-center gap-4 flex-1">
                             <div className="flex items-center gap-2">
-                              <span className="font-semibold text-lg">Задание {task.order_index}</span>
+                              <span className="font-semibold text-lg">Задание {index + 1}</span>
                               <span className="text-lg font-bold">{task.title}</span>
                             </div>
                             <Badge 
