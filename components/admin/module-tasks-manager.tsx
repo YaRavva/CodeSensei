@@ -173,7 +173,7 @@ export function ModuleTasksManager({ moduleId, newTaskId, refreshTrigger }: Modu
         </Card>
       ) : (
         <Accordion type="single" collapsible value={accordionValue} onValueChange={setAccordionValue} className="grid gap-4">
-          {tasks.map((task) => (
+          {tasks.map((task, index) => (
             <AccordionItem key={task.id} value={task.id} className="border-none">
               <Card className="hover:shadow-md transition-shadow">
                 <CardHeader className="pb-3">
@@ -181,7 +181,7 @@ export function ModuleTasksManager({ moduleId, newTaskId, refreshTrigger }: Modu
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-3 mb-2">
                         <CardTitle className="text-base font-semibold">
-                          {task.order_index}. {task.title}
+                          {index + 1}. {task.title}
                         </CardTitle>
                         {getDifficultyBadge(task.difficulty)}
                         <Badge variant="secondary" className="gap-1">
