@@ -112,8 +112,8 @@ export function ModuleDetails({ module, tasks, completedTaskIds, moduleProgress 
             {tasks.map((task, index) => {
               const status = getTaskStatus(task.id, completedTaskIds);
               const statusConfig = {
-                not_started: { label: "Не начато", icon: "🔴", variant: "outline" as const },
-                in_progress: { label: "В процессе", icon: "🟡", variant: "default" as const },
+                not_started: { label: "Не начато", icon: "🔴", variant: "secondary" as const },
+                in_progress: { label: "В процессе", icon: "🟡", variant: "secondary" as const },
                 completed: { label: "Завершено", icon: "🟢", variant: "secondary" as const },
               } as const;
               const statusInfo = statusConfig[status];
@@ -131,10 +131,7 @@ export function ModuleDetails({ module, tasks, completedTaskIds, moduleProgress 
                           {task.xp_reward ? ` · Награда: +${task.xp_reward} XP` : ""}
                         </CardDescription>
                       </div>
-                      <Badge
-                        variant={statusInfo.variant}
-                        className="bg-secondary/80 text-secondary-foreground border border-secondary/50"
-                      >
+                      <Badge variant={statusInfo.variant}>
                         <span className="mr-1">{statusInfo.icon}</span>
                         {statusInfo.label}
                       </Badge>

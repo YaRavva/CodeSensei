@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { createClient } from "@/lib/supabase/client";
+import { isValidRussianName, getNameValidationError } from "@/lib/utils/name-validation";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -14,6 +15,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [nameError, setNameError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
@@ -21,6 +23,21 @@ export default function RegisterPage() {
 
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
+    
+    // Валидация имени
+    const trimmedName = displayName.trim();
+    if (!trimmedName || !isValidRussianName(trimmedName)) {
+      const errorMessage = getNameValidationError(trimmedName);
+      setNameError(errorMessage);
+      toast({
+        title: "Ошибка валидации",
+        description: errorMessage,
+        variant: "destructive",
+      });
+      return; // Не устанавливаем loading, так как возвращаемся раньше
+    }
+
+    setNameError(null);
     setLoading(true);
 
     // Регистрация в Supabase Auth
@@ -51,7 +68,7 @@ export default function RegisterPage() {
         .insert({
           id: authData.user.id,
           email: authData.user.email ?? "",
-          display_name: displayName || null,
+          display_name: trimmedName || null,
           role: "student",
         } as any);
 
@@ -168,15 +185,42 @@ export default function RegisterPage() {
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="displayName">Фамилия Имя</Label>
+                      <Label htmlFor="displayName">Фамилия Имя *</Label>
                       <Input
                         id="displayName"
                         type="text"
                         placeholder="Иванов Иван"
                         value={displayName}
-                        onChange={(e) => setDisplayName(e.target.value)}
+                        onChange={(e) => {
+                          setDisplayName(e.target.value);
+                          // Очищаем ошибку при вводе
+                          if (nameError) {
+                            setNameError(null);
+                          }
+                        }}
+                        onBlur={() => {
+                          // Проверяем валидность при потере фокуса
+                          const trimmed = displayName.trim();
+                          if (trimmed && !isValidRussianName(trimmed)) {
+                            setNameError(getNameValidationError(trimmed));
+                          } else {
+                            setNameError(null);
+                          }
+                        }}
                         disabled={loading}
+                        required
+                        className={nameError ? "border-destructive" : ""}
+                        aria-invalid={!!nameError}
+                        aria-describedby={nameError ? "name-error" : undefined}
                       />
+                      {nameError && (
+                        <p id="name-error" className="text-sm text-destructive">
+                          {nameError}
+                        </p>
+                      )}
+                      <p className="text-xs text-muted-foreground">
+                        Имя должно быть в формате "Фамилия Имя" на русском языке (например: Иванов Иван)
+                      </p>
                     </div>
                     
                     <Button type="submit" className="w-full" disabled={loading}>

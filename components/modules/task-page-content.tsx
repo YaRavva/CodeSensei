@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import type { Database } from "@/types/supabase";
 import { Button } from "@/components/ui/button";
@@ -71,6 +71,9 @@ export function TaskPageContent({ module, task, prevTask, nextTask, lastAttempt 
   const [testResults, setTestResults] = useState<TestSuiteResult | null>(null);
   const [testing, setTesting] = useState(false);
   const [isCompleted, setIsCompleted] = useState(lastAttempt?.is_successful || false);
+  
+  // Дебаунс для кнопки проверки задания (защита от спама)
+  const testTaskDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
   // Состояние AI-подсказки (модалка)
   const [hintOpen, setHintOpen] = useState(false);
@@ -144,6 +147,25 @@ export function TaskPageContent({ module, task, prevTask, nextTask, lastAttempt 
   }
 
   async function handleTestTask() {
+    // КЛИЕНТСКАЯ ЗАЩИТА ОТ ЭКСПЛОИТА: Проверяем, не выполняется ли уже проверка
+    if (testing) {
+      return; // Игнорируем повторные вызовы во время обработки
+    }
+
+    // Дебаунс: отменяем предыдущий таймер, если он был установлен
+    if (testTaskDebounceRef.current) {
+      clearTimeout(testTaskDebounceRef.current);
+    }
+
+    // Устанавливаем новый таймер для дебаунса (500мс)
+    // Если кнопка будет нажата повторно в течение 500мс, предыдущий вызов будет отменен
+    testTaskDebounceRef.current = setTimeout(async () => {
+      testTaskDebounceRef.current = null;
+      await executeTestTask();
+    }, 500);
+  }
+
+  async function executeTestTask() {
     if (pyodideError) {
       toast({
         title: "Ошибка Pyodide",
@@ -180,6 +202,17 @@ export function TaskPageContent({ module, task, prevTask, nextTask, lastAttempt 
         variant: "destructive",
       });
       return;
+    }
+
+    // КЛИЕНТСКАЯ ЗАЩИТА ОТ ЭКСПЛОИТА: Если задание уже выполнено, показываем сообщение
+    // Серверная проверка всё равно защитит, но это улучшает UX
+    if (isCompleted) {
+      toast({
+        title: "Задание уже выполнено",
+        description: "Это задание уже было успешно выполнено. Вы можете улучшить решение, но XP не будет начислен повторно.",
+        variant: "default",
+        duration: 3000,
+      });
     }
 
     setTesting(true);
@@ -276,58 +309,93 @@ export function TaskPageContent({ module, task, prevTask, nextTask, lastAttempt 
             console.error("Error saving attempt:", attemptError);
           }
 
-          // Начисляем XP при успешном выполнении по тестам (AI в следующем шаге)
-          const xpResponse = await fetch("/api/tasks/award-xp", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              taskId: task.id,
-              lessonId: "legacy",
-              attemptNumber,
-              usedAiHint: false,
-              executionTime: results.executionTime,
-              isFirstAttempt: isFirstSuccessfulAttempt,
-            }),
-          });
-
-          if (!xpResponse.ok) {
-            throw new Error(`HTTP error! status: ${xpResponse.status}`);
-          }
-          const contentType = xpResponse.headers.get("content-type");
-          if (!contentType || !contentType.includes("application/json")) {
-            throw new Error("Response is not JSON");
-          }
-          const xpData = await xpResponse.json();
-
-          if (xpResponse.ok && xpData.success) {
-            // Показываем уведомление о XP
-            toast({
-              title: "Поздравляем! 🎉",
-              description: `Все тесты пройдены! Вы заработали ${xpData.xpAwarded} XP${xpData.newLevel !== undefined && xpData.newLevel !== null ? ` (Уровень ${xpData.newLevel})` : ""}`,
-              duration: 5000,
+          // КЛИЕНТСКАЯ ЗАЩИТА ОТ ЭКСПЛОИТА: Не вызываем API начисления XP, если задание уже было выполнено
+          // Это уменьшает нагрузку на сервер и улучшает UX
+          // Серверная проверка всё равно защитит от обхода этой проверки
+          if (!isCompleted || isFirstSuccessfulAttempt) {
+            // Начисляем XP при успешном выполнении по тестам (AI в следующем шаге)
+            const xpResponse = await fetch("/api/tasks/award-xp", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                taskId: task.id,
+                lessonId: "legacy",
+                attemptNumber,
+                usedAiHint: false,
+                executionTime: results.executionTime,
+                isFirstAttempt: isFirstSuccessfulAttempt,
+              }),
             });
 
-            // Показываем уведомления о новых достижениях
-            if (xpData.newlyUnlockedAchievements && xpData.newlyUnlockedAchievements.length > 0) {
-              for (const achievement of xpData.newlyUnlockedAchievements) {
-                setTimeout(() => {
-                  toast({
-                    title: `🏆 Достижение разблокировано!`,
-                    description: `${achievement.title}: ${achievement.description} (+${achievement.xp_reward} XP)`,
-                    duration: 7000,
-                  });
-                }, 600);
-              }
+            if (!xpResponse.ok) {
+              throw new Error(`HTTP error! status: ${xpResponse.status}`);
             }
+            const contentType = xpResponse.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+              throw new Error("Response is not JSON");
+            }
+            const xpData = await xpResponse.json();
 
-            setIsCompleted(true);
+            if (xpResponse.ok && xpData.success) {
+              // Обрабатываем ответ от сервера
+              if (xpData.alreadyCompleted) {
+                // Сервер вернул, что задание уже было выполнено
+                toast({
+                  title: "Все тесты пройдены! ✅",
+                  description: xpData.message || "Задание уже было успешно выполнено ранее. XP не начисляется повторно.",
+                  variant: "default",
+                  duration: 3000,
+                });
+                setIsCompleted(true);
+              } else if (xpData.xpAwarded > 0) {
+                // XP был начислен
+                toast({
+                  title: "Поздравляем! 🎉",
+                  description: `Все тесты пройдены! Вы заработали ${xpData.xpAwarded} XP${xpData.newLevel !== undefined && xpData.newLevel !== null ? ` (Уровень ${xpData.newLevel})` : ""}`,
+                  duration: 5000,
+                });
+
+                // Показываем уведомления о новых достижениях
+                if (xpData.newlyUnlockedAchievements && xpData.newlyUnlockedAchievements.length > 0) {
+                  for (const achievement of xpData.newlyUnlockedAchievements) {
+                    setTimeout(() => {
+                      toast({
+                        title: `🏆 Достижение разблокировано!`,
+                        description: `${achievement.title}: ${achievement.description} (+${achievement.xp_reward} XP)`,
+                        duration: 7000,
+                      });
+                    }, 600);
+                  }
+                }
+
+                setIsCompleted(true);
+              } else {
+                // Успех, но XP не начислен (возможно, это не первая попытка)
+                toast({
+                  title: "Все тесты пройдены! ✅",
+                  description: "Задание успешно выполнено",
+                  variant: "default",
+                  duration: 3000,
+                });
+                setIsCompleted(true);
+              }
+            } else {
+              toast({
+                title: "Все тесты пройдены! 🎉",
+                description: "Ошибка при начислении XP, но задание засчитано",
+                variant: "default",
+              });
+              setIsCompleted(true);
+            }
           } else {
+            // Задание уже было выполнено ранее, не вызываем API начисления XP
             toast({
-              title: "Все тесты пройдены! 🎉",
-              description: "Ошибка при начислении XP, но задание засчитано",
+              title: "Все тесты пройдены! ✅",
+              description: "Задание уже было успешно выполнено ранее. Попытка сохранена в историю.",
               variant: "default",
+              duration: 3000,
             });
             setIsCompleted(true);
           }
@@ -721,43 +789,45 @@ export function TaskPageContent({ module, task, prevTask, nextTask, lastAttempt 
             {hintTitle}
           </DialogTitle>
         </DialogHeader>
-        <Card className="font-ubuntu-mono">
-          <CardContent className="pt-6">
-            <div className="prose prose-sm dark:prose-invert max-w-none [&_*]:font-ubuntu-mono [&_h1]:font-ubuntu-mono [&_h2]:font-ubuntu-mono [&_h3]:font-ubuntu-mono [&_li]:font-ubuntu-mono [&_strong]:font-ubuntu-mono [&_em]:font-ubuntu-mono">
-              <ReactMarkdown 
-                remarkPlugins={[remarkGfm, remarkBreaks]}
-                components={{
-                  code({ node, inline, className, children, ...props }: any) {
-                    const match = /language-(\w+)/.exec(className || "");
-                    const isDark = mounted && (
-                      theme === "dark" || 
-                      (theme === "system" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches)
-                    );
-                    const inlineProp = (props as any).inline;
-                    return !inlineProp && match ? (
-                      <SyntaxHighlighter
-                        style={(isDark ? oneDark : oneLight) as any}
-                        language={match[1]}
-                        PreTag="div"
-                        className="font-ubuntu-mono rounded-md"
-                        customStyle={{ fontFamily: 'Ubuntu Mono, monospace' }}
-                      >
-                        {String(children).replace(/\n$/, "")}
-                      </SyntaxHighlighter>
-                    ) : (
-                      <code className={`font-ubuntu-mono ${className}`} {...props}>
-                        {children}
-                      </code>
-                    );
-                  },
-                  p: ({ children }) => <p className="mb-4 last:mb-0 whitespace-pre-line font-ubuntu-mono">{children}</p>,
-                }}
-              >
-                {hintMarkdown}
-              </ReactMarkdown>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="max-h-[60vh] overflow-y-auto">
+          <Card className="font-ubuntu-mono">
+            <CardContent className="pt-6">
+              <div className="prose prose-sm dark:prose-invert max-w-none [&_*]:font-ubuntu-mono [&_h1]:font-ubuntu-mono [&_h2]:font-ubuntu-mono [&_h3]:font-ubuntu-mono [&_li]:font-ubuntu-mono [&_strong]:font-ubuntu-mono [&_em]:font-ubuntu-mono">
+                <ReactMarkdown 
+                  remarkPlugins={[remarkGfm, remarkBreaks]}
+                  components={{
+                    code({ node, inline, className, children, ...props }: any) {
+                      const match = /language-(\w+)/.exec(className || "");
+                      const isDark = mounted && (
+                        theme === "dark" || 
+                        (theme === "system" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches)
+                      );
+                      const inlineProp = (props as any).inline;
+                      return !inlineProp && match ? (
+                        <SyntaxHighlighter
+                          style={(isDark ? oneDark : oneLight) as any}
+                          language={match[1]}
+                          PreTag="div"
+                          className="font-ubuntu-mono rounded-md"
+                          customStyle={{ fontFamily: 'Ubuntu Mono, monospace' }}
+                        >
+                          {String(children).replace(/\n$/, "")}
+                        </SyntaxHighlighter>
+                      ) : (
+                        <code className={`font-ubuntu-mono ${className}`} {...props}>
+                          {children}
+                        </code>
+                      );
+                    },
+                    p: ({ children }) => <p className="mb-4 last:mb-0 whitespace-pre-line font-ubuntu-mono">{children}</p>,
+                  }}
+                >
+                  {hintMarkdown}
+                </ReactMarkdown>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
         <div className="flex justify-center mt-4">
           <Button onClick={() => setHintOpen(false)}>Ok</Button>
         </div>
@@ -769,47 +839,49 @@ export function TaskPageContent({ module, task, prevTask, nextTask, lastAttempt 
       <DialogContent aria-describedby="feedback-description" className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <CheckCircle2 className="h-5 w-5 text-green-600" />
+            <CheckCircle2 className="h-5 w-5 text-primary" />
             {feedbackTitle}
           </DialogTitle>
         </DialogHeader>
-        <Card className="font-ubuntu-mono">
-          <CardContent className="pt-6">
-            <div id="feedback-description" className="prose prose-sm dark:prose-invert max-w-none [&_*]:font-ubuntu-mono [&_h1]:font-ubuntu-mono [&_h2]:font-ubuntu-mono [&_h3]:font-ubuntu-mono [&_li]:font-ubuntu-mono [&_strong]:font-ubuntu-mono [&_em]:font-ubuntu-mono">
-              <ReactMarkdown 
-                remarkPlugins={[remarkGfm, remarkBreaks]}
-                components={{
-                  code({ node, inline, className, children, ...props }: any) {
-                    const match = /language-(\w+)/.exec(className || "");
-                    const isDark = mounted && (
-                      theme === "dark" || 
-                      (theme === "system" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches)
-                    );
-                    const inlineProp = (props as any).inline;
-                    return !inlineProp && match ? (
-                      <SyntaxHighlighter
-                        style={(isDark ? oneDark : oneLight) as any}
-                        language={match[1]}
-                        PreTag="div"
-                        className="font-ubuntu-mono rounded-md"
-                        customStyle={{ fontFamily: 'Ubuntu Mono, monospace' }}
-                      >
-                        {String(children).replace(/\n$/, "")}
-                      </SyntaxHighlighter>
-                    ) : (
-                      <code className={`font-ubuntu-mono ${className}`} {...props}>
-                        {children}
-                      </code>
-                    );
-                  },
-                  p: ({ children }) => <p className="mb-4 last:mb-0 whitespace-pre-line font-ubuntu-mono">{children}</p>,
-                }}
-              >
-                {feedbackMarkdown}
-              </ReactMarkdown>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="max-h-[60vh] overflow-y-auto">
+          <Card className="font-ubuntu-mono">
+            <CardContent className="pt-6">
+              <div id="feedback-description" className="prose prose-sm dark:prose-invert max-w-none [&_*]:font-ubuntu-mono [&_h1]:font-ubuntu-mono [&_h2]:font-ubuntu-mono [&_h3]:font-ubuntu-mono [&_li]:font-ubuntu-mono [&_strong]:font-ubuntu-mono [&_em]:font-ubuntu-mono">
+                <ReactMarkdown 
+                  remarkPlugins={[remarkGfm, remarkBreaks]}
+                  components={{
+                    code({ node, inline, className, children, ...props }: any) {
+                      const match = /language-(\w+)/.exec(className || "");
+                      const isDark = mounted && (
+                        theme === "dark" || 
+                        (theme === "system" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches)
+                      );
+                      const inlineProp = (props as any).inline;
+                      return !inlineProp && match ? (
+                        <SyntaxHighlighter
+                          style={(isDark ? oneDark : oneLight) as any}
+                          language={match[1]}
+                          PreTag="div"
+                          className="font-ubuntu-mono rounded-md"
+                          customStyle={{ fontFamily: 'Ubuntu Mono, monospace' }}
+                        >
+                          {String(children).replace(/\n$/, "")}
+                        </SyntaxHighlighter>
+                      ) : (
+                        <code className={`font-ubuntu-mono ${className}`} {...props}>
+                          {children}
+                        </code>
+                      );
+                    },
+                    p: ({ children }) => <p className="mb-4 last:mb-0 whitespace-pre-line font-ubuntu-mono">{children}</p>,
+                  }}
+                >
+                  {feedbackMarkdown}
+                </ReactMarkdown>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
         <div className="flex justify-center mt-4">
           <Button onClick={() => setFeedbackOpen(false)}>Ok</Button>
         </div>

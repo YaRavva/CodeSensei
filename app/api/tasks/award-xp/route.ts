@@ -119,6 +119,42 @@ export async function POST(request: NextRequest) {
 
     const typedTask = task as { xp_reward: number | null; difficulty: "easy" | "medium" | "hard"; module_id: string };
 
+    // СЕРВЕРНАЯ ЗАЩИТА ОТ ЭКСПЛОИТА: Проверяем, была ли уже успешная попытка для этого задания
+    // Если задание уже было успешно выполнено, не начисляем XP повторно
+    const { data: existingSuccessfulAttempts, error: checkError } = await supabase
+      .from("task_attempts")
+      .select("id, created_at")
+      .eq("user_id", user.id)
+      .eq("task_id", taskId)
+      .eq("is_successful", true)
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    if (checkError) {
+      console.error("Error checking existing attempts:", checkError);
+      return NextResponse.json(
+        { error: "Failed to check existing attempts" },
+        { status: 500 }
+      );
+    }
+
+    // Если уже есть успешная попытка и это не первая попытка (isFirstAttempt = false),
+    // то не начисляем XP повторно
+    const hasExistingSuccessfulAttempt = existingSuccessfulAttempts && existingSuccessfulAttempts.length > 0;
+    if (hasExistingSuccessfulAttempt && !isFirstAttempt) {
+      // Возвращаем успешный ответ, но с xpAwarded = 0
+      return NextResponse.json({
+        success: true,
+        xpAwarded: 0,
+        alreadyCompleted: true,
+        message: "Задание уже было успешно выполнено ранее. XP не начисляется повторно.",
+        newTotalXP: null,
+        newLevel: null,
+        calculation: null,
+        newlyUnlockedAchievements: [],
+      });
+    }
+
     // Получаем среднее время выполнения для этой задачи (для бонуса скорости)
     const { data: avgExecutionData } = await supabase
       .from("task_attempts")

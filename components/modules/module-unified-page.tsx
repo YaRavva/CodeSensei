@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import type { Database } from "@/types/supabase";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -111,6 +111,9 @@ export function ModuleUnifiedPage({
     isCompleted: boolean;
     lastAttempt: TaskAttempt | null;
   }>>({});
+  
+  // Дебаунс для кнопок проверки заданий (защита от спама) - Map по taskId
+  const testTaskDebounceRefs = useRef<Map<string, NodeJS.Timeout>>(new Map());
   
   // Состояние AI-подсказки
   const [hintOpen, setHintOpen] = useState(false);
@@ -279,6 +282,30 @@ export function ModuleUnifiedPage({
     const state = taskStates[taskId];
     if (!state || !pyodide) return;
     
+    // КЛИЕНТСКАЯ ЗАЩИТА ОТ ЭКСПЛОИТА: Проверяем, не выполняется ли уже проверка
+    if (state.testing) {
+      return; // Игнорируем повторные вызовы во время обработки
+    }
+
+    // Дебаунс: отменяем предыдущий таймер для этого задания, если он был установлен
+    const existingTimeout = testTaskDebounceRefs.current.get(taskId);
+    if (existingTimeout) {
+      clearTimeout(existingTimeout);
+    }
+
+    // Устанавливаем новый таймер для дебаунса (500мс)
+    // Если кнопка будет нажата повторно в течение 500мс, предыдущий вызов будет отменен
+    const timeoutId = setTimeout(async () => {
+      testTaskDebounceRefs.current.delete(taskId);
+      await executeTestTask(taskId);
+    }, 500);
+    testTaskDebounceRefs.current.set(taskId, timeoutId);
+  };
+
+  const executeTestTask = async (taskId: string) => {
+    const state = taskStates[taskId];
+    if (!state || !pyodide) return;
+    
     if (pyodideError) {
       toast({
         title: "Ошибка Pyodide",
@@ -295,6 +322,17 @@ export function ModuleUnifiedPage({
         variant: "destructive",
       });
       return;
+    }
+
+    // КЛИЕНТСКАЯ ЗАЩИТА ОТ ЭКСПЛОИТА: Если задание уже выполнено, показываем сообщение
+    // Серверная проверка всё равно защитит, но это улучшает UX
+    if (state.isCompleted) {
+      toast({
+        title: "Задание уже выполнено",
+        description: "Это задание уже было успешно выполнено. Вы можете улучшить решение, но XP не будет начислен повторно.",
+        variant: "default",
+        duration: 3000,
+      });
     }
 
     const task = tasks.find(t => t.id === taskId);
@@ -403,48 +441,93 @@ export function ModuleUnifiedPage({
             used_ai_hint: false,
           });
 
-          const xpResponse = await fetch("/api/tasks/award-xp", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              taskId,
-              lessonId: "legacy",
-              attemptNumber,
-              usedAiHint: false,
-              executionTime: results.executionTime,
-              isFirstAttempt: isFirstSuccessfulAttempt,
-            }),
-          });
-
-          if (!xpResponse.ok) {
-            throw new Error(`HTTP error! status: ${xpResponse.status}`);
-          }
-          const contentType = xpResponse.headers.get("content-type");
-          if (!contentType || !contentType.includes("application/json")) {
-            throw new Error("Response is not JSON");
-          }
-          const xpData = await xpResponse.json();
-
-          if (xpResponse.ok && xpData.success) {
-            toast({
-              title: "Поздравляем! 🎉",
-              description: `Все тесты пройдены! Вы заработали ${xpData.xpAwarded} XP${xpData.newLevel !== undefined && xpData.newLevel !== null ? ` (Уровень ${xpData.newLevel})` : ""}`,
-              duration: 5000,
+          // КЛИЕНТСКАЯ ЗАЩИТА ОТ ЭКСПЛОИТА: Не вызываем API начисления XP, если задание уже было выполнено
+          // Это уменьшает нагрузку на сервер и улучшает UX
+          // Серверная проверка всё равно защитит от обхода этой проверки
+          if (!state.isCompleted || isFirstSuccessfulAttempt) {
+            const xpResponse = await fetch("/api/tasks/award-xp", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                taskId,
+                lessonId: "legacy",
+                attemptNumber,
+                usedAiHint: false,
+                executionTime: results.executionTime,
+                isFirstAttempt: isFirstSuccessfulAttempt,
+              }),
             });
 
-            if (xpData.newlyUnlockedAchievements && xpData.newlyUnlockedAchievements.length > 0) {
-              for (const achievement of xpData.newlyUnlockedAchievements) {
-                setTimeout(() => {
-                  toast({
-                    title: `🏆 Достижение разблокировано!`,
-                    description: `${achievement.title}: ${achievement.description} (+${achievement.xp_reward} XP)`,
-                    duration: 7000,
-                  });
-                }, 600);
+            if (!xpResponse.ok) {
+              throw new Error(`HTTP error! status: ${xpResponse.status}`);
+            }
+            const contentType = xpResponse.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+              throw new Error("Response is not JSON");
+            }
+            const xpData = await xpResponse.json();
+
+            if (xpResponse.ok && xpData.success) {
+              // Обрабатываем ответ от сервера
+              if (xpData.alreadyCompleted) {
+                // Сервер вернул, что задание уже было выполнено
+                toast({
+                  title: "Все тесты пройдены! ✅",
+                  description: xpData.message || "Задание уже было успешно выполнено ранее. XP не начисляется повторно.",
+                  variant: "default",
+                  duration: 3000,
+                });
+                setTaskStates(prev => ({
+                  ...prev,
+                  [taskId]: { ...prev[taskId], isCompleted: true },
+                }));
+              } else if (xpData.xpAwarded > 0) {
+                // XP был начислен
+                toast({
+                  title: "Поздравляем! 🎉",
+                  description: `Все тесты пройдены! Вы заработали ${xpData.xpAwarded} XP${xpData.newLevel !== undefined && xpData.newLevel !== null ? ` (Уровень ${xpData.newLevel})` : ""}`,
+                  duration: 5000,
+                });
+
+                if (xpData.newlyUnlockedAchievements && xpData.newlyUnlockedAchievements.length > 0) {
+                  for (const achievement of xpData.newlyUnlockedAchievements) {
+                    setTimeout(() => {
+                      toast({
+                        title: `🏆 Достижение разблокировано!`,
+                        description: `${achievement.title}: ${achievement.description} (+${achievement.xp_reward} XP)`,
+                        duration: 7000,
+                      });
+                    }, 600);
+                  }
+                }
+
+                // Обновляем состояние задания
+                setTaskStates(prev => ({
+                  ...prev,
+                  [taskId]: { ...prev[taskId], isCompleted: true },
+                }));
+              } else {
+                // Успех, но XP не начислен (возможно, это не первая попытка)
+                toast({
+                  title: "Все тесты пройдены! ✅",
+                  description: "Задание успешно выполнено",
+                  variant: "default",
+                  duration: 3000,
+                });
+                setTaskStates(prev => ({
+                  ...prev,
+                  [taskId]: { ...prev[taskId], isCompleted: true },
+                }));
               }
             }
-
-            // Обновляем состояние задания
+          } else {
+            // Задание уже было выполнено ранее, не вызываем API начисления XP
+            toast({
+              title: "Все тесты пройдены! ✅",
+              description: "Задание уже было успешно выполнено ранее. Попытка сохранена в историю.",
+              variant: "default",
+              duration: 3000,
+            });
             setTaskStates(prev => ({
               ...prev,
               [taskId]: { ...prev[taskId], isCompleted: true },
@@ -557,21 +640,21 @@ export function ModuleUnifiedPage({
           label: "Завершено", 
           icon: "🟢", 
           variant: "secondary" as const, 
-          className: "bg-primary/10 text-primary border-primary/20" 
+          className: "" // Используем стандартный стиль secondary, как у бейджа XP
         };
       case "in_progress":
         return { 
           label: "В процессе", 
           icon: "🟡", 
-          variant: "default" as const, 
-          className: "bg-primary text-primary-foreground" 
+          variant: "secondary" as const, 
+          className: "" // Используем стандартный стиль secondary, как у бейджа XP
         };
       default:
         return { 
           label: "Не начато", 
           icon: "🔴", 
-          variant: "outline" as const, 
-          className: "text-muted-foreground border-muted-foreground/30" 
+          variant: "secondary" as const, 
+          className: "" // Используем стандартный стиль secondary, как у бейджа XP
         };
     }
   };
@@ -850,7 +933,7 @@ export function ModuleUnifiedPage({
                             </Badge>
                             <Badge variant="secondary">+{(task.difficulty === "easy" ? 10 : task.difficulty === "medium" ? 20 : 30)} XP</Badge>
                           </div>
-                          <Badge variant={statusConfig.variant} className={statusConfig.className}>
+                          <Badge variant={statusConfig.variant} className={statusConfig.className || undefined}>
                             <span className="mr-1">{statusConfig.icon}</span>
                             {statusConfig.label}
                           </Badge>
@@ -1105,16 +1188,46 @@ export function ModuleUnifiedPage({
             </DialogTitle>
           </DialogHeader>
           <div className="max-h-[60vh] overflow-y-auto">
-            <div id="feedback-description" className="prose prose-sm dark:prose-invert max-w-none pr-4">
-              <ReactMarkdown 
-                remarkPlugins={[remarkGfm, remarkBreaks]}
-                components={{
-                  p: ({ children }) => <p className="mb-4 last:mb-0 whitespace-pre-line">{children}</p>,
-                }}
-              >
-                {feedbackMarkdown}
-              </ReactMarkdown>
-            </div>
+            <Card className="font-ubuntu-mono">
+              <CardContent className="pt-6">
+                <div id="feedback-description" className="prose prose-sm dark:prose-invert max-w-none [&_*]:font-ubuntu-mono [&_h1]:font-ubuntu-mono [&_h2]:font-ubuntu-mono [&_h3]:font-ubuntu-mono [&_li]:font-ubuntu-mono [&_strong]:font-ubuntu-mono [&_em]:font-ubuntu-mono">
+                  <ReactMarkdown 
+                    remarkPlugins={[remarkGfm, remarkBreaks]}
+                    components={{
+                      code({ node, inline, className, children, ...props }: any) {
+                        const match = /language-(\w+)/.exec(className || "");
+                        const isDark = mounted && (
+                          theme === "dark" || 
+                          (theme === "system" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches)
+                        );
+                        const inlineProp = (props as any).inline;
+                        return !inlineProp && match ? (
+                          <SyntaxHighlighter
+                            style={(isDark ? oneDark : oneLight) as any}
+                            language={match[1]}
+                            PreTag="div"
+                            className="font-ubuntu-mono rounded-md"
+                            customStyle={{ fontFamily: 'Ubuntu Mono, monospace' }}
+                          >
+                            {String(children).replace(/\n$/, "")}
+                          </SyntaxHighlighter>
+                        ) : (
+                          <code className={`font-ubuntu-mono ${className}`} {...props}>
+                            {children}
+                          </code>
+                        );
+                      },
+                      p: ({ children }) => <p className="mb-4 last:mb-0 whitespace-pre-line font-ubuntu-mono">{children}</p>,
+                    }}
+                  >
+                    {feedbackMarkdown}
+                  </ReactMarkdown>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          <div className="flex justify-center mt-4">
+            <Button onClick={() => setFeedbackOpen(false)}>Ok</Button>
           </div>
         </DialogContent>
       </Dialog>
