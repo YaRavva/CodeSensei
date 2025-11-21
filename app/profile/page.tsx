@@ -66,9 +66,8 @@ export default function ProfilePage() {
     e.preventDefault();
     if (!user) return;
 
-    // Валидация имени
     const trimmedName = displayName.trim();
-    if (!isValidRussianName(trimmedName)) {
+    if (trimmedName && !isValidRussianName(trimmedName)) {
       const errorMessage = getNameValidationError(trimmedName);
       setNameError(errorMessage);
       toast({
@@ -82,11 +81,8 @@ export default function ProfilePage() {
     setNameError(null);
     setLoading(true);
 
-    const { error } = await (supabase
-      .from("users") as any)
-      .update({
-        display_name: trimmedName || null,
-      })
+    const { error } = await (supabase.from("users") as any)
+      .update({ display_name: trimmedName || null })
       .eq("id", user.id);
 
     if (error) {
@@ -159,20 +155,18 @@ export default function ProfilePage() {
                 <Input id="email" type="email" value={profile.email ?? ""} disabled />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="displayName">Имя *</Label>
+                <Label htmlFor="displayName">Полное имя</Label>
                 <Input
                   id="displayName"
                   type="text"
                   value={displayName}
                   onChange={(e) => {
                     setDisplayName(e.target.value);
-                    // Очищаем ошибку при вводе
                     if (nameError) {
                       setNameError(null);
                     }
                   }}
                   onBlur={() => {
-                    // Проверяем валидность при потере фокуса
                     const trimmed = displayName.trim();
                     if (trimmed && !isValidRussianName(trimmed)) {
                       setNameError(getNameValidationError(trimmed));
@@ -181,7 +175,7 @@ export default function ProfilePage() {
                     }
                   }}
                   disabled={loading}
-                  placeholder="Иванов Иван"
+                  placeholder="Иван Петров или John Doe"
                   className={nameError ? "border-destructive" : ""}
                   aria-invalid={!!nameError}
                   aria-describedby={nameError ? "name-error" : undefined}
@@ -192,7 +186,7 @@ export default function ProfilePage() {
                   </p>
                 )}
                 <p className="text-xs text-muted-foreground">
-                  Имя должно быть в формате "Фамилия Имя" на русском языке (например: Иванов Иван)
+                  Укажите минимум 2 слова (например: Иван Петров)
                 </p>
               </div>
               <div className="space-y-2">

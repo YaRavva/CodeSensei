@@ -24,9 +24,8 @@ export default function RegisterPage() {
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
     
-    // Валидация имени
     const trimmedName = displayName.trim();
-    if (!trimmedName || !isValidRussianName(trimmedName)) {
+    if (trimmedName && !isValidRussianName(trimmedName)) {
       const errorMessage = getNameValidationError(trimmedName);
       setNameError(errorMessage);
       toast({
@@ -34,7 +33,7 @@ export default function RegisterPage() {
         description: errorMessage,
         variant: "destructive",
       });
-      return; // Не устанавливаем loading, так как возвращаемся раньше
+      return;
     }
 
     setNameError(null);
@@ -62,28 +61,15 @@ export default function RegisterPage() {
     }
 
     if (authData.user) {
-      // Создаем профиль в таблице users
-      const { error: profileError } = await supabase
-        .from("users")
-        .insert({
-          id: authData.user.id,
-          email: authData.user.email ?? "",
-          display_name: trimmedName || null,
-          role: "student",
-        } as any);
-
-      if (profileError) {
-        console.error("Error creating profile:", profileError);
-        toast({
-          title: "Профиль не создан",
-          description: "Пользователь создан, но возникла ошибка при создании профиля",
-          variant: "destructive",
-        });
-      }
+      await supabase.auth.updateUser({
+        data: {
+          display_name: trimmedName,
+        }
+      });
 
       toast({
         title: "Регистрация успешна",
-        description: "Проверьте почту для подтверждения email",
+        description: "Вы можете войти в систему",
       });
 
       router.push("/login");
@@ -185,21 +171,19 @@ export default function RegisterPage() {
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="displayName">Фамилия Имя *</Label>
+                      <Label htmlFor="displayName">Полное имя (необязательно)</Label>
                       <Input
                         id="displayName"
                         type="text"
-                        placeholder="Иванов Иван"
+                        placeholder="Иван Петров или John Doe"
                         value={displayName}
                         onChange={(e) => {
                           setDisplayName(e.target.value);
-                          // Очищаем ошибку при вводе
                           if (nameError) {
                             setNameError(null);
                           }
                         }}
                         onBlur={() => {
-                          // Проверяем валидность при потере фокуса
                           const trimmed = displayName.trim();
                           if (trimmed && !isValidRussianName(trimmed)) {
                             setNameError(getNameValidationError(trimmed));
@@ -208,7 +192,6 @@ export default function RegisterPage() {
                           }
                         }}
                         disabled={loading}
-                        required
                         className={nameError ? "border-destructive" : ""}
                         aria-invalid={!!nameError}
                         aria-describedby={nameError ? "name-error" : undefined}
@@ -219,7 +202,7 @@ export default function RegisterPage() {
                         </p>
                       )}
                       <p className="text-xs text-muted-foreground">
-                        Имя должно быть в формате "Фамилия Имя" на русском языке (например: Иванов Иван)
+                        Укажите минимум 2 слова (например: Иван Петров)
                       </p>
                     </div>
                     

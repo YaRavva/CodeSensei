@@ -21,133 +21,37 @@ export function LoginForm() {
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    let navigated = false;
+
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
-      // КРИТИЧНО: Проверяем ошибку ПЕРЕД любыми дальнейшими действиями
       if (error) {
         console.error("signIn error", error);
-        toast({ 
-          title: "Ошибка входа", 
-          description: error.message || "Неверный email или пароль", 
-          variant: "destructive" 
+        toast({
+          title: "Ошибка входа",
+          description: error.message || "Неверный email или пароль",
+          variant: "destructive"
         });
-        setLoading(false);
         return;
       }
 
-      // Проверяем, что есть валидная сессия
-      if (!data?.session) {
-        console.error("No session returned from signIn");
-        toast({ 
-          title: "Ошибка входа", 
-          description: "Не удалось создать сессию. Проверьте данные и попробуйте снова", 
-          variant: "destructive" 
+      if (!data?.session || !data?.user) {
+        console.error("No session or user returned from signIn");
+        toast({
+          title: "Ошибка входа",
+          description: "Не удалось войти. Проверьте данные и попробуйте снова",
+          variant: "destructive"
         });
-        setLoading(false);
         return;
       }
 
-      // Двойная проверка сессии сразу после входа
-      const { data: sessionData, error: sessionErr } = await supabase.auth.getSession();
-      if (sessionErr) {
-        console.error("getSession error", sessionErr);
-        toast({ 
-          title: "Ошибка сессии", 
-          description: "Не удалось получить сессию. Попробуйте снова", 
-          variant: "destructive" 
-        });
-        setLoading(false);
-        return;
-      }
-
-      const activeSession = sessionData?.session ?? data?.session ?? null;
-
-      // КРИТИЧНО: Проверяем наличие валидной сессии перед редиректом
-      if (!activeSession || !activeSession.access_token) {
-        console.error("No valid session found");
-        toast({ 
-          title: "Ошибка входа", 
-          description: "Неверный email или пароль", 
-          variant: "destructive" 
-        });
-        setLoading(false);
-        return;
-      }
-
-      // Проверяем, что есть пользователь
-      if (!data?.user) {
-        console.error("No user returned from signIn");
-        toast({ 
-          title: "Требуется подтверждение email", 
-          description: "Мы создали ваш аккаунт, но вход завершится после подтверждения email. Проверьте почту.",
-        });
-        setLoading(false);
-        return;
-      }
-
-      // Синхронизируем сессию в httpOnly куки через API, чтобы SSR-страницы увидели пользователя
-      try {
-        const syncResponse = await fetch("/api/auth/set-session", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({
-            access_token: activeSession.access_token,
-            refresh_token: activeSession.refresh_token,
-          }),
-        });
-        
-        if (!syncResponse.ok) {
-          console.error("Session sync failed:", await syncResponse.text());
-          // Не блокируем вход, но логируем ошибку
-        }
-      } catch (syncErr) {
-        console.error("Session sync error", syncErr);
-        // Не блокируем вход, но логируем ошибку
-      }
-
-      // Проверяем имя пользователя после успешной авторизации
-      try {
-        const { data: userProfile } = await supabase
-          .from("users")
-          .select("display_name")
-          .eq("id", data.user.id)
-          .maybeSingle();
-
-        const { isValidRussianName } = await import("@/lib/utils/name-validation");
-        
-        // Типизируем профиль
-        type UserProfile = { display_name: string | null } | null;
-        const typedProfile = userProfile as UserProfile;
-        
-        // Если имя не соответствует формату "Фамилия Имя" на русском, редиректим на профиль
-        if (!isValidRussianName(typedProfile?.display_name)) {
-          toast({
-            title: "Требуется заполнить имя",
-            description: "Пожалуйста, укажите ваше имя в формате 'Фамилия Имя' на русском языке",
-            variant: "default",
-          });
-          router.replace("/profile");
-          router.refresh();
-          navigated = true;
-          return;
-        }
-      } catch (profileError) {
-        console.error("Error checking user profile:", profileError);
-        // Если не удалось проверить профиль, продолжаем обычный вход
-      }
-
-      // Все проверки пройдены - можно входить
       toast({
         title: "Вход выполнен",
         description: "Добро пожаловать в CodeSensei!",
       });
 
-      router.replace("/modules");
+      router.push("/modules");
       router.refresh();
-      navigated = true;
     } catch (err: any) {
       console.error("Unexpected login error", err);
       toast({
@@ -155,11 +59,8 @@ export function LoginForm() {
         description: err?.message || "Попробуйте снова чуть позже",
         variant: "destructive",
       });
-      setLoading(false);
     } finally {
-      if (!navigated) {
-        setLoading(false);
-      }
+      setLoading(false);
     }
   }
 
