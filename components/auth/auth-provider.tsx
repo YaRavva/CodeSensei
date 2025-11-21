@@ -76,17 +76,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       loadingProfileRef.current = userId;
       setLoading(true);
 
-      const { data, error } = await supabase
-        .from("users")
-        .select("id, email, role, display_name, avatar_url, total_xp, current_level, created_at, last_active_at")
-        .eq("id", userId)
-        .maybeSingle();
+      let retries = 0;
+      const maxRetries = 3;
+      let profileData = null;
 
-      if (error && error.code !== "PGRST116") {
-        console.error("Error loading profile:", error);
+      while (retries < maxRetries && !profileData) {
+        const { data, error } = await supabase
+          .from("users")
+          .select("id, email, role, display_name, avatar_url, total_xp, current_level, created_at, last_active_at")
+          .eq("id", userId)
+          .maybeSingle();
+
+        if (error && error.code !== "PGRST116") {
+          console.error("Error loading profile:", error);
+        }
+
+        if (data) {
+          profileData = data;
+        } else if (retries < maxRetries - 1) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          retries++;
+        } else {
+          break;
+        }
       }
 
-      setProfile(data || null);
+      setProfile(profileData || null);
     } catch (error: any) {
       console.error("Error loading profile:", error);
       setProfile(null);
