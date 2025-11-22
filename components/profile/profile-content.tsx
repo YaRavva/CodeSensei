@@ -35,6 +35,20 @@ export function ProfileContent({ user, initialProfile }: ProfileContentProps) {
   // Используем актуальный профиль из AuthProvider, если он доступен
   const currentProfile = profile || initialProfile;
 
+  // Логирование для диагностики
+  useEffect(() => {
+    console.log("[ProfileContent] Profile state:", {
+      hasProfile: !!profile,
+      hasInitialProfile: !!initialProfile,
+      currentProfile: currentProfile ? {
+        id: currentProfile.id,
+        role: currentProfile.role,
+        display_name: currentProfile.display_name,
+        avatar_url: currentProfile.avatar_url,
+      } : null,
+    });
+  }, [profile, initialProfile, currentProfile]);
+
   // Обновляем displayName когда профиль меняется
   useEffect(() => {
     if (currentProfile.display_name) {

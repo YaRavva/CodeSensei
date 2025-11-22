@@ -162,11 +162,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       let lastError: any = null;
 
       while (retries < maxRetries && !profileData) {
+        // Проверяем сессию перед запросом
+        const { data: sessionData } = await supabase.auth.getSession();
+        console.log(`[AuthProvider] Attempt ${retries + 1}/${maxRetries} - Session check:`, {
+          hasSession: !!sessionData.session,
+          sessionUserId: sessionData.session?.user?.id,
+          requestedUserId: userId,
+          match: sessionData.session?.user?.id === userId,
+        });
+
         const { data, error } = await supabase
           .from("users")
           .select("id, email, role, display_name, avatar_url, total_xp, current_level, created_at, last_active_at")
           .eq("id", userId)
           .maybeSingle();
+
+        const typedData = data as UserProfile | null;
+        console.log(`[AuthProvider] Query result (attempt ${retries + 1}/${maxRetries}):`, {
+          hasData: !!typedData,
+          hasError: !!error,
+          errorCode: error?.code,
+          errorMessage: error?.message,
+          dataPreview: typedData ? { id: typedData.id, email: typedData.email, role: typedData.role } : null,
+        });
 
         if (error) {
           // PGRST116 - это "not found", что нормально при первой загрузке (триггер может еще не сработать)
@@ -175,6 +193,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               code: error.code,
               message: error.message,
               details: error.details,
+              hint: error.hint,
               userId,
             });
             lastError = error;
@@ -184,13 +203,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         }
 
-        if (data) {
-          const typedData = data as UserProfile;
+        if (typedData) {
           console.log(`[AuthProvider] Profile loaded successfully for user ${userId}:`, {
             id: typedData.id,
             email: typedData.email,
             role: typedData.role,
             display_name: typedData.display_name,
+            avatar_url: typedData.avatar_url,
           });
           profileData = typedData;
           break;
@@ -210,11 +229,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (profileData) {
+        console.log(`[AuthProvider] Setting profile state for user ${userId}:`, {
+          id: profileData.id,
+          role: profileData.role,
+          display_name: profileData.display_name,
+        });
         setProfile(profileData);
-        console.log(`[AuthProvider] Profile state updated for user ${userId}`);
+        // Проверяем, что состояние действительно обновилось
+        setTimeout(() => {
+          console.log(`[AuthProvider] Profile state after setProfile - should be set now`);
+        }, 100);
         return profileData;
       } else {
-        console.warn(`[AuthProvider] Setting profile to null for user ${userId}`);
+        console.warn(`[AuthProvider] Profile not found after ${maxRetries} attempts, setting profile to null for user ${userId}`);
         setProfile(null);
         return null;
       }

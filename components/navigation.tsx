@@ -44,13 +44,18 @@ function useNavigationAuth() {
     if (user && !profile && !loading) {
       // Если пользователь есть, но профиля нет и не идет загрузка - обновляем
       console.log("[Navigation] User exists but profile is missing, refreshing...");
-      // Даем небольшую задержку перед обновлением, чтобы дать время AuthProvider
-      const timer = setTimeout(() => {
-        refreshProfile().catch((err) => {
-          console.error("[Navigation] Error refreshing profile:", err);
-        });
-      }, 1000);
-      return () => clearTimeout(timer);
+      // Пробуем несколько раз с увеличивающейся задержкой
+      const refreshAttempts = [500, 1500, 3000];
+      refreshAttempts.forEach((delay, index) => {
+        setTimeout(() => {
+          if (user && !profile) {
+            console.log(`[Navigation] Refresh attempt ${index + 1}/${refreshAttempts.length} after ${delay}ms`);
+            refreshProfile().catch((err) => {
+              console.error(`[Navigation] Error refreshing profile (attempt ${index + 1}):`, err);
+            });
+          }
+        }, delay);
+      });
     }
     if (profile) {
       setProfileLoaded(true);
@@ -78,18 +83,24 @@ function useNavigationAuth() {
   
   // Логирование для диагностики
   useEffect(() => {
-    if (user && profile) {
-      console.log("[Navigation] Auth state:", {
-        userId: user.id,
-        userEmail: user.email,
-        profileRole: profile.role,
-        profileDisplayName: profile.display_name,
-        isOnAdminRoute,
-        isAdmin,
-        pathname,
-      });
+    console.log("[Navigation] Auth state update:", {
+      hasUser: !!user,
+      userId: user?.id,
+      userEmail: user?.email,
+      hasProfile: !!profile,
+      profileId: profile?.id,
+      profileRole: profile?.role,
+      profileDisplayName: profile?.display_name,
+      isOnAdminRoute,
+      isAdmin,
+      pathname,
+      loading,
+    });
+    
+    if (user && !profile) {
+      console.warn("[Navigation] User exists but profile is missing!");
     }
-  }, [user, profile, isOnAdminRoute, isAdmin, pathname]);
+  }, [user, profile, isOnAdminRoute, isAdmin, pathname, loading]);
 
   // Если пользователь авторизован, но профиль еще загружается - показываем loading
   const isLoadingProfile = isAuthenticated && user && !profile && loading;
