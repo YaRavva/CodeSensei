@@ -31,18 +31,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!mounted) return;
 
       if (error) {
-        console.error("Error getting session:", error);
+        console.error("[AuthProvider] Error getting session:", error);
       }
 
       const currentUser = data.session?.user ?? null;
 
       if (currentUser) {
         setUser(currentUser);
-        await loadProfile(currentUser.id);
+        const loadedProfile = await loadProfile(currentUser.id);
+        
+        // Если профиль не загрузился, пробуем синхронизацию через API
+        if (!loadedProfile) {
+          console.log("[AuthProvider] Profile not loaded on initial mount, trying server sync...");
+          setTimeout(async () => {
+            if (!mounted) return;
+            try {
+              const response = await fetch("/api/auth/sync-profile", {
+                method: "GET",
+                credentials: "include",
+                cache: "no-store",
+              });
+              if (response.ok) {
+                const { profile: serverProfile } = await response.json();
+                if (serverProfile && mounted) {
+                  console.log("[AuthProvider] Profile synced from server on mount:", serverProfile);
+                  setProfile(serverProfile);
+                }
+              }
+            } catch (error) {
+              console.error("[AuthProvider] Error syncing profile on mount:", error);
+            }
+          }, 2000);
+        }
       }
       setLoading(false);
     }).catch((error) => {
-      console.error("Unexpected error in getSession:", error);
+      console.error("[AuthProvider] Unexpected error in getSession:", error);
       if (mounted) {
         setLoading(false);
       }
@@ -51,31 +75,76 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
 
+      console.log(`[AuthProvider] Auth state changed: ${event}`, {
+        hasSession: !!session,
+        userId: session?.user?.id,
+      });
+
       setUser(session?.user ?? null);
       if (session?.user) {
         // Для событий SIGNED_IN (OAuth) делаем более агрессивный retry
         const isOAuthSignIn = event === "SIGNED_IN";
         if (isOAuthSignIn) {
+          console.log("[AuthProvider] OAuth sign in detected, waiting for profile creation...");
           // Для OAuth даем больше времени на создание профиля триггером
-          await new Promise(resolve => setTimeout(resolve, 500));
+          await new Promise(resolve => setTimeout(resolve, 1000));
         }
-        await loadProfile(session.user.id);
+        const loadedProfile = await loadProfile(session.user.id);
+        
+        // После загрузки профиля для OAuth, если профиль все еще не загружен, пробуем синхронизацию через API
+        if (isOAuthSignIn && !loadedProfile) {
+          console.log("[AuthProvider] Profile still missing after OAuth load, trying server sync...");
+          setTimeout(async () => {
+            try {
+              const response = await fetch("/api/auth/sync-profile", {
+                method: "GET",
+                credentials: "include",
+                cache: "no-store",
+              });
+              if (response.ok) {
+                const { profile: serverProfile } = await response.json();
+                if (serverProfile) {
+                  console.log("[AuthProvider] Profile synced from server after OAuth:", serverProfile);
+                  setProfile(serverProfile);
+                }
+              } else {
+                console.warn("[AuthProvider] Server sync failed, status:", response.status);
+              }
+            } catch (error) {
+              console.error("[AuthProvider] Error syncing profile after OAuth:", error);
+            }
+          }, 2000);
+        }
       } else {
         setProfile(null);
         setLoading(false);
       }
     });
 
+    // Периодически проверяем профиль, если он не загружен
+    const profileCheckInterval = setInterval(() => {
+      if (!mounted) {
+        clearInterval(profileCheckInterval);
+        return;
+      }
+      
+      if (user && !profile && !loading) {
+        console.log("[AuthProvider] Periodic check: profile missing, attempting refresh...");
+        refreshProfile().catch(console.error);
+      }
+    }, 5000); // Проверяем каждые 5 секунд
+
     return () => {
       mounted = false;
       listener.subscription.unsubscribe();
+      clearInterval(profileCheckInterval);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function loadProfile(userId: string) {
+  async function loadProfile(userId: string): Promise<UserProfile | null> {
     if (loadingProfileRef.current === userId) {
-      return;
+      return null;
     }
 
     try {
@@ -83,7 +152,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(true);
 
       let retries = 0;
-      const maxRetries = 5; // Увеличиваем количество попыток
+      const maxRetries = 8; // Увеличиваем количество попыток для OAuth
       let profileData = null;
       let lastError: any = null;
 
@@ -97,39 +166,60 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (error) {
           // PGRST116 - это "not found", что нормально при первой загрузке (триггер может еще не сработать)
           if (error.code !== "PGRST116") {
-            console.error(`Error loading profile (attempt ${retries + 1}/${maxRetries}):`, {
+            console.error(`[AuthProvider] Error loading profile (attempt ${retries + 1}/${maxRetries}):`, {
               code: error.code,
               message: error.message,
               details: error.details,
+              userId,
             });
             lastError = error;
+          } else {
+            // Логируем даже PGRST116 для диагностики
+            console.log(`[AuthProvider] Profile not found (attempt ${retries + 1}/${maxRetries}) for user ${userId}`);
           }
         }
 
         if (data) {
+          console.log(`[AuthProvider] Profile loaded successfully for user ${userId}:`, {
+            id: data.id,
+            email: data.email,
+            role: data.role,
+            display_name: data.display_name,
+          });
           profileData = data;
           break;
         } else if (retries < maxRetries - 1) {
-          // Увеличиваем задержку с каждой попыткой (300ms, 600ms, 900ms, 1200ms, 1500ms)
-          await new Promise(resolve => setTimeout(resolve, 300 * (retries + 1)));
+          // Увеличиваем задержку с каждой попыткой (500ms, 1000ms, 1500ms, 2000ms, 2500ms, 3000ms, 3500ms, 4000ms)
+          const delay = 500 * (retries + 1);
+          console.log(`[AuthProvider] Retrying profile load in ${delay}ms (attempt ${retries + 1}/${maxRetries})`);
+          await new Promise(resolve => setTimeout(resolve, delay));
           retries++;
         } else {
           // После всех попыток профиль не найден
           if (!lastError || lastError.code === "PGRST116") {
-            console.warn(`Profile not found for user ${userId} after ${maxRetries} attempts. This may indicate that the database trigger hasn't created the profile yet.`);
+            console.warn(`[AuthProvider] Profile not found for user ${userId} after ${maxRetries} attempts. This may indicate that the database trigger hasn't created the profile yet.`);
           }
           break;
         }
       }
 
-      setProfile(profileData || null);
+      if (profileData) {
+        setProfile(profileData);
+        console.log(`[AuthProvider] Profile state updated for user ${userId}`);
+        return profileData;
+      } else {
+        console.warn(`[AuthProvider] Setting profile to null for user ${userId}`);
+        setProfile(null);
+        return null;
+      }
     } catch (error: any) {
-      console.error("Unexpected error loading profile:", {
+      console.error("[AuthProvider] Unexpected error loading profile:", {
         error: error.message,
         stack: error.stack,
         userId,
       });
       setProfile(null);
+      return null;
     } finally {
       setLoading(false);
       loadingProfileRef.current = null;
@@ -138,7 +228,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   async function refreshProfile() {
     if (user) {
+      console.log(`[AuthProvider] refreshProfile called for user ${user.id}`);
+      // Сбрасываем ref, чтобы можно было загрузить профиль заново
+      loadingProfileRef.current = null;
+      
+      // Пробуем загрузить через API endpoint (серверная загрузка)
+      try {
+        const response = await fetch("/api/auth/sync-profile", {
+          method: "GET",
+          credentials: "include",
+          cache: "no-store",
+        });
+        
+        if (response.ok) {
+          const { profile: serverProfile } = await response.json();
+          if (serverProfile) {
+            console.log("[AuthProvider] Profile synced from server:", serverProfile);
+            setProfile(serverProfile);
+            setLoading(false);
+            return;
+          }
+        }
+      } catch (error) {
+        console.warn("[AuthProvider] Failed to sync profile from server, falling back to client load:", error);
+      }
+      
+      // Fallback на клиентскую загрузку
       await loadProfile(user.id);
+    } else {
+      console.warn("[AuthProvider] refreshProfile called but user is null");
     }
   }
 

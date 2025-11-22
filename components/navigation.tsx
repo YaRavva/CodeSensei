@@ -43,11 +43,18 @@ function useNavigationAuth() {
   useEffect(() => {
     if (user && !profile && !loading) {
       // Если пользователь есть, но профиля нет и не идет загрузка - обновляем
-      // AuthProvider уже делает retry внутри себя, но дополнительная попытка не помешает
-      refreshProfile().catch(console.error);
+      console.log("[Navigation] User exists but profile is missing, refreshing...");
+      // Даем небольшую задержку перед обновлением, чтобы дать время AuthProvider
+      const timer = setTimeout(() => {
+        refreshProfile().catch((err) => {
+          console.error("[Navigation] Error refreshing profile:", err);
+        });
+      }, 1000);
+      return () => clearTimeout(timer);
     }
     if (profile) {
       setProfileLoaded(true);
+      console.log("[Navigation] Profile loaded:", { role: profile.role, display_name: profile.display_name });
     } else if (user) {
       // Если профиль еще не загружен, но пользователь есть - сбрасываем флаг
       setProfileLoaded(false);
@@ -68,6 +75,21 @@ function useNavigationAuth() {
   // Если пользователь на админ-странице, значит он точно админ (сервер уже проверил)
   const isOnAdminRoute = pathname.startsWith("/admin");
   const isAdmin = isOnAdminRoute || Boolean(profile && (userRole === "admin" || userRole === "teacher"));
+  
+  // Логирование для диагностики
+  useEffect(() => {
+    if (user && profile) {
+      console.log("[Navigation] Auth state:", {
+        userId: user.id,
+        userEmail: user.email,
+        profileRole: profile.role,
+        profileDisplayName: profile.display_name,
+        isOnAdminRoute,
+        isAdmin,
+        pathname,
+      });
+    }
+  }, [user, profile, isOnAdminRoute, isAdmin, pathname]);
 
   // Если пользователь авторизован, но профиль еще загружается - показываем loading
   const isLoadingProfile = isAuthenticated && user && !profile && loading;
