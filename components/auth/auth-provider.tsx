@@ -82,18 +82,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setUser(session?.user ?? null);
       if (session?.user) {
-        // Для событий SIGNED_IN (OAuth) делаем более агрессивный retry
         const isOAuthSignIn = event === "SIGNED_IN";
-        if (isOAuthSignIn) {
-          console.log("[AuthProvider] OAuth sign in detected, waiting for profile creation...");
-          // Для OAuth даем больше времени на создание профиля триггером
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-        const loadedProfile = await loadProfile(session.user.id);
         
-        // После загрузки профиля для OAuth, если профиль все еще не загружен, пробуем синхронизацию через API
+        // Сначала пытаемся загрузить профиль без задержки (для повторных входов профиль уже есть)
+        let loadedProfile = await loadProfile(session.user.id);
+        
+        // Только если профиль не найден И это первый вход через OAuth - ждем создания профиля триггером
         if (isOAuthSignIn && !loadedProfile) {
-          console.log("[AuthProvider] Profile still missing after OAuth load, trying server sync...");
+          console.log("[AuthProvider] OAuth sign in detected, profile not found - waiting for profile creation (first login)...");
+          // Для первого входа через OAuth даем время на создание профиля триггером
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          // Пробуем загрузить еще раз после задержки
+          loadedProfile = await loadProfile(session.user.id);
+        }
+        
+        // Если профиль все еще не загружен после всех попыток, пробуем синхронизацию через API
+        if (!loadedProfile) {
+          console.log("[AuthProvider] Profile still missing, trying server sync...");
           setTimeout(async () => {
             try {
               const response = await fetch("/api/auth/sync-profile", {
@@ -104,14 +109,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               if (response.ok) {
                 const { profile: serverProfile } = await response.json();
                 if (serverProfile) {
-                  console.log("[AuthProvider] Profile synced from server after OAuth:", serverProfile);
+                  console.log("[AuthProvider] Profile synced from server:", serverProfile);
                   setProfile(serverProfile);
                 }
               } else {
                 console.warn("[AuthProvider] Server sync failed, status:", response.status);
               }
             } catch (error) {
-              console.error("[AuthProvider] Error syncing profile after OAuth:", error);
+              console.error("[AuthProvider] Error syncing profile:", error);
             }
           }, 2000);
         }
