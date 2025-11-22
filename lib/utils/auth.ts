@@ -28,6 +28,18 @@ export async function requireAuth() {
  * Проверяет, является ли пользователь админом или учителем
  */
 export async function requireAdmin() {
-  // Минимальная проверка: только авторизация. Навигация/доступ к страницам уже ограничены UI.
-  return await requireAuth();
+  const { user, profile, supabase } = await requireAuth();
+
+  // Проверяем роль пользователя
+  if (!profile) {
+    redirect("/login");
+  }
+
+  const role = profile.role;
+  if (role !== "admin" && role !== "teacher") {
+    // Редиректим на главную страницу, если нет прав доступа
+    redirect("/modules");
+  }
+
+  return { user, profile, supabase };
 }
