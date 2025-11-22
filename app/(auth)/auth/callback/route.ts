@@ -24,15 +24,40 @@ export async function GET(request: Request) {
   let redirectPath = "/modules";
 
   if (user) {
-    // Загружаем профиль для проверки имени
-    const { data: profile } = await supabase
-      .from("users")
-      .select("*")
-      .eq("id", user.id)
-      .maybeSingle();
+    // Ждем создания профиля триггером БД (для OAuth это может занять время)
+    let profile: UserProfile | null = null;
+    let retries = 0;
+    const maxRetries = 5; // Увеличиваем количество попыток для OAuth
+    const retryDelay = 300; // Задержка между попытками в мс
+
+    while (retries < maxRetries && !profile) {
+      const { data, error } = await supabase
+        .from("users")
+        .select("*")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (data) {
+        profile = data as UserProfile;
+        break;
+      }
+
+      // Если это не ошибка "not found", логируем
+      if (error && error.code !== "PGRST116") {
+        console.error("Error loading profile in callback:", error);
+      }
+
+      if (retries < maxRetries - 1) {
+        // Ждем перед следующей попыткой
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+        retries++;
+      } else {
+        break;
+      }
+    }
 
     // Используем переданный next или определяем на основе валидности имени
-    redirectPath = next || getPostAuthRedirect(profile as UserProfile | null);
+    redirectPath = next || getPostAuthRedirect(profile);
   } else if (next) {
     // Если пользователь не авторизован, но есть next параметр, используем его
     redirectPath = next;

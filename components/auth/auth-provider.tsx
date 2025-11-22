@@ -53,6 +53,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setUser(session?.user ?? null);
       if (session?.user) {
+        // Для событий SIGNED_IN (OAuth) делаем более агрессивный retry
+        const isOAuthSignIn = event === "SIGNED_IN";
+        if (isOAuthSignIn) {
+          // Для OAuth даем больше времени на создание профиля триггером
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
         await loadProfile(session.user.id);
       } else {
         setProfile(null);
@@ -77,7 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(true);
 
       let retries = 0;
-      const maxRetries = 3;
+      const maxRetries = 5; // Увеличиваем количество попыток
       let profileData = null;
       let lastError: any = null;
 
@@ -104,8 +110,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           profileData = data;
           break;
         } else if (retries < maxRetries - 1) {
-          // Увеличиваем задержку с каждой попыткой (500ms, 1000ms, 1500ms)
-          await new Promise(resolve => setTimeout(resolve, 500 * (retries + 1)));
+          // Увеличиваем задержку с каждой попыткой (300ms, 600ms, 900ms, 1200ms, 1500ms)
+          await new Promise(resolve => setTimeout(resolve, 300 * (retries + 1)));
           retries++;
         } else {
           // После всех попыток профиль не найден

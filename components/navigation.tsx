@@ -41,8 +41,9 @@ function useNavigationAuth() {
 
   // Принудительно обновляем профиль при монтировании, если пользователь авторизован
   useEffect(() => {
-    if (user && !profile) {
-      // Если пользователь есть, но профиля нет - немедленно обновляем
+    if (user && !profile && !loading) {
+      // Если пользователь есть, но профиля нет и не идет загрузка - обновляем
+      // AuthProvider уже делает retry внутри себя, но дополнительная попытка не помешает
       refreshProfile().catch(console.error);
     }
     if (profile) {
@@ -51,7 +52,7 @@ function useNavigationAuth() {
       // Если профиль еще не загружен, но пользователь есть - сбрасываем флаг
       setProfileLoaded(false);
     }
-  }, [user, profile, refreshProfile]);
+  }, [user, profile, loading, refreshProfile]);
 
   // Если мы на защищенном маршруте, считаем пользователя авторизованным
   // даже если loading=true (сервер уже проверил авторизацию)
