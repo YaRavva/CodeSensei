@@ -67,12 +67,28 @@ export default function RegisterPage() {
         }
       });
 
-      toast({
-        title: "Регистрация успешна",
-        description: "Вы можете войти в систему",
-      });
-
-      router.push("/login");
+      // Проверяем, нужна ли верификация email
+      // Если сессия уже есть (email confirmation отключен), редиректим на модули/профиль
+      // Если сессии нет (email confirmation включен), редиректим на логин
+      if (authData.session) {
+        // Пользователь уже авторизован - проверяем имя и редиректим
+        const needsProfile = trimmedName && !isValidRussianName(trimmedName);
+        toast({
+          title: "Регистрация успешна",
+          description: needsProfile 
+            ? "Пожалуйста, заполните профиль" 
+            : "Добро пожаловать в CodeSensei!",
+        });
+        router.push(needsProfile ? "/profile" : "/modules");
+        router.refresh();
+      } else {
+        // Нужна верификация email
+        toast({
+          title: "Регистрация успешна",
+          description: "Проверьте почту для подтверждения email",
+        });
+        router.push("/login");
+      }
     }
     setLoading(false);
   }

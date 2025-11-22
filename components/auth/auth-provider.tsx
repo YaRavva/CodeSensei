@@ -79,6 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       let retries = 0;
       const maxRetries = 3;
       let profileData = null;
+      let lastError: any = null;
 
       while (retries < maxRetries && !profileData) {
         const { data, error } = await supabase
@@ -87,23 +88,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .eq("id", userId)
           .maybeSingle();
 
-        if (error && error.code !== "PGRST116") {
-          console.error("Error loading profile:", error);
+        if (error) {
+          // PGRST116 - это "not found", что нормально при первой загрузке (триггер может еще не сработать)
+          if (error.code !== "PGRST116") {
+            console.error(`Error loading profile (attempt ${retries + 1}/${maxRetries}):`, {
+              code: error.code,
+              message: error.message,
+              details: error.details,
+            });
+            lastError = error;
+          }
         }
 
         if (data) {
           profileData = data;
+          break;
         } else if (retries < maxRetries - 1) {
-          await new Promise(resolve => setTimeout(resolve, 500));
+          // Увеличиваем задержку с каждой попыткой (500ms, 1000ms, 1500ms)
+          await new Promise(resolve => setTimeout(resolve, 500 * (retries + 1)));
           retries++;
         } else {
+          // После всех попыток профиль не найден
+          if (!lastError || lastError.code === "PGRST116") {
+            console.warn(`Profile not found for user ${userId} after ${maxRetries} attempts. This may indicate that the database trigger hasn't created the profile yet.`);
+          }
           break;
         }
       }
 
       setProfile(profileData || null);
     } catch (error: any) {
-      console.error("Error loading profile:", error);
+      console.error("Unexpected error loading profile:", {
+        error: error.message,
+        stack: error.stack,
+        userId,
+      });
       setProfile(null);
     } finally {
       setLoading(false);

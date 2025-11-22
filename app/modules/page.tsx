@@ -1,8 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { requireAuth } from "@/lib/utils/auth";
 import { ModulesList } from "@/components/modules/modules-list";
-import { isValidRussianName } from "@/lib/utils/name-validation";
-import { redirect } from "next/navigation";
+import { checkNameAndRedirect } from "@/lib/utils/auth-redirect";
 import type { Database } from "@/types/supabase";
 
 type UserProfile = Database["public"]["Tables"]["users"]["Row"];
@@ -12,9 +11,7 @@ export default async function ModulesPage() {
 
   // Проверяем имя пользователя - если не соответствует формату, редиректим на профиль
   const typedProfile = profile as UserProfile | null;
-  if (!isValidRussianName(typedProfile?.display_name)) {
-    redirect("/profile");
-  }
+  checkNameAndRedirect(typedProfile);
 
   // Получаем только опубликованные модули
   const { data: modules, error } = await supabase

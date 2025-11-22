@@ -1,15 +1,41 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
-import { isValidRussianName } from "@/lib/utils/name-validation";
+import { getPostAuthRedirect } from "@/lib/utils/auth-redirect";
+import type { Database } from "@/types/supabase";
+
+type UserProfile = Database["public"]["Tables"]["users"]["Row"];
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
-  const next = requestUrl.searchParams.get("next") || "/modules";
+  const next = requestUrl.searchParams.get("next");
+
+  const supabase = await createClient();
 
   if (code) {
-    const supabase = await createClient();
     await supabase.auth.exchangeCodeForSession(code);
+  }
+
+  // Получаем пользователя и профиль для определения правильного редиректа
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  let redirectPath = "/modules";
+
+  if (user) {
+    // Загружаем профиль для проверки имени
+    const { data: profile } = await supabase
+      .from("users")
+      .select("*")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    // Используем переданный next или определяем на основе валидности имени
+    redirectPath = next || getPostAuthRedirect(profile as UserProfile | null);
+  } else if (next) {
+    // Если пользователь не авторизован, но есть next параметр, используем его
+    redirectPath = next;
   }
 
   // Определяем базовый URL для редиректа
@@ -36,5 +62,5 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.redirect(new URL(next, baseUrl));
+  return NextResponse.redirect(new URL(redirectPath, baseUrl));
 }
