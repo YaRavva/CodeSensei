@@ -180,13 +180,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         if (data) {
+          const typedData = data as UserProfile;
           console.log(`[AuthProvider] Profile loaded successfully for user ${userId}:`, {
-            id: data.id,
-            email: data.email,
-            role: data.role,
-            display_name: data.display_name,
+            id: typedData.id,
+            email: typedData.email,
+            role: typedData.role,
+            display_name: typedData.display_name,
           });
-          profileData = data;
+          profileData = typedData;
           break;
         } else if (retries < maxRetries - 1) {
           // Увеличиваем задержку с каждой попыткой (500ms, 1000ms, 1500ms, 2000ms, 2500ms, 3000ms, 3500ms, 4000ms)
