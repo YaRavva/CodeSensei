@@ -171,6 +171,9 @@ export function Navigation() {
               <Button variant="ghost" asChild>
                 <Link href="/leaderboard">Лидеры</Link>
               </Button>
+              <Button variant="ghost" asChild>
+                <Link href="/achievements">Достижения</Link>
+              </Button>
               {/* Кнопка админки: показываем если пользователь авторизован, профиль загружен И роль admin/teacher */}
               {profile && user && isAdmin && (
                 <Button variant="ghost" asChild>

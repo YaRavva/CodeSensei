@@ -122,7 +122,7 @@ export function DashboardContent({ profile, stats, achievements }: DashboardCont
       </Card>
 
       {/* Дополнительная статистика и достижения */}
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-[2fr,3fr]">
         <Card>
           <CardHeader>
             <CardTitle>Статистика решений</CardTitle>

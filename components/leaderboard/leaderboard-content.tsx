@@ -27,12 +27,20 @@ interface LeaderboardUser {
   rank: number;
 }
 
+interface LeaderboardAchievement {
+  id: string;
+  title: string;
+  description: string;
+  icon_name: string;
+}
+
 interface LeaderboardContentProps {
   users: LeaderboardUser[];
   currentUserId: string;
   currentUserRank: number | null;
   currentUserData: LeaderboardUser | null;
   period: LeaderboardPeriod;
+  userAchievementsByUserId?: Record<string, LeaderboardAchievement[]>;
 }
 
 export function LeaderboardContent({
@@ -41,6 +49,7 @@ export function LeaderboardContent({
   currentUserRank,
   currentUserData,
   period,
+  userAchievementsByUserId,
 }: LeaderboardContentProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -160,6 +169,7 @@ export function LeaderboardContent({
             <div className="space-y-2">
               {users.map((user) => {
                 const isCurrentUser = user.id === currentUserId;
+                const userAchievements = userAchievementsByUserId?.[user.id] ?? [];
                 return (
                   <div
                     key={user.id}
@@ -216,12 +226,32 @@ export function LeaderboardContent({
                           </Badge>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <div className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
                         <Badge variant="secondary" className="text-xs">
                           Уровень {user.current_level || 1}
                         </Badge>
+
                       </div>
                     </div>
+
+                    {/* Достижения */}
+                    {userAchievements.length > 0 && (
+                      <div className="flex-1 flex justify-center items-center px-2">
+                        <div className="flex flex-wrap items-center justify-center gap-2">
+                          {userAchievements.slice(0, 5).map((achievement) => (
+                            <div
+                              key={achievement.id}
+                              className="group relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary/80 via-primary/70 to-primary/90 text-primary-foreground shadow-sm cursor-default"
+                              title={`${achievement.title} — ${achievement.description}`}
+                            >
+                              <span className="text-xl drop-shadow-sm">
+                                {achievement.icon_name || "🏆"}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     {/* XP */}
                     <div className="text-right">

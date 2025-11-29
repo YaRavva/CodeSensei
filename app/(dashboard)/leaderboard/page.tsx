@@ -7,8 +7,18 @@ type LeaderboardPeriod = "all_time" | "month" | "week";
 
 type User = Database["public"]["Tables"]["users"]["Row"];
 
-interface LeaderboardUser extends Pick<User, "id" | "display_name" | "email" | "avatar_url" | "total_xp" | "current_level" | "role"> {
+interface LeaderboardUser extends Pick<
+  User,
+  "id" | "display_name" | "email" | "avatar_url" | "total_xp" | "current_level" | "role"
+> {
   rank: number;
+}
+
+interface LeaderboardAchievement {
+  id: string;
+  title: string;
+  description: string;
+  icon_name: string;
 }
 
 export default async function LeaderboardPage({
@@ -59,6 +69,48 @@ export default async function LeaderboardPage({
     previousXP = currentXP;
   });
 
+  // Загружаем достижения для пользователей в таблице лидеров
+  const achievementsByUser: Record<string, LeaderboardAchievement[]> = {};
+  if (usersWithRank.length > 0) {
+    const userIds = usersWithRank.map((u) => u.id);
+    const { data: rawUserAchievements, error: achievementsError } = await supabase
+      .from("user_achievements")
+      .select(
+        `
+        user_id,
+        earned_at,
+        achievement:achievements(id, title, description, icon_name)
+      `,
+      )
+      .in("user_id", userIds);
+
+    if (achievementsError) {
+      console.error("Error loading leaderboard achievements:", achievementsError);
+    }
+
+    const typed = (rawUserAchievements || []) as Array<{
+      user_id: string;
+      earned_at: string | null;
+      achievement: {
+        id: string;
+        title: string;
+        description: string;
+        icon_name: string | null;
+      } | null;
+    }>;
+
+    for (const row of typed) {
+      if (!row.achievement) continue;
+      const list = achievementsByUser[row.user_id] || (achievementsByUser[row.user_id] = []);
+      list.push({
+        id: row.achievement.id,
+        title: row.achievement.title,
+        description: row.achievement.description,
+        icon_name: row.achievement.icon_name || "🏆",
+      });
+    }
+  }
+
   // Находим ранг текущего пользователя в списке
   const userInList = usersWithRank.find((u) => u.id === user.id);
   const currentUserRank = userInList ? userInList.rank : null;
@@ -105,6 +157,7 @@ export default async function LeaderboardPage({
       currentUserRank={currentUserRank || currentUserData?.rank || null}
       currentUserData={currentUserData}
       period={period}
+      userAchievementsByUserId={achievementsByUser}
     />
   );
 }
