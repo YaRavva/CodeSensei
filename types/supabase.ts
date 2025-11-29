@@ -3,6 +3,67 @@ export type Json = | string | number | boolean | null | { [key: string]: Json | 
 export interface Database {
   public: {
     Tables: {
+      achievements: {
+        Row: {
+          id: string;
+          title: string;
+          description: string;
+          icon_name: string;
+          xp_reward: number;
+          condition_type: string;
+          condition_value: Json;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          title: string;
+          description: string;
+          icon_name: string;
+          xp_reward: number;
+          condition_type: string;
+          condition_value: Json;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          title?: string;
+          description?: string;
+          icon_name?: string;
+          xp_reward?: number;
+          condition_type?: string;
+          condition_value?: Json;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      user_achievements: {
+        Row: {
+          id: string;
+          user_id: string;
+          achievement_id: string;
+          earned_at: string;
+          metadata: Json | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          achievement_id: string;
+          earned_at?: string;
+          metadata?: Json | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          achievement_id?: string;
+          earned_at?: string;
+          metadata?: Json | null;
+        };
+      };
       modules: {
         Row: {
           id: string;
