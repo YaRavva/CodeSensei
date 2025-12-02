@@ -42,16 +42,14 @@ export function ModuleCard({ module, status, tasksCount }: ModuleCardProps) {
 
   return (
     <Card
-      className={`group relative flex h-full flex-col overflow-hidden rounded-2xl border transition-all duration-300 hover:-translate-y-0.5 ${isCompleted
+      className={`group relative flex h-full flex-col overflow-hidden rounded-2xl border p-4 sm:p-5 transition-all duration-300 ${isCompleted
           ? "border-primary/60 bg-gradient-to-b from-primary/10 via-background/90 to-background shadow-[0_18px_40px_-24px_rgba(15,23,42,0.7)]"
-          : "border-border/70 bg-card/70 shadow-[0_16px_40px_-26px_rgba(15,23,42,0.9)] hover:border-primary/60 hover:shadow-[0_22px_55px_-30px_rgba(15,23,42,1)]"
+          : "border-border/70 bg-card/70 shadow-[0_16px_40px_-26px_rgba(15,23,42,0.9)]"
         }`}
     >
       <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
         <div className="absolute -top-10 right-0 h-32 w-32 rounded-full bg-[radial-gradient(circle_at_top,_rgba(148,163,184,0.35),_transparent_60%)]" />
       </div>
-
-      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary/70 via-primary/40 to-accent/60 opacity-80" />
 
       <CardHeader className="relative space-y-4 pb-4">
         <div className="flex items-start justify-between gap-3">
