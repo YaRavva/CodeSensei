@@ -18,7 +18,7 @@ interface CodeEditorProps {
 if (typeof window !== "undefined") {
   loader.config({
     paths: {
-      vs: "https://cdn.jsdelivr.net/npm/monaco-editor@0.54.0/min/vs",
+      vs: "https://cdn.jsdelivr.net/npm/monaco-editor@0.55.1/min/vs",
     },
   });
 
@@ -26,15 +26,15 @@ if (typeof window !== "undefined") {
   const originalRequire = (window as any).require;
   if (originalRequire && originalRequire.config) {
     const originalRequireFunc = originalRequire;
-    (window as any).require = function(deps: string[], callback?: Function, errback?: Function) {
+    (window as any).require = function (deps: string[], callback?: Function, errback?: Function) {
       // Фильтруем проблемные модули
       const filteredDeps = deps.filter(
-        (dep) => 
-          !dep.includes("stackframe") && 
+        (dep) =>
+          !dep.includes("stackframe") &&
           !dep.includes("error-stack-parser") &&
           !dep.includes("error-stack-parser/")
       );
-      
+
       // Если все модули были отфильтрованы, возвращаем пустой результат
       if (filteredDeps.length === 0 && deps.length > 0) {
         if (callback) {
@@ -42,15 +42,15 @@ if (typeof window !== "undefined") {
         }
         return;
       }
-      
+
       // Если есть модули для загрузки, загружаем их
       if (filteredDeps.length > 0) {
         return originalRequireFunc(filteredDeps, callback, errback);
       }
-      
+
       return originalRequireFunc(deps, callback, errback);
     };
-    
+
     // Копируем методы require
     Object.setPrototypeOf((window as any).require, originalRequireFunc);
     Object.assign((window as any).require, originalRequireFunc);
@@ -71,7 +71,7 @@ export function CodeEditor({
   // Избегаем hydration mismatch и настраиваем обработку ошибок загрузки
   useEffect(() => {
     setMounted(true);
-    
+
     // Перехватываем console.error для подавления ошибок загрузки модулей Monaco
     const originalConsoleError = console.error;
     console.error = (...args: any[]) => {
