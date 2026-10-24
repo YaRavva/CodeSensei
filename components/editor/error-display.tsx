@@ -1,8 +1,8 @@
 "use client";
 
 import { AlertCircle, Info, Lightbulb } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface ErrorDisplayProps {
   error: string;
@@ -25,16 +25,17 @@ function parsePythonError(error: string): {
     const message = syntaxMatch[1].trim();
     const lineMatch = error.match(/line (\d+)/);
     const line = lineMatch ? Number.parseInt(lineMatch[1], 10) : undefined;
-    
+
     let hint = "Проверьте правильность написания кода.";
     if (message.includes("invalid syntax")) {
       hint = "Возможно, вы забыли закрыть скобку, кавычку или двоеточие.";
     } else if (message.includes("unexpected EOF")) {
       hint = "Код не завершен. Проверьте, что все скобки и кавычки закрыты.";
     } else if (message.includes("invalid character")) {
-      hint = "В коде есть недопустимый символ. Проверьте, нет ли лишних пробелов или специальных символов.";
+      hint =
+        "В коде есть недопустимый символ. Проверьте, нет ли лишних пробелов или специальных символов.";
     }
-    
+
     return {
       type: "Синтаксическая ошибка",
       message,
@@ -57,11 +58,13 @@ function parsePythonError(error: string): {
     switch (errorType) {
       case "NameError":
         typeName = "Ошибка имени";
-        hint = "Переменная или функция с таким именем не найдена. Проверьте правильность написания имени.";
+        hint =
+          "Переменная или функция с таким именем не найдена. Проверьте правильность написания имени.";
         break;
       case "TypeError":
         typeName = "Ошибка типа";
-        hint = "Неправильный тип данных. Проверьте, что вы используете правильные типы (числа, строки, списки и т.д.).";
+        hint =
+          "Неправильный тип данных. Проверьте, что вы используете правильные типы (числа, строки, списки и т.д.).";
         break;
       case "ValueError":
         typeName = "Ошибка значения";
@@ -69,7 +72,8 @@ function parsePythonError(error: string): {
         break;
       case "IndexError":
         typeName = "Ошибка индекса";
-        hint = "Индекс выходит за границы списка или строки. Проверьте длину списка перед обращением к элементу.";
+        hint =
+          "Индекс выходит за границы списка или строки. Проверьте длину списка перед обращением к элементу.";
         break;
       case "KeyError":
         typeName = "Ошибка ключа";
@@ -85,7 +89,8 @@ function parsePythonError(error: string): {
         break;
       case "IndentationError":
         typeName = "Ошибка отступов";
-        hint = "Неправильные отступы в коде. В Python отступы очень важны! Используйте одинаковое количество пробелов (обычно 4).";
+        hint =
+          "Неправильные отступы в коде. В Python отступы очень важны! Используйте одинаковое количество пробелов (обычно 4).";
         break;
       default:
         hint = "Произошла ошибка при выполнении кода. Проверьте логику вашего решения.";
@@ -117,11 +122,7 @@ export function ErrorDisplay({ error, code }: ErrorDisplayProps) {
           <AlertCircle className="h-5 w-5" />
           {parsed.type}
         </CardTitle>
-        {parsed.line && (
-          <CardDescription>
-            Ошибка на строке {parsed.line}
-          </CardDescription>
-        )}
+        {parsed.line && <CardDescription>Ошибка на строке {parsed.line}</CardDescription>}
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Сообщение об ошибке */}
@@ -129,9 +130,7 @@ export function ErrorDisplay({ error, code }: ErrorDisplayProps) {
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Что пошло не так?</AlertTitle>
           <AlertDescription>
-            <pre className="text-sm whitespace-pre-wrap font-mono mt-2">
-              {parsed.message}
-            </pre>
+            <pre className="text-sm whitespace-pre-wrap font-mono mt-2">{parsed.message}</pre>
           </AlertDescription>
         </Alert>
 
@@ -140,9 +139,7 @@ export function ErrorDisplay({ error, code }: ErrorDisplayProps) {
           <Alert>
             <Lightbulb className="h-4 w-4" />
             <AlertTitle>Подсказка</AlertTitle>
-            <AlertDescription className="mt-2">
-              {parsed.hint}
-            </AlertDescription>
+            <AlertDescription className="mt-2">{parsed.hint}</AlertDescription>
           </Alert>
         )}
 
@@ -190,4 +187,3 @@ export function ErrorDisplay({ error, code }: ErrorDisplayProps) {
     </Card>
   );
 }
-

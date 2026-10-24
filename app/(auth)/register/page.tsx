@@ -1,15 +1,18 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { createClient } from "@/lib/supabase/client";
-import { isValidRussianName, getNameValidationError } from "@/lib/utils/name-validation";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { getNameValidationError, isValidRussianName } from "@/lib/utils/name-validation";
+
+interface ErrorResponse {
+  error?: string;
+}
 
 export default function RegisterPage() {
   const [email, setEmail] = useState("");
@@ -19,11 +22,10 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
-  const supabase = createClient();
 
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
-    
+
     const trimmedName = displayName.trim();
     if (trimmedName && !isValidRussianName(trimmedName)) {
       const errorMessage = getNameValidationError(trimmedName);
@@ -39,98 +41,42 @@ export default function RegisterPage() {
     setNameError(null);
     setLoading(true);
 
-    // Регистрация в Supabase Auth
-    const { getBaseUrl } = await import("@/lib/utils/get-base-url");
-    const baseUrl = getBaseUrl();
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${baseUrl}/auth/callback`,
-      },
-    });
-
-    if (authError) {
-      toast({
-        title: "Ошибка регистрации",
-        description: authError.message,
-        variant: "destructive",
-      });
-      setLoading(false);
-      return;
-    }
-
-    if (authData.user) {
-      await supabase.auth.updateUser({
-        data: {
-          display_name: trimmedName,
-        }
+    try {
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        credentials: "include",
+        cache: "no-store",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password, displayName: trimmedName }),
       });
 
-      // Проверяем, нужна ли верификация email
-      // Если сессия уже есть (email confirmation отключен), редиректим на модули/профиль
-      // Если сессии нет (email confirmation включен), редиректим на логин
-      if (authData.session) {
-        // Пользователь уже авторизован - проверяем имя и редиректим
-        const needsProfile = trimmedName && !isValidRussianName(trimmedName);
+      if (!response.ok) {
+        const data = (await response.json().catch(() => null)) as ErrorResponse | null;
         toast({
-          title: "Регистрация успешна",
-          description: needsProfile 
-            ? "Пожалуйста, заполните профиль" 
-            : "Добро пожаловать в CodeSensei!",
+          title: "Ошибка регистрации",
+          description: data?.error || "Не удалось зарегистрироваться",
+          variant: "destructive",
         });
-        router.push(needsProfile ? "/profile" : "/modules");
-        router.refresh();
-      } else {
-        // Нужна верификация email
-        toast({
-          title: "Регистрация успешна",
-          description: "Проверьте почту для подтверждения email",
-        });
-        router.push("/login");
+        return;
       }
-    }
-    setLoading(false);
-  }
 
-  async function handleGoogleLogin() {
-    setLoading(true);
-    const { getBaseUrl } = await import("@/lib/utils/get-base-url");
-    const baseUrl = getBaseUrl();
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${baseUrl}/auth/callback`,
-      },
-    });
-
-    if (error) {
       toast({
-        title: "Ошибка входа через Google",
-        description: error.message,
+        title: "Регистрация успешна",
+        description: "Добро пожаловать в CodeSensei!",
+      });
+
+      router.push("/modules");
+      router.refresh();
+    } catch (error) {
+      console.error("Unexpected registration error", error);
+      toast({
+        title: "Неожиданная ошибка",
+        description: "Не удалось зарегистрироваться. Попробуйте снова чуть позже",
         variant: "destructive",
       });
-      setLoading(false);
-    }
-  }
-
-  async function handleGithubLogin() {
-    setLoading(true);
-    const { getBaseUrl } = await import("@/lib/utils/get-base-url");
-    const baseUrl = getBaseUrl();
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "github",
-      options: {
-        redirectTo: `${baseUrl}/auth/callback`,
-      },
-    });
-
-    if (error) {
-      toast({
-        title: "Ошибка входа через GitHub",
-        description: error.message,
-        variant: "destructive",
-      });
+    } finally {
       setLoading(false);
     }
   }
@@ -149,7 +95,7 @@ export default function RegisterPage() {
                       Зарегистрируйтесь в CodeSensei
                     </p>
                   </div>
-                  
+
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <div className="flex items-center">
@@ -171,7 +117,7 @@ export default function RegisterPage() {
                         disabled={loading}
                       />
                     </div>
-                    
+
                     <div className="space-y-2">
                       <Label htmlFor="password">Пароль</Label>
                       <Input
@@ -181,11 +127,11 @@ export default function RegisterPage() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
-                        minLength={6}
+                        minLength={8}
                         disabled={loading}
                       />
                     </div>
-                    
+
                     <div className="space-y-2">
                       <Label htmlFor="displayName">Полное имя (необязательно)</Label>
                       <Input
@@ -221,53 +167,12 @@ export default function RegisterPage() {
                         Укажите минимум 2 слова (например: Иван Петров)
                       </p>
                     </div>
-                    
+
                     <Button type="submit" className="w-full" disabled={loading}>
                       {loading ? "Регистрация..." : "Зарегистрироваться"}
                     </Button>
                   </div>
-                  
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                      <span className="w-full border-t" />
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-card px-2 text-muted-foreground">Или</span>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-4">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleGoogleLogin}
-                      disabled={loading}
-                      className="w-full"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="mr-2 h-4 w-4">
-                        <path
-                          d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"
-                          fill="currentColor"
-                        />
-                      </svg>
-                      <span className="sr-only">Войти через Google</span>
-                      Google
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleGithubLogin}
-                      disabled={loading}
-                      className="w-full"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" className="mr-2 h-4 w-4" fill="currentColor">
-                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23 1.957-.538 4.04-.538 6.097 0 2.292-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
-                      </svg>
-                      <span className="sr-only">Войти через GitHub</span>
-                      GitHub
-                    </Button>
-                  </div>
-                  
+
                   <p className="text-center text-sm text-muted-foreground">
                     Уже есть аккаунт?{" "}
                     <Link href="/login" className="text-primary hover:underline font-medium">
@@ -276,26 +181,26 @@ export default function RegisterPage() {
                   </p>
                 </div>
               </form>
-              
+
               <div className="bg-muted relative hidden md:block overflow-hidden">
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div 
-                    style={{ 
-                      transform: 'scale(2)', 
-                      transformOrigin: 'center',
-                      maskImage: 'url(/CodeSensei.svg)',
-                      maskSize: 'contain',
-                      maskRepeat: 'no-repeat',
-                      maskPosition: 'center',
-                      WebkitMaskImage: 'url(/CodeSensei.svg)',
-                      WebkitMaskSize: 'contain',
-                      WebkitMaskRepeat: 'no-repeat',
-                      WebkitMaskPosition: 'center',
-                      backgroundColor: 'var(--primary)',
-                      width: '320px',
-                      height: '320px',
-                      minWidth: '320px',
-                      minHeight: '320px'
+                  <div
+                    style={{
+                      transform: "scale(2)",
+                      transformOrigin: "center",
+                      maskImage: "url(/CodeSensei.svg)",
+                      maskSize: "contain",
+                      maskRepeat: "no-repeat",
+                      maskPosition: "center",
+                      WebkitMaskImage: "url(/CodeSensei.svg)",
+                      WebkitMaskSize: "contain",
+                      WebkitMaskRepeat: "no-repeat",
+                      WebkitMaskPosition: "center",
+                      backgroundColor: "var(--primary)",
+                      width: "320px",
+                      height: "320px",
+                      minWidth: "320px",
+                      minHeight: "320px",
                     }}
                   />
                 </div>

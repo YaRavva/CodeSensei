@@ -1,5 +1,8 @@
 "use client";
 
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -11,9 +14,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
 
 /**
  * Единая функция для определения состояния авторизации в навигации
@@ -27,16 +27,8 @@ function useNavigationAuth() {
 
   // Определяем защищенные маршруты - если мы на такой странице, значит пользователь авторизован
   useEffect(() => {
-    const protectedRoutes = [
-      "/modules",
-      "/dashboard",
-      "/leaderboard",
-      "/profile",
-      "/admin",
-    ];
-    setIsProtectedRoute(
-      protectedRoutes.some((route) => pathname.startsWith(route))
-    );
+    const protectedRoutes = ["/modules", "/dashboard", "/leaderboard", "/profile", "/admin"];
+    setIsProtectedRoute(protectedRoutes.some((route) => pathname.startsWith(route)));
   }, [pathname]);
 
   // Принудительно обновляем профиль при монтировании, если пользователь авторизован
@@ -49,7 +41,9 @@ function useNavigationAuth() {
       refreshAttempts.forEach((delay, index) => {
         setTimeout(() => {
           if (user && !profile) {
-            console.log(`[Navigation] Refresh attempt ${index + 1}/${refreshAttempts.length} after ${delay}ms`);
+            console.log(
+              `[Navigation] Refresh attempt ${index + 1}/${refreshAttempts.length} after ${delay}ms`
+            );
             refreshProfile().catch((err) => {
               console.error(`[Navigation] Error refreshing profile (attempt ${index + 1}):`, err);
             });
@@ -59,7 +53,10 @@ function useNavigationAuth() {
     }
     if (profile) {
       setProfileLoaded(true);
-      console.log("[Navigation] Profile loaded:", { role: profile.role, display_name: profile.display_name });
+      console.log("[Navigation] Profile loaded:", {
+        role: profile.role,
+        display_name: profile.display_name,
+      });
     } else if (user) {
       // Если профиль еще не загружен, но пользователь есть - сбрасываем флаг
       setProfileLoaded(false);
@@ -69,7 +66,7 @@ function useNavigationAuth() {
   // Если мы на защищенном маршруте, считаем пользователя авторизованным
   // даже если loading=true (сервер уже проверил авторизацию)
   const isAuthenticated = isProtectedRoute || (!!user && !loading);
-  
+
   // showModulesLink: показываем если авторизован И не на страницах авторизации
   const isAuthRoute = pathname === "/login" || pathname === "/register";
   const showModulesLink = isAuthenticated && !isAuthRoute;
@@ -79,8 +76,9 @@ function useNavigationAuth() {
   const userRole = profile?.role;
   // Если пользователь на админ-странице, значит он точно админ (сервер уже проверил)
   const isOnAdminRoute = pathname.startsWith("/admin");
-  const isAdmin = isOnAdminRoute || Boolean(profile && (userRole === "admin" || userRole === "teacher"));
-  
+  const isAdmin =
+    isOnAdminRoute || Boolean(profile && (userRole === "admin" || userRole === "teacher"));
+
   // Логирование для диагностики
   useEffect(() => {
     console.log("[Navigation] Auth state update:", {
@@ -96,7 +94,7 @@ function useNavigationAuth() {
       pathname,
       loading,
     });
-    
+
     if (user && !profile) {
       console.warn("[Navigation] User exists but profile is missing!");
     }
@@ -119,9 +117,7 @@ function useNavigationAuth() {
 
 export function Navigation() {
   const { user, profile, signOut } = useAuth();
-  const pathname = usePathname();
-  const router = useRouter();
-  const { isAuthenticated, showModulesLink, loading, isAdmin, profileLoaded } = useNavigationAuth();
+  const { isAuthenticated, showModulesLink, loading, isAdmin } = useNavigationAuth();
 
   // Функция для получения инициалов - ТОЛЬКО из фамилии и имени (profile.display_name)
   function getInitials(): string {
@@ -185,7 +181,7 @@ export function Navigation() {
                   <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                     <Avatar className="h-10 w-10">
                       <AvatarImage src={profile?.avatar_url ?? undefined} />
-                      <AvatarFallback 
+                      <AvatarFallback
                         key={`${profile?.id || user?.id || "default"}-${profile?.display_name || user?.email || ""}`}
                         className="text-sm font-semibold bg-primary text-primary-foreground"
                       >

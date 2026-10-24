@@ -1,6 +1,6 @@
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { ModuleForm } from "@/components/admin/module-form";
-import { createClient } from "@/lib/supabase/server";
+import { getModule } from "@/lib/appwrite/modules";
 import { requireAdmin } from "@/lib/utils/auth";
 
 export default async function EditModulePage({
@@ -11,13 +11,7 @@ export default async function EditModulePage({
   await requireAdmin();
   const { moduleId } = await params;
 
-  // Загружаем модуль на сервере и передаём в форму, чтобы поля были заполнены сразу
-  const supabase = await createClient();
-  const { data: initialModule } = await supabase
-    .from("modules")
-    .select("*")
-    .eq("id", moduleId)
-    .maybeSingle();
+  const initialModule = await getModule(moduleId);
 
   return (
     <AdminLayout>

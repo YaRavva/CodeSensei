@@ -1,45 +1,37 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
-
-const HF_API_KEY = process.env.HUGGINGFACE_API_KEY;
+import { type NextRequest, NextResponse } from "next/server";
+import {
+  clipForPrompt,
+  createChatCompletion,
+  isOmnirouteConfigured,
+  OMNIROUTE_MAX_OUTPUT_TOKENS,
+  OmnirouteError,
+} from "@/lib/ai/omniroute";
+import { requireApiAdmin } from "@/lib/appwrite/api";
+import { logGeneration } from "@/lib/utils/rate-limit";
 
 export async function POST(request: NextRequest) {
   try {
-    // Проверка аутентификации и прав админа/учителя
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    // Проверка роли через RPC функцию
-    const { data: userRole, error: roleError } = await (supabase.rpc as any)("get_user_role", {
-      user_id: user.id,
-    });
-
-    const role = typeof userRole === "string" ? userRole : String(userRole ?? "");
-
-    if (roleError || (role !== "admin" && role !== "teacher")) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    const auth = await requireApiAdmin();
+    if (!auth.ok) return auth.response;
+    const userId = auth.userId;
 
     // Проверка rate limit
-    const { checkRateLimit, logGeneration } = await import("@/lib/utils/rate-limit");
-    const rateLimitCheck = await checkRateLimit(user.id, "task");
+    const { checkRateLimit } = await import("@/lib/utils/rate-limit");
+    const rateLimitCheck = await checkRateLimit(userId, "task");
     if (!rateLimitCheck.canGenerate) {
       return NextResponse.json(
-        { error: rateLimitCheck.error || "Rate limit exceeded", remaining: rateLimitCheck.remaining },
+        {
+          error: rateLimitCheck.error || "Rate limit exceeded",
+          remaining: rateLimitCheck.remaining,
+        },
         { status: 429 }
       );
     }
 
-    // Проверка наличия API ключа
-    if (!HF_API_KEY) {
+    // Проверка наличия конфигурации Omniroute
+    if (!isOmnirouteConfigured()) {
       return NextResponse.json(
-        { error: "Hugging Face API key is not configured" },
+        { error: "Omniroute не настроен: задайте OMNIROUTE_BASE_URL и OMNIROUTE_API_KEY" },
         { status: 500 }
       );
     }
@@ -63,7 +55,7 @@ export async function POST(request: NextRequest) {
 
 **Контекст:**
 - Сложность задания: ${difficultyNames[difficulty] ?? "среднее"}
-${lessonTheory ? `- Теория урока (для контекста):\n${lessonTheory.substring(0, 500)}...` : ""}
+${lessonTheory ? `- Теория урока (для контекста):\n${clipForPrompt(lessonTheory)}` : ""}
 
 **Требования к ответу:**
 
@@ -103,7 +95,7 @@ ${lessonTheory ? `- Теория урока (для контекста):\n${less
     { "name": "Крайние случаи", "weight": 0.2, "criteria": "Учитывает пустые/некорректные входы, большие значения" },
     { "name": "Стиль и читаемость", "weight": 0.2, "criteria": "Понятные имена, простота, отсутствие лишней сложности" }
   ],
-  "eval_prompt": "Ты проверяешь решение ученика. Дай краткий отзыв (3-5 предложений) и числовую оценку 0..1 согласно rubric. Верни JSON {\"score\": number, \"feedback\": string}."
+  "eval_prompt": "Ты проверяешь решение ученика. Дай краткий отзыв (3-5 предложений) и числовую оценку 0..1 согласно rubric. Верни JSON {"score": number, "feedback": string}."
 }
 
 **Правила:**
@@ -129,15 +121,11 @@ ${lessonTheory ? `- Теория урока (для контекста):\n${less
 
 **Важно:** Возвращай ТОЛЬКО валидный JSON, без markdown разметки`;
 
-    // Единый вызов только к openai/gpt-oss-20b через общий chat completions endpoint
-    const response = await fetch("https://router.huggingface.co/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${HF_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "openai/gpt-oss-20b",
+    // Генерация через Omniroute (OpenAI-совместимый chat completions)
+    let generatedText = "";
+
+    try {
+      const completion = await createChatCompletion({
         messages: [
           {
             role: "user",
@@ -145,23 +133,15 @@ ${lessonTheory ? `- Теория урока (для контекста):\n${less
           },
         ],
         temperature: 0.7,
-        max_tokens: 4000,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      return NextResponse.json(
-        {
-          error: `Hugging Face API error: ${response.status} ${response.statusText}`,
-          details: errorText.substring(0, 1000),
-        },
-        { status: response.status }
-      );
+        maxTokens: OMNIROUTE_MAX_OUTPUT_TOKENS,
+      });
+      generatedText = completion.content;
+    } catch (error) {
+      if (error instanceof OmnirouteError) {
+        return NextResponse.json({ error: error.message, details: error.details }, { status: 502 });
+      }
+      throw error;
     }
-
-    const data = await response.json();
-    const generatedText = data.choices?.[0]?.message?.content || "";
 
     if (!generatedText) {
       return NextResponse.json({ error: "Empty response from AI" }, { status: 500 });
@@ -189,7 +169,7 @@ ${lessonTheory ? `- Теория урока (для контекста):\n${less
     }
 
     // Логируем успешную генерацию
-    await logGeneration(user.id, "task");
+    await logGeneration(userId, "task");
 
     return NextResponse.json({
       success: true,
@@ -246,9 +226,7 @@ function tryFixJson(jsonText: string): any {
         JSON.parse(testStr);
         lastValidIndex = i + 1;
         break;
-      } catch {
-        continue;
-      }
+      } catch {}
     }
 
     fixed = fixed.substring(0, lastValidIndex);
@@ -261,4 +239,3 @@ function tryFixJson(jsonText: string): any {
     throw new Error("Failed to parse AI response as JSON");
   }
 }
-

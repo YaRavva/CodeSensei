@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +16,6 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
 
 export type TestCase = {
   id: string;
@@ -59,7 +59,7 @@ export function TestCasesEditor({ testCases, onChange, disabled }: TestCasesEdit
     try {
       const parsed = JSON.parse(inputStr || "{}");
       updateTestCase(id, { input: parsed });
-    } catch (error) {
+    } catch {
       toast({
         title: "Ошибка JSON",
         description: "Неверный формат JSON",
@@ -72,7 +72,7 @@ export function TestCasesEditor({ testCases, onChange, disabled }: TestCasesEdit
     try {
       const parsed = JSON.parse(outputStr || '""');
       updateTestCase(id, { expected_output: parsed });
-    } catch (error) {
+    } catch {
       // Если не JSON, сохраняем как строку
       updateTestCase(id, { expected_output: outputStr });
     }

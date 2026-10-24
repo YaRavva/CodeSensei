@@ -1,15 +1,13 @@
+import Link from "next/link";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { ModulesList } from "@/components/admin/modules-list";
 import { Button } from "@/components/ui/button";
+import { listAllModules } from "@/lib/appwrite/modules";
 import { requireAdmin } from "@/lib/utils/auth";
-import Link from "next/link";
 
 export default async function AdminModulesPage() {
-  const { supabase } = await requireAdmin();
-  const { data: modules } = await supabase
-    .from("modules")
-    .select("*")
-    .order("order_index", { ascending: true });
+  await requireAdmin();
+  const modules = await listAllModules();
 
   return (
     <AdminLayout>
@@ -19,7 +17,7 @@ export default async function AdminModulesPage() {
           <Link href="/admin/modules/new">Создать модуль</Link>
         </Button>
       </div>
-      <ModulesList initialModules={modules ?? []} />
+      <ModulesList initialModules={modules} />
     </AdminLayout>
   );
 }

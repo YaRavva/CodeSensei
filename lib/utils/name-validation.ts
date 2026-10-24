@@ -54,4 +54,3 @@ export function getNameValidationError(name: string | null | undefined): string 
 
   return "";
 }
-

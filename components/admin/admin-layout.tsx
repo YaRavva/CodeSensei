@@ -1,10 +1,10 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { useAuth } from "@/components/auth/auth-provider";
 import { useEffect } from "react";
+import { useAuth } from "@/components/auth/auth-provider";
+import { Button } from "@/components/ui/button";
 
 export function AdminLayout({ children }: { children: ReactNode }) {
   const { user, profile, refreshProfile } = useAuth();
@@ -18,7 +18,10 @@ export function AdminLayout({ children }: { children: ReactNode }) {
         console.error("[AdminLayout] Error refreshing profile:", err);
       });
     } else if (user && profile) {
-      console.log("[AdminLayout] Profile loaded:", { role: profile.role, display_name: profile.display_name });
+      console.log("[AdminLayout] Profile loaded:", {
+        role: profile.role,
+        display_name: profile.display_name,
+      });
     }
   }, [user, profile, refreshProfile]);
 

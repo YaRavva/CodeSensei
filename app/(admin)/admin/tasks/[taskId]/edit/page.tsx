@@ -2,11 +2,7 @@ import { AdminLayout } from "@/components/admin/admin-layout";
 import { TaskForm } from "@/components/admin/task-form";
 import { requireAdmin } from "@/lib/utils/auth";
 
-export default async function EditTaskPage({
-  params,
-}: {
-  params: Promise<{ taskId: string }>;
-}) {
+export default async function EditTaskPage({ params }: { params: Promise<{ taskId: string }> }) {
   await requireAdmin();
   const { taskId } = await params;
 

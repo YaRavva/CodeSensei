@@ -1,25 +1,14 @@
 "use client";
 
-import { calculateLevelProgress } from "@/lib/utils/levels";
-import type { Database } from "@/types/supabase";
+import { AchievementsList } from "@/components/achievements/achievements-list";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { AchievementsList } from "@/components/achievements/achievements-list";
+import { calculateLevelProgress } from "@/lib/utils/levels";
+import type { Achievement, Database } from "@/types/db";
 
 type UserProfile = Database["public"]["Tables"]["users"]["Row"];
-type UserAchievementView = {
-  id: string;
-  title: string;
-  description: string;
-  icon_name: string;
-  xp_reward: number;
-  condition_type: string;
-  condition_value: any;
-  is_active: boolean;
-  created_at: string;
-  earned_at: string;
-};
+type UserAchievementView = Achievement & { earned_at: string };
 
 interface DashboardStats {
   totalXp: number;
@@ -81,9 +70,7 @@ export function DashboardContent({ profile, stats, achievements }: DashboardCont
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.successfulAttempts}</div>
-            <p className="text-xs text-muted-foreground">
-              из {stats.totalAttempts} попыток
-            </p>
+            <p className="text-xs text-muted-foreground">из {stats.totalAttempts} попыток</p>
           </CardContent>
         </Card>
 
@@ -114,8 +101,8 @@ export function DashboardContent({ profile, stats, achievements }: DashboardCont
             </div>
             <Progress value={levelProgress.progress} className="h-2" />
             <p className="text-xs text-muted-foreground">
-              Осталось {levelProgress.xpNeededForNext - levelProgress.xpInCurrentLevel} XP до
-              уровня {stats.currentLevel + 1}
+              Осталось {levelProgress.xpNeededForNext - levelProgress.xpInCurrentLevel} XP до уровня{" "}
+              {stats.currentLevel + 1}
             </p>
           </div>
         </CardContent>
@@ -146,7 +133,9 @@ export function DashboardContent({ profile, stats, achievements }: DashboardCont
             )}
             {stats.avgExecutionTime > 0 && (
               <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">Среднее время выполнения кода:</span>
+                <span className="text-sm text-muted-foreground">
+                  Среднее время выполнения кода:
+                </span>
                 <span className="font-medium">{stats.avgExecutionTime} мс</span>
               </div>
             )}
@@ -157,18 +146,15 @@ export function DashboardContent({ profile, stats, achievements }: DashboardCont
                   {stats.avgSolvingTime >= 60000
                     ? `${Math.round(stats.avgSolvingTime / 60000)} мин ${Math.round((stats.avgSolvingTime % 60000) / 1000)} сек`
                     : stats.avgSolvingTime >= 1000
-                    ? `${Math.round(stats.avgSolvingTime / 1000)} сек`
-                    : `${stats.avgSolvingTime} мс`}
+                      ? `${Math.round(stats.avgSolvingTime / 1000)} сек`
+                      : `${stats.avgSolvingTime} мс`}
                 </span>
               </div>
             )}
           </CardContent>
         </Card>
-        {profile && (
-          <AchievementsList userId={profile.id} initialAchievements={achievements ?? []} />
-        )}
+        {profile && <AchievementsList initialAchievements={achievements ?? []} />}
       </div>
     </div>
   );
 }
-

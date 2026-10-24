@@ -7,7 +7,7 @@ export default async function NewModulePage() {
 
   return (
     <AdminLayout>
-      <ModuleForm createdByUserId={user.id} />
+      <ModuleForm createdByUserId={user.$id} />
     </AdminLayout>
   );
 }

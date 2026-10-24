@@ -1,51 +1,63 @@
-import { createClient } from "@/lib/supabase/server";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import type { Database } from "@/types/supabase";
+import type { Models } from "node-appwrite";
+import { getSessionAccount } from "@/lib/appwrite/client";
+import { SESSION_COOKIE } from "@/lib/appwrite/config";
+import { ensureUserProfile, getUserProfile, touchLastActive } from "@/lib/appwrite/users";
+import type { UserProfile } from "@/types/db";
 
-type UserProfile = Database["public"]["Tables"]["users"]["Row"];
-
-/**
- * Проверяет, авторизован ли пользователь
- */
-export async function requireAuth() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    redirect("/login");
-  }
-
-  // Загружаем профиль пользователя
-  const { data: profile } = await supabase
-    .from("users")
-    .select("*")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  return { user, profile: (profile as UserProfile | null) ?? null, supabase };
+export interface AuthContext {
+  user: Models.User;
+  profile: UserProfile;
 }
 
-/**
- * Проверяет, является ли пользователь админом или учителем
- */
-export async function requireAdmin() {
-  const { user, profile: profileData, supabase } = await requireAuth();
+export async function getSessionSecret(): Promise<string | null> {
+  const store = await cookies();
+  return store.get(SESSION_COOKIE)?.value ?? null;
+}
 
-  // Проверяем роль пользователя
-  if (!profileData) {
+export async function getCurrentAccount(): Promise<Models.User | null> {
+  const secret = await getSessionSecret();
+  if (!secret) return null;
+
+  try {
+    return await getSessionAccount(secret).get();
+  } catch {
+    return null;
+  }
+}
+
+/** Returns the current user and profile, or null for anonymous requests (API routes). */
+export async function getAuthContext(): Promise<AuthContext | null> {
+  const user = await getCurrentAccount();
+  if (!user) return null;
+
+  const profile = await ensureUserProfile(user);
+  return { user, profile };
+}
+
+/** Server components: redirects unauthenticated users to /login. */
+export async function requireAuth(): Promise<AuthContext> {
+  const context = await getAuthContext();
+
+  if (!context) {
     redirect("/login");
   }
 
-  // Явно приводим тип профиля для TypeScript
-  const profile = profileData as UserProfile;
-  const role: string = profile.role;
-  
-  if (role !== "admin" && role !== "teacher") {
-    // Редиректим на главную страницу, если нет прав доступа
+  await touchLastActive(context.user.$id);
+
+  return context;
+}
+
+/** Server components: requires the admin or teacher role. */
+export async function requireAdmin(): Promise<AuthContext> {
+  const context = await requireAuth();
+
+  if (context.profile.role !== "admin" && context.profile.role !== "teacher") {
     redirect("/modules");
   }
 
-  return { user, profile, supabase };
+  return context;
 }
+
+export { getUserProfile };

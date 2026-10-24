@@ -1,9 +1,8 @@
 "use client";
 
-import { Editor } from "@monaco-editor/react";
-import { loader } from "@monaco-editor/react";
-import { useTheme } from "@/components/theme-provider";
+import { Editor, loader } from "@monaco-editor/react";
 import { useEffect, useState } from "react";
+import { useTheme } from "@/components/theme-provider";
 
 interface CodeEditorProps {
   value: string;
@@ -26,7 +25,7 @@ if (typeof window !== "undefined") {
   const originalRequire = (window as any).require;
   if (originalRequire && originalRequire.config) {
     const originalRequireFunc = originalRequire;
-    (window as any).require = function (deps: string[], callback?: Function, errback?: Function) {
+    (window as any).require = (deps: string[], callback?: Function, errback?: Function) => {
       // Фильтруем проблемные модули
       const filteredDeps = deps.filter(
         (dep) =>
@@ -77,8 +76,8 @@ export function CodeEditor({
     console.error = (...args: any[]) => {
       const message = args.join(" ");
       if (
-        message.includes("Loading \"stackframe\" failed") ||
-        message.includes("Loading \"error-stack-parser\" failed") ||
+        message.includes('Loading "stackframe" failed') ||
+        message.includes('Loading "error-stack-parser" failed') ||
         message.includes("error-stack-parser") ||
         message.includes("stackframe")
       ) {
@@ -97,19 +96,14 @@ export function CodeEditor({
   const getEditorTheme = () => {
     if (!mounted) return "vs-dark";
     if (theme === "system") {
-      return window.matchMedia("(prefers-color-scheme: dark)").matches
-        ? "vs-dark"
-        : "light";
+      return window.matchMedia("(prefers-color-scheme: dark)").matches ? "vs-dark" : "light";
     }
     return theme === "dark" ? "vs-dark" : "light";
   };
 
   if (!mounted) {
     return (
-      <div
-        className={`border rounded-md bg-muted ${className}`}
-        style={{ height }}
-      >
+      <div className={`border rounded-md bg-muted ${className}`} style={{ height }}>
         <div className="flex items-center justify-center h-full text-muted-foreground">
           Загрузка редактора...
         </div>
@@ -150,4 +144,3 @@ export function CodeEditor({
     </div>
   );
 }
-

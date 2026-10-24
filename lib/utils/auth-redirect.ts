@@ -1,30 +1,25 @@
 import { redirect } from "next/navigation";
+import type { UserProfile } from "@/types/db";
 import { isValidRussianName } from "./name-validation";
-import type { Database } from "@/types/supabase";
-
-type UserProfile = Database["public"]["Tables"]["users"]["Row"];
 
 /**
- * Проверяет валидность имени пользователя и редиректит на /profile, если имя невалидно
- * @param profile Профиль пользователя
- * @returns true если имя валидно, false если нужно редиректить (редирект уже выполнен)
+ * Redirects to /profile when the display name does not match the required format.
  */
 export function checkNameAndRedirect(profile: UserProfile | null): boolean {
   if (!isValidRussianName(profile?.display_name)) {
     redirect("/profile");
   }
+
   return true;
 }
 
 /**
- * Определяет целевой маршрут после аутентификации на основе валидности имени
- * @param profile Профиль пользователя
- * @returns Маршрут для редиректа
+ * Chooses the landing route after authentication based on name validity.
  */
 export function getPostAuthRedirect(profile: UserProfile | null): string {
   if (!isValidRussianName(profile?.display_name)) {
     return "/profile";
   }
+
   return "/modules";
 }
-

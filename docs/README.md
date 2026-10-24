@@ -11,6 +11,10 @@
 1. **[PRD.md](./PRD.md)** - **Product Requirements Document (Начните с этого!)**  
    Итоговое техническое задание со всеми уточненными требованиями, системой XP, форматами данных и планом разработки.
 
+   > Бэкенд проекта переведён с Supabase на self-hosted Appwrite. Актуальная
+   > схема, переменные окружения и инструкции по развёртыванию — в
+   > **[APPWRITE.md](./APPWRITE.md)**.
+
 2. **[SUMMARY.md](./SUMMARY.md)** - Краткое резюме анализа ТЗ  
    Быстрый обзор найденных проблем и рекомендаций.
 
@@ -67,10 +71,10 @@
 - Начинающие с Python
 
 ### Технологический стек
-- **Frontend:** Next.js 14+ (App Router), TypeScript, React, shadcn/ui, Tailwind CSS
+- **Frontend:** Next.js 16 (App Router), TypeScript, React 19, shadcn/ui, Tailwind CSS 4
 - **Код:** Pyodide (WebAssembly в браузере)
-- **Backend:** Vercel + Supabase (PostgreSQL)
-- **AI:** Hugging Face Inference API
+- **Backend:** self-hosted Appwrite 1.9 (Auth + TablesDB, см. [APPWRITE.md](./APPWRITE.md)), деплой на Vercel
+- **AI:** Omniroute (OpenAI-совместимый шлюз, модель `antigravity/gemini-3-flash`)
 
 ### Обновления (админский CRUD, аутентификация, AI)
 - Серверные эндпоинты для админского CRUD модулей:
@@ -82,7 +86,7 @@
   - После входа — синхронизация httpOnly-куки через `POST /api/auth/set-session`.
   - Выход — через `POST /api/auth/signout` (чистит серверные куки) + клиентский signOut.
 - Генерация AI:
-  - Используется одна модель: `openai/gpt-oss-20b` через `https://router.huggingface.co/v1/chat/completions`.
+  - Используется Omniroute (`OMNIROUTE_BASE_URL` + `OMNIROUTE_MODEL`, по умолчанию `antigravity/gemini-3-flash`).
   - Устойчивый парсинг JSON-ответов и мягкий фолбэк на текст при ошибке парсинга.
 
 ### Система XP

@@ -1,17 +1,21 @@
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 
-const HF_API_KEY = process.env.HUGGINGFACE_API_KEY;
+import { type NextRequest, NextResponse } from "next/server";
+import {
+  clipForPrompt,
+  createChatCompletion,
+  isOmnirouteConfigured,
+  OMNIROUTE_MAX_OUTPUT_TOKENS,
+  OmnirouteError,
+} from "@/lib/ai/omniroute";
+import { getTask } from "@/lib/appwrite/tasks";
+import { getAuthContext } from "@/lib/utils/auth";
 
 export async function POST(req: NextRequest) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const context = await getAuthContext();
+    if (!context) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await req.json();
     const { taskId, code } = body || {};
@@ -20,45 +24,49 @@ export async function POST(req: NextRequest) {
     // Rate limit (простая заглушка — можно расширить позднее)
     // Здесь можно подключить lib/utils/rate-limit
 
-    const { data: task } = await supabase
-      .from("tasks")
-      .select("title, description")
-      .eq("id", taskId)
-      .maybeSingle();
+    const task = await getTask(String(taskId));
 
     const typedTask = task as { title: string; description: string } | null;
-    const prompt = `Ты наставник по Python. Дай поэтапную подсказку (не решение) к задаче. Структура JSON: {\"type\": \"concept\"|\"edge_case\"|\"debug\", \"hint\": string, \"steps\": string[]}.
+    const prompt = `Ты наставник по Python. Дай поэтапную подсказку (не решение) к задаче. Структура JSON: {"type": "concept"|"edge_case"|"debug", "hint": string, "steps": string[]}.
 Задача: ${typedTask?.title ?? "Без названия"}
-Описание: ${(typedTask?.description ?? "").slice(0, 1000)}
-Код ученика (может быть пустым):\n${(code ?? "").slice(0, 1200)}`;
+Описание: ${clipForPrompt(typedTask?.description ?? "")}
+Код ученика (может быть пустым):\n${clipForPrompt(code ?? "")}`;
 
-    if (!HF_API_KEY) return NextResponse.json({ error: "Hugging Face API key is not configured" }, { status: 500 });
+    if (!isOmnirouteConfigured())
+      return NextResponse.json(
+        { error: "Omniroute не настроен: задайте OMNIROUTE_BASE_URL и OMNIROUTE_API_KEY" },
+        { status: 500 }
+      );
 
-    const response = await fetch("https://router.huggingface.co/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${HF_API_KEY}`,
-      },
-      body: JSON.stringify({ model: "openai/gpt-oss-20b", messages: [{ role: "user", content: prompt }], temperature: 0.4, max_tokens: 600 }),
-    });
-    if (!response.ok) {
-      const err = await response.text();
-      return NextResponse.json({ error: `HF error ${response.status}`, details: err.slice(0, 1000) }, { status: 502 });
+    let content = "";
+
+    try {
+      const completion = await createChatCompletion({
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.4,
+        maxTokens: OMNIROUTE_MAX_OUTPUT_TOKENS,
+      });
+      content = completion.content.trim();
+    } catch (error) {
+      if (error instanceof OmnirouteError) {
+        return NextResponse.json({ error: error.message, details: error.details }, { status: 502 });
+      }
+      throw error;
     }
-    const data = await response.json();
-    let content = data.choices?.[0]?.message?.content?.trim() || "";
-    if (content.startsWith("```")) content = content.replace(/^```[a-zA-Z]*\n?/, "").replace(/```$/, "");
+
+    if (content.startsWith("```"))
+      content = content.replace(/^```[a-zA-Z]*\n?/, "").replace(/```$/, "");
     let parsed: any = null;
     try {
       parsed = JSON.parse(content);
     } catch {
-      parsed = { type: "concept", hint: content.slice(0, 400), steps: [] };
+      parsed = { type: "concept", hint: content.slice(0, 2000), steps: [] };
     }
     return NextResponse.json({ success: true, hint: parsed });
   } catch (e) {
-    return NextResponse.json({ error: e instanceof Error ? e.message : "Unknown error" }, { status: 500 });
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "Unknown error" },
+      { status: 500 }
+    );
   }
 }
-
-

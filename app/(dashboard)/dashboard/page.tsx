@@ -1,56 +1,47 @@
-import { requireAuth } from "@/lib/utils/auth";
-import { createClient } from "@/lib/supabase/server";
 import { DashboardContent } from "@/components/dashboard/dashboard-content";
+import { listAttemptsByUser } from "@/lib/appwrite/attempts";
+import { listUserProgress } from "@/lib/appwrite/progress";
 import { getUserAchievements } from "@/lib/utils/achievements";
-import type { Database } from "@/types/supabase";
-
-type UserProfile = Database["public"]["Tables"]["users"]["Row"];
+import { requireAuth } from "@/lib/utils/auth";
 
 export default async function DashboardPage() {
-  const { user, profile, supabase } = await requireAuth();
-  const typedProfile = profile as UserProfile | null;
+  const { user, profile } = await requireAuth();
 
-  // Получаем статистику пользователя
-  const { data: progressData } = await supabase
-    .from("user_progress")
-    .select("*")
-    .eq("user_id", user.id);
+  const [progress, attempts, achievements] = await Promise.all([
+    listUserProgress(user.$id),
+    listAttemptsByUser(user.$id),
+    getUserAchievements(user.$id),
+  ]);
 
-  const { data: attemptsData } = await supabase
-    .from("task_attempts")
-    .select("is_successful, execution_time_ms, solving_time_ms, created_at")
-    .eq("user_id", user.id);
+  const completedLessons = progress.filter((item) => item.status === "completed").length;
+  const successfulAttempts = attempts.filter((attempt) => attempt.is_successful).length;
+  const totalAttempts = attempts.length;
 
-  // Подсчитываем статистику
-  const completedLessons = progressData?.filter((p: any) => p.status === "completed").length ?? 0;
-  const successfulAttempts = attemptsData?.filter((a: any) => a.is_successful).length ?? 0;
-  const totalAttempts = attemptsData?.length ?? 0;
   const avgExecutionTime =
-    attemptsData && attemptsData.length > 0
+    attempts.length > 0
       ? Math.round(
-          attemptsData.reduce((sum, a: any) => sum + (a.execution_time_ms ?? 0), 0) /
-            attemptsData.length
+          attempts.reduce((sum, attempt) => sum + (attempt.execution_time_ms ?? 0), 0) /
+            attempts.length
         )
       : 0;
-  
-  // Среднее время решения (только попытки с solving_time_ms)
-  const attemptsWithSolvingTime = attemptsData?.filter((a: any) => a.solving_time_ms != null) ?? [];
+
+  const attemptsWithSolvingTime = attempts.filter((attempt) => attempt.solving_time_ms != null);
   const avgSolvingTime =
     attemptsWithSolvingTime.length > 0
       ? Math.round(
-          attemptsWithSolvingTime.reduce((sum, a: any) => sum + (a.solving_time_ms ?? 0), 0) /
-            attemptsWithSolvingTime.length
+          attemptsWithSolvingTime.reduce(
+            (sum, attempt) => sum + (attempt.solving_time_ms ?? 0),
+            0
+          ) / attemptsWithSolvingTime.length
         )
       : 0;
 
-  const achievements = await getUserAchievements(supabase, user.id);
-
   return (
     <DashboardContent
-      profile={typedProfile}
+      profile={profile}
       stats={{
-        totalXp: typedProfile?.total_xp ?? 0,
-        currentLevel: typedProfile?.current_level ?? 1,
+        totalXp: profile.total_xp,
+        currentLevel: profile.current_level,
         completedLessons,
         successfulAttempts,
         totalAttempts,
@@ -61,4 +52,3 @@ export default async function DashboardPage() {
     />
   );
 }
-

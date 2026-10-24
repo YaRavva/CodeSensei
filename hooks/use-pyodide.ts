@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 
-// Более точные типы для Pyodide
+// Р‘РѕР»РµРµ С‚РѕС‡РЅС‹Рµ С‚РёРїС‹ РґР»СЏ Pyodide
 interface Pyodide {
   runPython: (code: string) => any;
   runPythonAsync: (code: string) => Promise<any>;
@@ -29,20 +29,21 @@ async function loadPyodide(): Promise<Pyodide> {
   }
 
   loadPromise = (async () => {
-    // Динамический импорт Pyodide (только на клиенте)
+    // Р”РёРЅР°РјРёС‡РµСЃРєРёР№ РёРјРїРѕСЂС‚ Pyodide (С‚РѕР»СЊРєРѕ РЅР° РєР»РёРµРЅС‚Рµ)
     if (typeof window === "undefined") {
-      throw new Error("Pyodide может быть загружен только на клиенте");
+      throw new Error(
+        "Pyodide РјРѕР¶РµС‚ Р±С‹С‚СЊ Р·Р°РіСЂСѓР¶РµРЅ С‚РѕР»СЊРєРѕ РЅР° РєР»РёРµРЅС‚Рµ"
+      );
     }
 
     try {
-      // Проверяем, загружен ли уже Pyodide
-      if (typeof window.loadPyodide === 'function') {
-        // @ts-ignore
+      // РџСЂРѕРІРµСЂСЏРµРј, Р·Р°РіСЂСѓР¶РµРЅ Р»Рё СѓР¶Рµ Pyodide
+      if (typeof window.loadPyodide === "function") {
         const pyodideInstance = await window.loadPyodide({
-          indexURL: "https://cdn.jsdelivr.net/pyodide/v0.25.0/full/",
+          indexURL: "https://cdn.jsdelivr.net/pyodide/v314.0.7/full/",
         });
 
-        // Настраиваем перехват print() для получения вывода
+        // РќР°СЃС‚СЂР°РёРІР°РµРј РїРµСЂРµС…РІР°С‚ print() РґР»СЏ РїРѕР»СѓС‡РµРЅРёСЏ РІС‹РІРѕРґР°
         pyodideInstance.runPython(`
 import sys
 from io import StringIO
@@ -72,27 +73,29 @@ sys.stdout = _stdout_capture
         return pyodideInstance;
       }
 
-      // Загружаем Pyodide напрямую с CDN
-      const script = document.createElement('script');
-      script.src = 'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js';
+      // Р—Р°РіСЂСѓР¶Р°РµРј Pyodide РЅР°РїСЂСЏРјСѓСЋ СЃ CDN
+      const script = document.createElement("script");
+      script.src = "https://cdn.jsdelivr.net/pyodide/v314.0.7/full/pyodide.js";
       script.async = true;
-      script.setAttribute('data-pyodide-base-url', 'https://cdn.jsdelivr.net/pyodide/v0.25.0/full/'); // Добавляем этот атрибут
-      
+      script.setAttribute(
+        "data-pyodide-base-url",
+        "https://cdn.jsdelivr.net/pyodide/v314.0.7/full/"
+      ); // Р”РѕР±Р°РІР»СЏРµРј СЌС‚РѕС‚ Р°С‚СЂРёР±СѓС‚
+
       const loadPromise = new Promise<void>((resolve, reject) => {
         script.onload = () => resolve();
-        script.onerror = () => reject(new Error('Failed to load Pyodide script'));
-      });
-      
-      document.head.appendChild(script);
-      await loadPromise;
-      
-      // Теперь получаем доступ к глобальному объекту loadPyodide
-      // @ts-ignore
-      const pyodideInstance = await window.loadPyodide({
-        indexURL: "https://cdn.jsdelivr.net/pyodide/v0.25.0/full/",
+        script.onerror = () => reject(new Error("Failed to load Pyodide script"));
       });
 
-      // Настраиваем перехват print() для получения вывода
+      document.head.appendChild(script);
+      await loadPromise;
+
+      // РўРµРїРµСЂСЊ РїРѕР»СѓС‡Р°РµРј РґРѕСЃС‚СѓРї Рє РіР»РѕР±Р°Р»СЊРЅРѕРјСѓ РѕР±СЉРµРєС‚Сѓ loadPyodide
+      const pyodideInstance = await window.loadPyodide({
+        indexURL: "https://cdn.jsdelivr.net/pyodide/v314.0.7/full/",
+      });
+
+      // РќР°СЃС‚СЂР°РёРІР°РµРј РїРµСЂРµС…РІР°С‚ print() РґР»СЏ РїРѕР»СѓС‡РµРЅРёСЏ РІС‹РІРѕРґР°
       pyodideInstance.runPython(`
 import sys
 from io import StringIO
@@ -122,7 +125,9 @@ sys.stdout = _stdout_capture
       return pyodideInstance;
     } catch (error) {
       console.error("Error loading Pyodide:", error);
-      throw new Error(`Failed to load Pyodide: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Failed to load Pyodide: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   })();
 
@@ -133,7 +138,10 @@ interface UsePyodideReturn {
   pyodide: Pyodide | null;
   loading: boolean;
   error: Error | null;
-  executeCode: (code: string, timeout?: number) => Promise<{
+  executeCode: (
+    code: string,
+    timeout?: number
+  ) => Promise<{
     output: string;
     error: string | null;
     executionTime: number;
@@ -176,53 +184,56 @@ export function usePyodide(): UsePyodideReturn {
       executionTime: number;
     }> => {
       if (!pyodide) {
-        throw new Error("Pyodide не загружен");
+        throw new Error("Pyodide РЅРµ Р·Р°РіСЂСѓР¶РµРЅ");
       }
 
       const startTime = Date.now();
 
       try {
-        // Сбрасываем буфер вывода и очищаем предыдущие ошибки
+        // РЎР±СЂР°СЃС‹РІР°РµРј Р±СѓС„РµСЂ РІС‹РІРѕРґР° Рё РѕС‡РёС‰Р°РµРј РїСЂРµРґС‹РґСѓС‰РёРµ РѕС€РёР±РєРё
         try {
           pyodide.runPython("_stdout_capture.reset()");
         } catch {
-          // Игнорируем ошибки при сбросе буфера
+          // РРіРЅРѕСЂРёСЂСѓРµРј РѕС€РёР±РєРё РїСЂРё СЃР±СЂРѕСЃРµ Р±СѓС„РµСЂР°
         }
 
-        // Очищаем возможные остаточные переменные из предыдущих выполнений
+        // РћС‡РёС‰Р°РµРј РІРѕР·РјРѕР¶РЅС‹Рµ РѕСЃС‚Р°С‚РѕС‡РЅС‹Рµ РїРµСЂРµРјРµРЅРЅС‹Рµ РёР· РїСЂРµРґС‹РґСѓС‰РёС… РІС‹РїРѕР»РЅРµРЅРёР№
         try {
           pyodide.runPython(`
 try:
-    # Очищаем тестовые переменные, если они остались
+    # РћС‡РёС‰Р°РµРј С‚РµСЃС‚РѕРІС‹Рµ РїРµСЂРµРјРµРЅРЅС‹Рµ, РµСЃР»Рё РѕРЅРё РѕСЃС‚Р°Р»РёСЃСЊ
     del _test_result, _test_passed, _test_error, _test_expected, _test_compare
 except:
     pass
 `);
         } catch {
-          // Игнорируем ошибки при очистке
+          // РРіРЅРѕСЂРёСЂСѓРµРј РѕС€РёР±РєРё РїСЂРё РѕС‡РёСЃС‚РєРµ
         }
 
-        // Создаем промис для выполнения кода с timeout
+        // РЎРѕР·РґР°РµРј РїСЂРѕРјРёСЃ РґР»СЏ РІС‹РїРѕР»РЅРµРЅРёСЏ РєРѕРґР° СЃ timeout
         const executionPromise = pyodide.runPythonAsync(code);
 
-        // Создаем промис для timeout
+        // РЎРѕР·РґР°РµРј РїСЂРѕРјРёСЃ РґР»СЏ timeout
         const timeoutPromise = new Promise<never>((_, reject) => {
           setTimeout(
-            () => reject(new Error("Превышено время выполнения (10 секунд)")),
+            () =>
+              reject(
+                new Error("РџСЂРµРІС‹С€РµРЅРѕ РІСЂРµРјСЏ РІС‹РїРѕР»РЅРµРЅРёСЏ (10 СЃРµРєСѓРЅРґ)")
+              ),
             timeout
           );
         });
 
-        // Ждем выполнения или timeout
+        // Р–РґРµРј РІС‹РїРѕР»РЅРµРЅРёСЏ РёР»Рё timeout
         await Promise.race([executionPromise, timeoutPromise]);
 
-        // Получаем вывод из stdout
+        // РџРѕР»СѓС‡Р°РµРј РІС‹РІРѕРґ РёР· stdout
         let output = "";
         try {
           const outputResult = pyodide.runPython("_stdout_capture.getvalue()");
           output = outputResult !== null && outputResult !== undefined ? String(outputResult) : "";
         } catch {
-          // Если не удалось получить вывод, оставляем пустым
+          // Р•СЃР»Рё РЅРµ СѓРґР°Р»РѕСЃСЊ РїРѕР»СѓС‡РёС‚СЊ РІС‹РІРѕРґ, РѕСЃС‚Р°РІР»СЏРµРј РїСѓСЃС‚С‹Рј
         }
 
         const executionTime = Date.now() - startTime;
@@ -234,55 +245,56 @@ except:
         };
       } catch (err) {
         const executionTime = Date.now() - startTime;
-        
-        // Улучшенная обработка ошибок Python
+
+        // РЈР»СѓС‡С€РµРЅРЅР°СЏ РѕР±СЂР°Р±РѕС‚РєР° РѕС€РёР±РѕРє Python
         let errorMessage = "";
-        
+
         if (err instanceof Error) {
           errorMessage = err.message;
-          
-          // Извлекаем более понятное сообщение из traceback Python
-          // Pyodide обычно включает traceback в сообщение об ошибке
-          // Извлекаем последнюю строку с типом ошибки и сообщением
-          const lines = errorMessage.split('\n');
+
+          // РР·РІР»РµРєР°РµРј Р±РѕР»РµРµ РїРѕРЅСЏС‚РЅРѕРµ СЃРѕРѕР±С‰РµРЅРёРµ РёР· traceback Python
+          // Pyodide РѕР±С‹С‡РЅРѕ РІРєР»СЋС‡Р°РµС‚ traceback РІ СЃРѕРѕР±С‰РµРЅРёРµ РѕР± РѕС€РёР±РєРµ
+          // РР·РІР»РµРєР°РµРј РїРѕСЃР»РµРґРЅСЋСЋ СЃС‚СЂРѕРєСѓ СЃ С‚РёРїРѕРј РѕС€РёР±РєРё Рё СЃРѕРѕР±С‰РµРЅРёРµРј
+          const lines = errorMessage.split("\n");
           const errorLine = lines[lines.length - 1] || errorMessage;
-          
-          // Проверяем, есть ли traceback в сообщении
-          const hasTraceback = errorMessage.includes('Traceback');
-          
+
+          // РџСЂРѕРІРµСЂСЏРµРј, РµСЃС‚СЊ Р»Рё traceback РІ СЃРѕРѕР±С‰РµРЅРёРё
+          const hasTraceback = errorMessage.includes("Traceback");
+
           if (hasTraceback || errorLine.trim()) {
-            
-            // Упрощаем сообщение, убирая технические детали
-            if (errorLine.includes('UnboundLocalError')) {
+            // РЈРїСЂРѕС‰Р°РµРј СЃРѕРѕР±С‰РµРЅРёРµ, СѓР±РёСЂР°СЏ С‚РµС…РЅРёС‡РµСЃРєРёРµ РґРµС‚Р°Р»Рё
+            if (errorLine.includes("UnboundLocalError")) {
               const match = errorLine.match(/UnboundLocalError: (.+)/);
-              errorMessage = match ? `Ошибка: ${match[1]}` : errorLine;
-            } else if (errorLine.includes('NameError')) {
+              errorMessage = match ? `РћС€РёР±РєР°: ${match[1]}` : errorLine;
+            } else if (errorLine.includes("NameError")) {
               const match = errorLine.match(/NameError: (.+)/);
-              errorMessage = match ? `Ошибка: ${match[1]}` : errorLine;
-            } else if (errorLine.includes('SyntaxError')) {
+              errorMessage = match ? `РћС€РёР±РєР°: ${match[1]}` : errorLine;
+            } else if (errorLine.includes("SyntaxError")) {
               const match = errorLine.match(/SyntaxError: (.+)/);
-              errorMessage = match ? `Синтаксическая ошибка: ${match[1]}` : errorLine;
-            } else if (errorLine.includes('TypeError')) {
+              errorMessage = match
+                ? `РЎРёРЅС‚Р°РєСЃРёС‡РµСЃРєР°СЏ РѕС€РёР±РєР°: ${match[1]}`
+                : errorLine;
+            } else if (errorLine.includes("TypeError")) {
               const match = errorLine.match(/TypeError: (.+)/);
-              errorMessage = match ? `Ошибка типа: ${match[1]}` : errorLine;
-            } else if (errorLine.includes('IndentationError')) {
+              errorMessage = match ? `РћС€РёР±РєР° С‚РёРїР°: ${match[1]}` : errorLine;
+            } else if (errorLine.includes("IndentationError")) {
               const match = errorLine.match(/IndentationError: (.+)/);
-              errorMessage = match ? `Ошибка отступов: ${match[1]}` : errorLine;
+              errorMessage = match ? `РћС€РёР±РєР° РѕС‚СЃС‚СѓРїРѕРІ: ${match[1]}` : errorLine;
             } else {
-              // Берем последнюю строку traceback как основное сообщение
+              // Р‘РµСЂРµРј РїРѕСЃР»РµРґРЅСЋСЋ СЃС‚СЂРѕРєСѓ traceback РєР°Рє РѕСЃРЅРѕРІРЅРѕРµ СЃРѕРѕР±С‰РµРЅРёРµ
               errorMessage = errorLine.trim();
             }
           } else {
-            // Если нет traceback, используем исходное сообщение
+            // Р•СЃР»Рё РЅРµС‚ traceback, РёСЃРїРѕР»СЊР·СѓРµРј РёСЃС…РѕРґРЅРѕРµ СЃРѕРѕР±С‰РµРЅРёРµ
             errorMessage = errorLine.trim() || errorMessage;
           }
         } else {
           errorMessage = String(err);
         }
 
-        // Очищаем состояние Pyodide после ошибки, чтобы не блокировать следующие выполнения
+        // РћС‡РёС‰Р°РµРј СЃРѕСЃС‚РѕСЏРЅРёРµ Pyodide РїРѕСЃР»Рµ РѕС€РёР±РєРё, С‡С‚РѕР±С‹ РЅРµ Р±Р»РѕРєРёСЂРѕРІР°С‚СЊ СЃР»РµРґСѓСЋС‰РёРµ РІС‹РїРѕР»РЅРµРЅРёСЏ
         try {
-          // Пытаемся очистить возможные глобальные переменные, которые могли остаться
+          // РџС‹С‚Р°РµРјСЃСЏ РѕС‡РёСЃС‚РёС‚СЊ РІРѕР·РјРѕР¶РЅС‹Рµ РіР»РѕР±Р°Р»СЊРЅС‹Рµ РїРµСЂРµРјРµРЅРЅС‹Рµ, РєРѕС‚РѕСЂС‹Рµ РјРѕРіР»Рё РѕСЃС‚Р°С‚СЊСЃСЏ
           pyodide.runPython(`
 try:
     del _test_result, _test_passed, _test_error, _test_expected
@@ -290,12 +302,13 @@ except:
     pass
 `);
         } catch {
-          // Игнорируем ошибки при очистке
+          // РРіРЅРѕСЂРёСЂСѓРµРј РѕС€РёР±РєРё РїСЂРё РѕС‡РёСЃС‚РєРµ
         }
 
         return {
           output: "",
-          error: errorMessage || "Произошла ошибка при выполнении кода",
+          error:
+            errorMessage || "РџСЂРѕРёР·РѕС€Р»Р° РѕС€РёР±РєР° РїСЂРё РІС‹РїРѕР»РЅРµРЅРёРё РєРѕРґР°",
           executionTime,
         };
       }

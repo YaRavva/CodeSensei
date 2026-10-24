@@ -13,15 +13,15 @@ const nextConfig: NextConfig = {
       config.resolve = config.resolve || {};
       config.resolve.alias = {
         ...(config.resolve.alias || {}),
-        'node:child_process': false,
+        "node:child_process": false,
         child_process: false,
-        'node:fs': false,
+        "node:fs": false,
         fs: false,
-        'node:net': false,
+        "node:net": false,
         net: false,
         // Игнорируем загрузку проблемных модулей для Monaco Editor
-        'stackframe': false,
-        'error-stack-parser': false,
+        stackframe: false,
+        "error-stack-parser": false,
       } as any;
       config.resolve.fallback = {
         ...(config.resolve.fallback || {}),
@@ -29,17 +29,17 @@ const nextConfig: NextConfig = {
         fs: false,
         net: false,
         stackframe: false,
-        'error-stack-parser': false,
+        "error-stack-parser": false,
       };
-      
+
       // Добавляем правило для обработки pyodide
       config.externals = [
         ...(Array.isArray(config.externals) ? config.externals : []),
         // Исключаем pyodide из сборки, так как он загружается динамически
-        'pyodide',
+        "pyodide",
       ];
     }
-    
+
     // Добавляем правило для обработки mjs файлов
     config.module = config.module || { rules: [] };
     config.module.rules = config.module.rules || [];

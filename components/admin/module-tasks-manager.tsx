@@ -1,17 +1,19 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { createClient } from "@/lib/supabase/client";
-import type { Database } from "@/types/supabase";
+import { Pencil, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { TaskForm } from "@/components/admin/task-form";
+import { Accordion, AccordionContent, AccordionItem } from "@/components/ui/accordion";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { TaskForm } from "@/components/admin/task-form";
 import { useToast } from "@/hooks/use-toast";
-import { Pencil, Trash2 } from "lucide-react";
+import type { Task } from "@/types/db";
 
-type Task = Database["public"]["Tables"]["tasks"]["Row"];
+async function readApiError(response: Response): Promise<string> {
+  const body = (await response.json().catch(() => ({}))) as { error?: string };
+  return body.error || `${response.status} ${response.statusText}`;
+}
 
 interface ModuleTasksManagerProps {
   moduleId: string;
@@ -19,14 +21,18 @@ interface ModuleTasksManagerProps {
   refreshTrigger?: number;
 }
 
-export function ModuleTasksManager({ moduleId, newTaskId, refreshTrigger }: ModuleTasksManagerProps) {
+export function ModuleTasksManager({
+  moduleId,
+  newTaskId,
+  refreshTrigger,
+}: ModuleTasksManagerProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [reloadTrigger, setReloadTrigger] = useState(0);
   const [pendingTaskId, setPendingTaskId] = useState<string | null>(null);
   const [accordionValue, setAccordionValue] = useState<string | undefined>(undefined);
-  const supabase = createClient();
   const { toast } = useToast();
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reloadTrigger/refreshTrigger намеренно перезапускают загрузку
   useEffect(() => {
     // Строгая проверка валидности moduleId
     if (!moduleId || typeof moduleId !== "string" || moduleId.trim() === "") {
@@ -40,35 +46,36 @@ export function ModuleTasksManager({ moduleId, newTaskId, refreshTrigger }: Modu
     async function loadTasks() {
       try {
         console.log("ModuleTasksManager: Starting to load tasks for module:", moduleId);
-        const client = createClient();
-        const { data, error } = await client
-          .from("tasks")
-          .select("*")
-          .eq("module_id", moduleId)
-          .order("order_index");
+        const res = await fetch(`/api/admin/modules/${moduleId}/tasks`, {
+          credentials: "include",
+        });
 
         if (cancelled) {
           console.log("ModuleTasksManager: Load cancelled for module:", moduleId);
           return;
         }
 
-        if (error) {
-          console.error("ModuleTasksManager: Error loading tasks:", error);
-          toast({
-            title: "Ошибка загрузки",
-            description: error.message,
-            variant: "destructive",
-          });
-          setTasks([]);
-          return;
+        if (!res.ok) {
+          throw new Error(await readApiError(res));
         }
 
-        const tasksData = (data || []) as Task[];
-        console.log("ModuleTasksManager: Successfully loaded", tasksData.length, "tasks for module", moduleId);
+        const body = (await res.json()) as { tasks?: Task[] };
+        const tasksData = body.tasks ?? [];
+        console.log(
+          "ModuleTasksManager: Successfully loaded",
+          tasksData.length,
+          "tasks for module",
+          moduleId
+        );
         setTasks(tasksData);
-        
+
         // Если есть ожидающее задание для редактирования, открываем его в accordion
-        if (pendingTaskId && tasksData && Array.isArray(tasksData) && tasksData.some(t => t.id === pendingTaskId)) {
+        if (
+          pendingTaskId &&
+          tasksData &&
+          Array.isArray(tasksData) &&
+          tasksData.some((t) => t.id === pendingTaskId)
+        ) {
           setAccordionValue(pendingTaskId);
           setPendingTaskId(null);
         }
@@ -91,7 +98,7 @@ export function ModuleTasksManager({ moduleId, newTaskId, refreshTrigger }: Modu
       cancelled = true;
     };
   }, [moduleId, reloadTrigger, toast, pendingTaskId, refreshTrigger]);
-  
+
   // Обработка нового задания извне (из генерации)
   useEffect(() => {
     if (newTaskId) {
@@ -112,9 +119,15 @@ export function ModuleTasksManager({ moduleId, newTaskId, refreshTrigger }: Modu
     if (!confirm(`Вы уверены, что хотите удалить задание "${taskTitle}"?`)) return;
 
     try {
-      const { error } = await supabase.from("tasks").delete().eq("id", taskId);
+      const res = await fetch(`/api/admin/tasks/${taskId}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
 
-      if (error) throw error;
+      if (!res.ok) {
+        throw new Error(await readApiError(res));
+      }
 
       toast({
         title: "Задание удалено",
@@ -132,21 +145,31 @@ export function ModuleTasksManager({ moduleId, newTaskId, refreshTrigger }: Modu
 
   function getDifficultyBadge(difficulty: string) {
     const variants = {
-      easy: { variant: "default" as const, label: "Легкое", className: "bg-green-500 hover:bg-green-600 text-white border-transparent" },
-      medium: { variant: "default" as const, label: "Среднее", className: "bg-yellow-500 hover:bg-yellow-600 text-white border-transparent" },
+      easy: {
+        variant: "default" as const,
+        label: "Легкое",
+        className: "bg-green-500 hover:bg-green-600 text-white border-transparent",
+      },
+      medium: {
+        variant: "default" as const,
+        label: "Среднее",
+        className: "bg-yellow-500 hover:bg-yellow-600 text-white border-transparent",
+      },
       hard: { variant: "destructive" as const, label: "Сложное", className: undefined },
     };
     const config = variants[difficulty as keyof typeof variants] || variants.easy;
-    return <Badge variant={config.variant} className={config.className}>{config.label}</Badge>;
+    return (
+      <Badge variant={config.variant} className={config.className}>
+        {config.label}
+      </Badge>
+    );
   }
 
   if (!moduleId || typeof moduleId !== "string" || moduleId.trim() === "") {
     return (
       <Card>
         <CardContent className="pt-6">
-          <p className="text-center text-muted-foreground">
-            ID модуля не указан
-          </p>
+          <p className="text-center text-muted-foreground">ID модуля не указан</p>
         </CardContent>
       </Card>
     );
@@ -156,9 +179,7 @@ export function ModuleTasksManager({ moduleId, newTaskId, refreshTrigger }: Modu
     <div className="space-y-4">
       <div>
         <h3 className="text-lg font-semibold">Задания модуля</h3>
-        <p className="text-sm text-muted-foreground">
-          Всего заданий: {tasks.length}
-        </p>
+        <p className="text-sm text-muted-foreground">Всего заданий: {tasks.length}</p>
       </div>
 
       {tasks.length === 0 ? (
@@ -166,13 +187,20 @@ export function ModuleTasksManager({ moduleId, newTaskId, refreshTrigger }: Modu
           <CardContent className="pt-6">
             <div className="text-center py-8">
               <p className="text-muted-foreground">
-                В этом модуле пока нет заданий. Используйте вкладку "Генерация заданий ИИ" для создания заданий.
+                В этом модуле пока нет заданий. Используйте вкладку "Генерация заданий ИИ" для
+                создания заданий.
               </p>
             </div>
           </CardContent>
         </Card>
       ) : (
-        <Accordion type="single" collapsible value={accordionValue} onValueChange={setAccordionValue} className="grid gap-4">
+        <Accordion
+          type="single"
+          collapsible
+          value={accordionValue}
+          onValueChange={setAccordionValue}
+          className="grid gap-4"
+        >
           {tasks.map((task, index) => (
             <AccordionItem key={task.id} value={task.id} className="border-none">
               <Card className="hover:shadow-md transition-shadow">
@@ -185,7 +213,9 @@ export function ModuleTasksManager({ moduleId, newTaskId, refreshTrigger }: Modu
                         </CardTitle>
                         {getDifficultyBadge(task.difficulty)}
                         <Badge variant="secondary" className="gap-1">
-                          +{(task.difficulty === "easy" ? 10 : task.difficulty === "medium" ? 20 : 30)} XP
+                          +
+                          {task.difficulty === "easy" ? 10 : task.difficulty === "medium" ? 20 : 30}{" "}
+                          XP
                         </Badge>
                       </div>
                       {task.description && (
@@ -212,7 +242,9 @@ export function ModuleTasksManager({ moduleId, newTaskId, refreshTrigger }: Modu
                         variant="outline"
                         size="sm"
                         className="gap-2"
-                        onClick={() => setAccordionValue(accordionValue === task.id ? undefined : task.id)}
+                        onClick={() =>
+                          setAccordionValue(accordionValue === task.id ? undefined : task.id)
+                        }
                       >
                         <Pencil className="h-3.5 w-3.5" />
                         Редактировать
@@ -247,8 +279,6 @@ export function ModuleTasksManager({ moduleId, newTaskId, refreshTrigger }: Modu
           ))}
         </Accordion>
       )}
-
     </div>
   );
 }
-

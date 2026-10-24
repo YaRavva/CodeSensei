@@ -1,15 +1,15 @@
 "use client";
 
-import type { Database } from "@/types/supabase";
+import { ArrowLeft, BookOpen } from "lucide-react";
+import Link from "next/link";
+import ReactMarkdown from "react-markdown";
+import remarkBreaks from "remark-breaks";
+import remarkGfm from "remark-gfm";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import Link from "next/link";
-import { ArrowLeft, BookOpen } from "lucide-react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import remarkBreaks from "remark-breaks";
+import type { Database } from "@/types/db";
 
 type Module = Database["public"]["Tables"]["modules"]["Row"];
 type Task = Database["public"]["Tables"]["tasks"]["Row"];
@@ -21,11 +21,19 @@ interface ModuleDetailsProps {
   moduleProgress: number;
 }
 
-function getTaskStatus(taskId: string, completedTaskIds: string[]): "not_started" | "completed" | "in_progress" {
+function getTaskStatus(
+  taskId: string,
+  completedTaskIds: string[]
+): "not_started" | "completed" | "in_progress" {
   return completedTaskIds.includes(taskId) ? "completed" : "not_started";
 }
 
-export function ModuleDetails({ module, tasks, completedTaskIds, moduleProgress }: ModuleDetailsProps) {
+export function ModuleDetails({
+  module,
+  tasks,
+  completedTaskIds,
+  moduleProgress,
+}: ModuleDetailsProps) {
   const totalTasks = tasks.length;
   const completedTasks = completedTaskIds.length;
 
@@ -63,9 +71,7 @@ export function ModuleDetails({ module, tasks, completedTaskIds, moduleProgress 
                 </span>
               </div>
               <Progress value={moduleProgress} className="h-2" />
-              <p className="text-xs text-muted-foreground">
-                {moduleProgress}% завершено
-              </p>
+              <p className="text-xs text-muted-foreground">{moduleProgress}% завершено</p>
             </div>
           </CardContent>
         </Card>
@@ -78,10 +84,12 @@ export function ModuleDetails({ module, tasks, completedTaskIds, moduleProgress 
             </CardHeader>
             <CardContent>
               <div className="prose prose-sm dark:prose-invert max-w-none">
-                <ReactMarkdown 
+                <ReactMarkdown
                   remarkPlugins={[remarkGfm, remarkBreaks]}
                   components={{
-                    p: ({ children }) => <p className="mb-4 last:mb-0 whitespace-pre-line">{children}</p>,
+                    p: ({ children }) => (
+                      <p className="mb-4 last:mb-0 whitespace-pre-line">{children}</p>
+                    ),
                   }}
                 >
                   {module.description}
@@ -102,9 +110,7 @@ export function ModuleDetails({ module, tasks, completedTaskIds, moduleProgress 
         {tasks.length === 0 ? (
           <Card>
             <CardContent className="pt-6">
-              <p className="text-center text-muted-foreground">
-                В этом модуле пока нет заданий
-              </p>
+              <p className="text-center text-muted-foreground">В этом модуле пока нет заданий</p>
             </CardContent>
           </Card>
         ) : (
@@ -112,9 +118,21 @@ export function ModuleDetails({ module, tasks, completedTaskIds, moduleProgress 
             {tasks.map((task, index) => {
               const status = getTaskStatus(task.id, completedTaskIds);
               const statusConfig = {
-                not_started: { label: "Не начато", icon: "🔴", variant: "secondary" as const },
-                in_progress: { label: "В процессе", icon: "🟡", variant: "secondary" as const },
-                completed: { label: "Завершено", icon: "🟢", variant: "secondary" as const },
+                not_started: {
+                  label: "Не начато",
+                  icon: "🔴",
+                  variant: "secondary" as const,
+                },
+                in_progress: {
+                  label: "В процессе",
+                  icon: "🟡",
+                  variant: "secondary" as const,
+                },
+                completed: {
+                  label: "Завершено",
+                  icon: "🟢",
+                  variant: "secondary" as const,
+                },
               } as const;
               const statusInfo = statusConfig[status];
 
@@ -153,4 +171,3 @@ export function ModuleDetails({ module, tasks, completedTaskIds, moduleProgress 
     </div>
   );
 }
-

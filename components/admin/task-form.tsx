@@ -1,6 +1,23 @@
 "use client";
 
+import { Loader2, Sparkles } from "lucide-react";
+import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
+import type { CSSProperties } from "react";
+import { useEffect, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { oneDark, oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
+import remarkBreaks from "remark-breaks";
+import remarkGfm from "remark-gfm";
 import { TestCasesEditor } from "@/components/admin/test-cases-editor";
+import { useTheme } from "@/components/theme-provider";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -13,26 +30,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
-import { createClient } from "@/lib/supabase/client";
-import type { Database } from "@/types/supabase";
-import dynamic from "next/dynamic";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { Sparkles, Loader2 } from "lucide-react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import remarkBreaks from "remark-breaks";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { oneDark, oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
-import { useTheme } from "@/components/theme-provider";
+import type { Task } from "@/types/db";
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
   ssr: false,
   loading: () => <div className="h-64 bg-muted animate-pulse" />,
 });
-
 
 interface TaskFormProps {
   moduleId?: string;
@@ -50,6 +54,11 @@ type TestCase = {
   is_visible: boolean;
 };
 
+async function readApiError(response: Response): Promise<string> {
+  const body = (await response.json().catch(() => ({}))) as { error?: string };
+  return body.error || `${response.status} ${response.statusText}`;
+}
+
 export function TaskForm({ moduleId, taskId, onSuccess, onCancel }: TaskFormProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -58,7 +67,7 @@ export function TaskForm({ moduleId, taskId, onSuccess, onCancel }: TaskFormProp
   const [testCases, setTestCases] = useState<TestCase[]>([]);
   const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">("easy");
   const [xpReward, setXpReward] = useState("10");
-  
+
   // Обновляем XP при изменении difficulty (только для новых заданий, когда xpReward еще не был установлен)
   useEffect(() => {
     if (difficulty && !taskId) {
@@ -75,12 +84,12 @@ export function TaskForm({ moduleId, taskId, onSuccess, onCancel }: TaskFormProp
   const { theme } = useTheme();
   const router = useRouter();
   const { toast } = useToast();
-  const supabase = createClient();
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: задание перезагружается при смене taskId
   useEffect(() => {
     if (taskId) {
       loadTask();
@@ -91,7 +100,8 @@ export function TaskForm({ moduleId, taskId, onSuccess, onCancel }: TaskFormProp
   const getEditorTheme = () => {
     if (!mounted) return "light";
     if (theme === "system") {
-      return typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches
+      return typeof window !== "undefined" &&
+        window.matchMedia("(prefers-color-scheme: dark)").matches
         ? "vs-dark"
         : "light";
     }
@@ -101,47 +111,41 @@ export function TaskForm({ moduleId, taskId, onSuccess, onCancel }: TaskFormProp
   async function loadTask() {
     if (!taskId) return;
 
-    const { data, error } = await supabase.from("tasks").select("*").eq("id", taskId).single();
-
-    if (error) {
-      toast({
-        title: "Ошибка",
-        description: error.message,
-        variant: "destructive",
+    try {
+      const res = await fetch(`/api/admin/tasks/${taskId}`, {
+        credentials: "include",
       });
-      return;
-    }
 
-    if (data) {
-      const typedData = data as {
-        title: string;
-        description: string;
-        starter_code: string;
-        solution_code: string | null;
-        difficulty: "easy" | "medium" | "hard";
-        xp_reward: number | null;
-        order_index: number;
-        module_id: string;
-        test_cases: any;
-      };
-      setTitle(typedData.title);
-      setDescription(typedData.description);
-      setStarterCode(typedData.starter_code);
-      setSolutionCode(typedData.solution_code || "");
-      setDifficulty(typedData.difficulty);
+      if (!res.ok) {
+        throw new Error(await readApiError(res));
+      }
+
+      const body = (await res.json()) as { task?: Task };
+      const data = body.task;
+      if (!data) {
+        throw new Error("Задание не найдено");
+      }
+
+      setTitle(data.title);
+      setDescription(data.description);
+      setStarterCode(data.starter_code);
+      setSolutionCode(data.solution_code || "");
+      setDifficulty(data.difficulty);
       // Используем xp_reward из БД или дефолтное значение по сложности
-      const defaultXP = typedData.difficulty === "easy" ? 10 : typedData.difficulty === "medium" ? 20 : 30;
-      setXpReward(typedData.xp_reward?.toString() || defaultXP.toString());
-      setOrderIndex(typedData.order_index.toString());
-      setCurrentModuleId(typedData.module_id);
+      const defaultXP = data.difficulty === "easy" ? 10 : data.difficulty === "medium" ? 20 : 30;
+      setXpReward(data.xp_reward?.toString() || defaultXP.toString());
+      setOrderIndex(data.order_index.toString());
+      setCurrentModuleId(data.module_id);
 
       // Парсим тестовые случаи
-      try {
-        const parsed = Array.isArray(typedData.test_cases) ? typedData.test_cases : [];
-        setTestCases(parsed as TestCase[]);
-      } catch {
-        setTestCases([]);
-      }
+      const parsed = Array.isArray(data.test_cases) ? data.test_cases : [];
+      setTestCases(parsed as TestCase[]);
+    } catch (error) {
+      toast({
+        title: "Ошибка",
+        description: error instanceof Error ? error.message : "Не удалось загрузить задание",
+        variant: "destructive",
+      });
     }
   }
 
@@ -161,13 +165,19 @@ export function TaskForm({ moduleId, taskId, onSuccess, onCancel }: TaskFormProp
       // Получаем теорию модуля (описание) для контекста
       let moduleTheory = "";
       if (currentModuleId) {
-          const { data: moduleData } = await supabase
-            .from("modules")
-            .select("description")
-            .eq("id", currentModuleId)
-            .maybeSingle();
-          const typedModuleData = moduleData as { description: string | null } | null;
-          moduleTheory = typedModuleData?.description || "";
+        try {
+          const moduleRes = await fetch(`/api/admin/modules/${currentModuleId}`, {
+            credentials: "include",
+          });
+          if (moduleRes.ok) {
+            const moduleBody = (await moduleRes.json()) as {
+              module?: { description?: string | null };
+            };
+            moduleTheory = moduleBody.module?.description || "";
+          }
+        } catch (error) {
+          console.error("Не удалось загрузить теорию модуля:", error);
+        }
       }
 
       const response = await fetch("/api/ai/generate-task", {
@@ -208,7 +218,8 @@ export function TaskForm({ moduleId, taskId, onSuccess, onCancel }: TaskFormProp
         // Используем xp_reward из результата генерации или дефолтное значение по сложности
         if (result.data.difficulty) {
           setDifficulty(result.data.difficulty);
-          const defaultXP = result.data.difficulty === "easy" ? 10 : result.data.difficulty === "medium" ? 20 : 30;
+          const defaultXP =
+            result.data.difficulty === "easy" ? 10 : result.data.difficulty === "medium" ? 20 : 30;
           setXpReward(result.data.xp_reward?.toString() || defaultXP.toString());
         } else if (result.data.xp_reward) {
           setXpReward(result.data.xp_reward.toString());
@@ -250,6 +261,7 @@ export function TaskForm({ moduleId, taskId, onSuccess, onCancel }: TaskFormProp
     const parsedXP = Number.parseInt(xpReward, 10);
     const finalXP = parsedXP > 0 ? parsedXP : defaultXP;
 
+    const parsedOrder = Number.parseInt(orderIndex, 10);
     const taskData = {
       title,
       description,
@@ -258,17 +270,22 @@ export function TaskForm({ moduleId, taskId, onSuccess, onCancel }: TaskFormProp
       test_cases: testCases,
       difficulty,
       xp_reward: finalXP,
-      order_index: Number.parseInt(orderIndex),
-      module_id: currentModuleId,
-    } as Database["public"]["Tables"]["tasks"]["Insert"];
+      order_index: Number.isNaN(parsedOrder) ? 0 : parsedOrder,
+    };
 
     try {
       if (taskId) {
-        const updateData = { ...taskData } as any;
-        delete updateData.module_id; // модуль не меняем при редактировании
-        const { error } = await (supabase.from("tasks") as any).update(updateData).eq("id", taskId);
+        // Модуль не меняем при редактировании
+        const res = await fetch(`/api/admin/tasks/${taskId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(taskData),
+        });
 
-        if (error) throw error;
+        if (!res.ok) {
+          throw new Error(await readApiError(res));
+        }
 
         toast({
           title: "Задание обновлено",
@@ -280,9 +297,16 @@ export function TaskForm({ moduleId, taskId, onSuccess, onCancel }: TaskFormProp
           throw new Error("Не указан модуль");
         }
 
-        const { data, error } = await (supabase.from("tasks") as any).insert(taskData).select("id").single();
+        const res = await fetch(`/api/admin/modules/${currentModuleId}/tasks`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(taskData),
+        });
 
-        if (error) throw error;
+        if (!res.ok) {
+          throw new Error(await readApiError(res));
+        }
 
         toast({
           title: "Задание создано",
@@ -382,31 +406,43 @@ export function TaskForm({ moduleId, taskId, onSuccess, onCancel }: TaskFormProp
                         remarkPlugins={[remarkGfm, remarkBreaks]}
                         components={{
                           code(props) {
-                            const { node, className, children, ...rest } = props as any;
-                            const inline = !className || !className.includes('language-');
+                            const {
+                              node: _node,
+                              className,
+                              children,
+                              style: _style,
+                              ...rest
+                            } = props;
+                            const inline = !className?.includes("language-");
                             const match = /language-(\w+)/.exec(className || "");
-                            const isDark = mounted && (
-                              theme === "dark" || 
-                              (theme === "system" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches)
-                            );
+                            const isDark =
+                              mounted &&
+                              (theme === "dark" ||
+                                (theme === "system" &&
+                                  typeof window !== "undefined" &&
+                                  window.matchMedia("(prefers-color-scheme: dark)").matches));
                             return !inline && match ? (
                               <SyntaxHighlighter
-                                style={(isDark ? oneDark : oneLight) as any}
+                                style={isDark ? oneDark : oneLight}
                                 language={match[1]}
                                 PreTag="div"
                                 className="font-ubuntu-mono rounded-md"
-                                customStyle={{ fontFamily: 'Ubuntu Mono, monospace' }}
-                                {...rest}
+                                customStyle={{ fontFamily: "Ubuntu Mono, monospace" }}
+                                {...(rest as any)}
                               >
                                 {String(children).replace(/\n$/, "")}
                               </SyntaxHighlighter>
                             ) : (
-                              <code className={`font-ubuntu-mono ${className}`} {...rest}>
+                              <code className={`font-ubuntu-mono ${className}`} {...(rest as any)}>
                                 {children}
                               </code>
                             );
                           },
-                          p: ({ children }) => <p className="mb-4 last:mb-0 whitespace-pre-line font-ubuntu-mono">{children}</p>,
+                          p: ({ children }) => (
+                            <p className="mb-4 last:mb-0 whitespace-pre-line font-ubuntu-mono">
+                              {children}
+                            </p>
+                          ),
                         }}
                       >
                         {description || "*Введите текст выше для предпросмотра*"}
@@ -460,7 +496,8 @@ export function TaskForm({ moduleId, taskId, onSuccess, onCancel }: TaskFormProp
                   const newDifficulty = v as "easy" | "medium" | "hard";
                   setDifficulty(newDifficulty);
                   // Автоматически обновляем XP награду при изменении сложности
-                  const defaultXP = newDifficulty === "easy" ? 10 : newDifficulty === "medium" ? 20 : 30;
+                  const defaultXP =
+                    newDifficulty === "easy" ? 10 : newDifficulty === "medium" ? 20 : 30;
                   setXpReward(defaultXP.toString());
                 }}
               >
@@ -501,10 +538,10 @@ export function TaskForm({ moduleId, taskId, onSuccess, onCancel }: TaskFormProp
           </div>
         </CardContent>
         <CardFooter className="flex justify-between">
-          <Button 
-            type="button" 
-            variant="outline" 
-            onClick={() => onCancel ? onCancel() : router.back()} 
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => (onCancel ? onCancel() : router.back())}
             disabled={loading}
           >
             Отмена

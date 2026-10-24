@@ -1,215 +1,130 @@
 "use client";
 
-import { createClient } from "@/lib/supabase/client";
-import type { Database } from "@/types/supabase";
-import type { User } from "@supabase/supabase-js";
-import { createContext, useContext, useEffect, useState, useRef } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
+import type { UserProfile } from "@/types/db";
 
-type UserProfile = Database["public"]["Tables"]["users"]["Row"];
+export interface AuthUser {
+  id: string;
+  email: string;
+  name: string;
+}
 
 interface AuthContextType {
-  user: User | null;
+  user: AuthUser | null;
   profile: UserProfile | null;
   loading: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
 
+interface SessionResponse {
+  user?: Partial<AuthUser> | null;
+  profile?: UserProfile | null;
+}
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+function normalizeUser(user: Partial<AuthUser>): AuthUser {
+  return {
+    id: String(user.id ?? ""),
+    email: user.email ?? "",
+    name: user.name ?? "",
+  };
+}
+
+/**
+ * Загружает текущую сессию с сервера. HttpOnly cookie передается автоматически,
+ * поэтому клиент не работает с токенами Appwrite напрямую.
+ */
+async function fetchSession(): Promise<{ user: AuthUser; profile: UserProfile | null } | null> {
+  const response = await fetch("/api/auth/me", {
+    method: "GET",
+    credentials: "include",
+    cache: "no-store",
+  });
+
+  if (response.status === 401) {
+    return null;
+  }
+
+  if (!response.ok) {
+    throw new Error(`Не удалось загрузить сессию (HTTP ${response.status})`);
+  }
+
+  const data = (await response.json()) as SessionResponse;
+
+  if (!data.user?.id) {
+    return null;
+  }
+
+  return {
+    user: normalizeUser(data.user),
+    profile: data.profile ?? null,
+  };
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
-  const loadingProfileRef = useRef<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
 
-    supabase.auth.getSession().then(async ({ data, error }) => {
-      if (!mounted) return;
+    async function loadSession() {
+      try {
+        const session = await fetchSession();
 
-      if (error) {
-        console.error("[AuthProvider] Error getting session:", error);
-      }
+        if (!mounted) return;
 
-      const currentUser = data.session?.user ?? null;
-
-      if (currentUser) {
-        setUser(currentUser);
-        await loadProfile(currentUser.id);
-      }
-      setLoading(false);
-    }).catch((error) => {
-      console.error("[AuthProvider] Unexpected error in getSession:", error);
-      if (mounted) {
-        setLoading(false);
-      }
-    });
-
-    const { data: listener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!mounted) return;
-
-      console.log(`[AuthProvider] Auth state changed: ${event}`, {
-        hasSession: !!session,
-        userId: session?.user?.id,
-      });
-
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        const isOAuthSignIn = event === "SIGNED_IN";
-        
-        // Для первого входа через OAuth даем немного времени на создание профиля триггером
-        if (isOAuthSignIn) {
-          await new Promise(resolve => setTimeout(resolve, 500));
+        setUser(session?.user ?? null);
+        setProfile(session?.profile ?? null);
+      } catch (error) {
+        console.error("[AuthProvider] Ошибка загрузки сессии:", error);
+        if (mounted) {
+          setUser(null);
+          setProfile(null);
         }
-        
-        await loadProfile(session.user.id);
-      } else {
-        setProfile(null);
-        setLoading(false);
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
       }
-    });
+    }
 
-    // Периодически проверяем профиль, если он не загружен
-    const profileCheckInterval = setInterval(() => {
-      if (!mounted) {
-        clearInterval(profileCheckInterval);
-        return;
-      }
-      
-      if (user && !profile && !loading) {
-        console.log("[AuthProvider] Periodic check: profile missing, attempting refresh...");
-        refreshProfile().catch(console.error);
-      }
-    }, 5000); // Проверяем каждые 5 секунд
+    loadSession();
 
     return () => {
       mounted = false;
-      listener.subscription.unsubscribe();
-      clearInterval(profileCheckInterval);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function loadProfile(userId: string): Promise<UserProfile | null> {
-    if (loadingProfileRef.current === userId) {
-      return null;
-    }
-
-    try {
-      loadingProfileRef.current = userId;
-      setLoading(true);
-
-      // Используем серверную синхронизацию напрямую
-      const response = await fetch("/api/auth/sync-profile", {
-        method: "GET",
-        credentials: "include",
-        cache: "no-store",
-      });
-
-      if (response.ok) {
-        const { profile: serverProfile } = await response.json();
-        if (serverProfile) {
-          console.log(`[AuthProvider] Profile loaded:`, {
-            id: serverProfile.id,
-            role: serverProfile.role,
-            display_name: serverProfile.display_name,
-          });
-          setProfile(serverProfile as UserProfile);
-          return serverProfile as UserProfile;
-        }
-      }
-
-      console.warn(`[AuthProvider] Profile not found for user ${userId}`);
-      setProfile(null);
-      return null;
-    } catch (error: any) {
-      console.error("[AuthProvider] Error loading profile:", {
-        error: error.message,
-        userId,
-      });
-      setProfile(null);
-      return null;
-    } finally {
-      setLoading(false);
-      loadingProfileRef.current = null;
-    }
-  }
-
   async function refreshProfile() {
-    if (user) {
-      loadingProfileRef.current = null;
-      await loadProfile(user.id);
+    try {
+      const session = await fetchSession();
+      setUser(session?.user ?? null);
+      setProfile(session?.profile ?? null);
+    } catch (error) {
+      console.error("[AuthProvider] Ошибка обновления профиля:", error);
     }
   }
 
   async function signOut() {
-    // Очищаем состояние сразу, чтобы UI обновился
+    // Сбрасываем состояние сразу, чтобы UI обновился без ожидания запроса.
     setUser(null);
     setProfile(null);
-    
-    // Очищаем все localStorage и sessionStorage связанные с Supabase
-    if (typeof window !== "undefined") {
-      // Очищаем все ключи, связанные с Supabase
-      const keysToRemove: string[] = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && (key.startsWith('sb-') || key.includes('supabase'))) {
-          keysToRemove.push(key);
-        }
-      }
-      keysToRemove.forEach(key => localStorage.removeItem(key));
-      
-      // Очищаем sessionStorage
-      const sessionKeysToRemove: string[] = [];
-      for (let i = 0; i < sessionStorage.length; i++) {
-        const key = sessionStorage.key(i);
-        if (key && (key.startsWith('sb-') || key.includes('supabase'))) {
-          sessionKeysToRemove.push(key);
-        }
-      }
-      sessionKeysToRemove.forEach(key => sessionStorage.removeItem(key));
-      
-      // Принудительная очистка всех кук через document.cookie
-      const cookies = document.cookie.split(";");
-      const domain = window.location.hostname;
-      const path = "/";
-      
-      cookies.forEach(cookie => {
-        const eqPos = cookie.indexOf("=");
-        const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
-        
-        // Удаляем все куки, связанные с Supabase или auth
-        if (name.startsWith('sb-') || name.includes('auth') || name.includes('supabase')) {
-          // Удаляем для текущего домена
-          document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=${path}`;
-          // Удаляем для домена без www
-          document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=${path};domain=${domain}`;
-          // Удаляем для домена с www
-          document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=${path};domain=.${domain}`;
-        }
+
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+        cache: "no-store",
       });
-      
-      // НЕМЕДЛЕННЫЙ редирект - сразу после очистки storage
-      // Используем window.location.href для гарантированного редиректа
+    } catch (error) {
+      console.error("[AuthProvider] Ошибка выхода:", error);
+    } finally {
       window.location.href = "/login";
     }
-    
-    // Параллельно очищаем клиентские токены Supabase и серверные куки (не блокируем редирект)
-    Promise.allSettled([
-      supabase.auth.signOut(),
-      fetch("/api/auth/signout", { 
-        method: "POST", 
-        credentials: "include",
-        cache: "no-store"
-      }).catch((e) => {
-        console.error("Server signout error:", e);
-      })
-    ]).catch((error) => {
-      console.error("SignOut error:", error);
-    });
   }
 
   return (

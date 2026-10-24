@@ -1,9 +1,11 @@
 "use client";
 
+import { Award, Crown, Medal, Trophy } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -11,8 +13,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Trophy, Medal, Award, Crown } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
 
 type LeaderboardPeriod = "all_time" | "month" | "week";
 
@@ -100,9 +100,7 @@ export function LeaderboardContent({
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-3xl font-bold mb-2">Таблица лидеров</h1>
-            <p className="text-muted-foreground">
-              Топ игроков по количеству опыта
-            </p>
+            <p className="text-muted-foreground">Топ игроков по количеству опыта</p>
           </div>
           <Select value={period} onValueChange={handlePeriodChange}>
             <SelectTrigger className="w-[180px]">
@@ -117,35 +115,33 @@ export function LeaderboardContent({
         </div>
 
         {/* Информация о текущем пользователе */}
-        {(currentUserRank || currentUserData) && (() => {
-          // Находим текущего пользователя в списке или используем currentUserData
-          const currentUser = users.find((u) => u.id === currentUserId) || currentUserData;
-          const displayRank = currentUserRank || currentUserData?.rank || null;
-          
-          if (!currentUser || !displayRank) return null;
-          
-          return (
-            <Card className="mb-6 bg-primary/5 border-primary/20">
-              <CardHeader>
-                <CardTitle className="text-lg">Ваша позиция</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-4">
-                  <div className="text-2xl font-bold">#{displayRank}</div>
-                  <div className="flex-1">
-                    <p className="font-medium">
-                      {getUserDisplayName(currentUser)}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {currentUser.total_xp || 0} XP • Уровень{" "}
-                      {currentUser.current_level || 1}
-                    </p>
+        {(currentUserRank || currentUserData) &&
+          (() => {
+            // Находим текущего пользователя в списке или используем currentUserData
+            const currentUser = users.find((u) => u.id === currentUserId) || currentUserData;
+            const displayRank = currentUserRank || currentUserData?.rank || null;
+
+            if (!currentUser || !displayRank) return null;
+
+            return (
+              <Card className="mb-6 bg-primary/5 border-primary/20">
+                <CardHeader>
+                  <CardTitle className="text-lg">Ваша позиция</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-4">
+                    <div className="text-2xl font-bold">#{displayRank}</div>
+                    <div className="flex-1">
+                      <p className="font-medium">{getUserDisplayName(currentUser)}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {currentUser.total_xp || 0} XP • Уровень {currentUser.current_level || 1}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })()}
+                </CardContent>
+              </Card>
+            );
+          })()}
       </div>
 
       {/* Таблица лидеров */}
@@ -162,9 +158,7 @@ export function LeaderboardContent({
         </CardHeader>
         <CardContent>
           {users.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Нет данных для отображения
-            </div>
+            <div className="text-center py-8 text-muted-foreground">Нет данных для отображения</div>
           ) : (
             <div className="space-y-2">
               {users.map((user) => {
@@ -184,9 +178,7 @@ export function LeaderboardContent({
                       {getRankIcon(user.rank, user.role) || (
                         <span
                           className={`text-lg font-bold ${
-                            user.rank <= 10
-                              ? "text-foreground"
-                              : "text-muted-foreground"
+                            user.rank <= 10 ? "text-foreground" : "text-muted-foreground"
                           }`}
                         >
                           {user.rank}
@@ -197,16 +189,16 @@ export function LeaderboardContent({
                     {/* Аватар */}
                     <Avatar className="h-10 w-10">
                       <AvatarImage src={user.avatar_url || undefined} />
-                      <AvatarFallback className="text-lg font-semibold">{getUserInitials(user)}</AvatarFallback>
+                      <AvatarFallback className="text-lg font-semibold">
+                        {getUserInitials(user)}
+                      </AvatarFallback>
                     </Avatar>
 
                     {/* Имя и информация */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <p
-                          className={`font-medium truncate ${
-                            isCurrentUser ? "font-semibold" : ""
-                          }`}
+                          className={`font-medium truncate ${isCurrentUser ? "font-semibold" : ""}`}
                         >
                           {getUserDisplayName(user)}
                         </p>
@@ -230,7 +222,6 @@ export function LeaderboardContent({
                         <Badge variant="secondary" className="text-xs">
                           Уровень {user.current_level || 1}
                         </Badge>
-
                       </div>
                     </div>
 
@@ -255,9 +246,7 @@ export function LeaderboardContent({
 
                     {/* XP */}
                     <div className="text-right">
-                      <p className="font-bold text-lg">
-                        {user.total_xp?.toLocaleString() || 0}
-                      </p>
+                      <p className="font-bold text-lg">{user.total_xp?.toLocaleString() || 0}</p>
                       <p className="text-xs text-muted-foreground">XP</p>
                     </div>
                   </div>
@@ -270,4 +259,3 @@ export function LeaderboardContent({
     </div>
   );
 }
-

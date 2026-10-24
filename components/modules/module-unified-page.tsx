@@ -1,46 +1,52 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
-import type { Database } from "@/types/supabase";
+import {
+  AlertCircle,
+  ArrowUpDown,
+  Award,
+  BookOpen,
+  CheckCircle2,
+  Clock,
+  Filter,
+  List,
+  Loader2,
+  RotateCcw,
+  Sparkles,
+  TrendingUp,
+} from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { oneDark, oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
+import remarkBreaks from "remark-breaks";
+import remarkGfm from "remark-gfm";
+import { useAuth } from "@/components/auth/auth-provider";
+import { CodeEditor } from "@/components/editor/code-editor";
+import { TestResults } from "@/components/editor/test-results";
+import { useTheme } from "@/components/theme-provider";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CodeEditor } from "@/components/editor/code-editor";
-import { TestResults } from "@/components/editor/test-results";
-import { useAuth } from "@/components/auth/auth-provider";
-import { createClient } from "@/lib/supabase/client";
-import { runTestSuite } from "@/lib/utils/test-runner";
-import { usePyodide } from "@/hooks/use-pyodide";
-import type { TestCase, TestSuiteResult } from "@/types/test-case";
-import { 
-  BookOpen, 
-  RotateCcw, 
-  Sparkles, 
-  Loader2, 
-  CheckCircle2, 
-  AlertCircle,
-  Filter,
-  ArrowUpDown,
-  TrendingUp,
-  Clock,
-  Award,
-  List
-} from "lucide-react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import remarkBreaks from "remark-breaks";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { oneDark, oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
-import { useTheme } from "@/components/theme-provider";
-import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-
-type Module = Database["public"]["Tables"]["modules"]["Row"];
-type Task = Database["public"]["Tables"]["tasks"]["Row"];
-type TaskAttempt = Database["public"]["Tables"]["task_attempts"]["Row"];
+import { Progress } from "@/components/ui/progress";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { usePyodide } from "@/hooks/use-pyodide";
+import { useToast } from "@/hooks/use-toast";
+import { runTestSuite } from "@/lib/utils/test-runner";
+import type { Module, Task, TaskAttempt } from "@/types/db";
+import type { TestCase, TestSuiteResult } from "@/types/test-case";
 
 interface ModuleUnifiedPageProps {
   module: Module;
@@ -63,12 +69,12 @@ interface TaskWithStatus extends Task {
   lastAttempt: TaskAttempt | null;
 }
 
-export function ModuleUnifiedPage({ 
-  module, 
-  tasks, 
-  completedTaskIds, 
+export function ModuleUnifiedPage({
+  module,
+  tasks,
+  completedTaskIds,
   moduleProgress,
-  userProgress 
+  userProgress,
 }: ModuleUnifiedPageProps) {
   const { theme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -85,7 +91,7 @@ export function ModuleUnifiedPage({
   // Время открытия обновляется при каждом открытии (если пользователь закрыл и открыл снова)
   useEffect(() => {
     if (typeof window === "undefined") return;
-    
+
     openItems.forEach((taskId) => {
       const openTimeKey = `task_open_time_${taskId}`;
       // Обновляем время открытия каждый раз, когда задание открывается
@@ -95,32 +101,36 @@ export function ModuleUnifiedPage({
   }, [openItems]);
   const { toast } = useToast();
   const { pyodide, loading: pyodideLoading, error: pyodideError, executeCode } = usePyodide();
-  
+
   // Состояния фильтров и сортировки
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
   const [sortOption, setSortOption] = useState<SortOption>("order");
-  
+
   // Состояния для каждого задания (код, результаты и т.д.)
-  const [taskStates, setTaskStates] = useState<Record<string, {
-    code: string;
-    initialCode: string;
-    executionResult: { output: string; error: string | null; executionTime: number } | null;
-    testResults: TestSuiteResult | null;
-    running: boolean;
-    testing: boolean;
-    isCompleted: boolean;
-    lastAttempt: TaskAttempt | null;
-  }>>({});
-  
+  const [taskStates, setTaskStates] = useState<
+    Record<
+      string,
+      {
+        code: string;
+        initialCode: string;
+        executionResult: { output: string; error: string | null; executionTime: number } | null;
+        testResults: TestSuiteResult | null;
+        running: boolean;
+        testing: boolean;
+        isCompleted: boolean;
+        lastAttempt: TaskAttempt | null;
+      }
+    >
+  >({});
+
   // Дебаунс для кнопок проверки заданий (защита от спама) - Map по taskId
   const testTaskDebounceRefs = useRef<Map<string, NodeJS.Timeout>>(new Map());
-  
+
   // Состояние AI-подсказки
   const [hintOpen, setHintOpen] = useState(false);
   const [hintTitle, setHintTitle] = useState<string>("");
   const [hintMarkdown, setHintMarkdown] = useState<string>("");
-  const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
-  
+
   // Состояние AI-оценки
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedbackTitle, setFeedbackTitle] = useState<string>("");
@@ -129,18 +139,19 @@ export function ModuleUnifiedPage({
   // Загружаем последние попытки для всех заданий
   useEffect(() => {
     if (!user || tasks.length === 0) return;
-    
+
     const loadAttempts = async () => {
-      const supabase = createClient();
-      const taskIds = tasks.map(t => t.id);
-      
-      const { data: attempts } = await supabase
-        .from("task_attempts")
-        .select("*")
-        .eq("user_id", user.id)
-        .in("task_id", taskIds)
-        .order("created_at", { ascending: false });
-      
+      const taskIds = tasks.map((t) => t.id);
+
+      const response = await fetch(
+        `/api/tasks/attempts?taskIds=${encodeURIComponent(taskIds.join(","))}`,
+        { credentials: "include", cache: "no-store" }
+      );
+
+      if (!response.ok) return;
+
+      const { attempts } = (await response.json()) as { attempts: TaskAttempt[] };
+
       if (attempts) {
         // Группируем попытки по task_id, берем последнюю для каждого
         const typedAttempts = attempts as TaskAttempt[];
@@ -150,13 +161,13 @@ export function ModuleUnifiedPage({
             attemptsByTask.set(attempt.task_id, attempt);
           }
         }
-        
+
         // Инициализируем состояния заданий
         const newTaskStates: typeof taskStates = {};
         for (const task of tasks) {
           const lastAttempt = attemptsByTask.get(task.id) || null;
           const isCompleted = completedTaskIds.includes(task.id);
-          
+
           newTaskStates[task.id] = {
             code: (lastAttempt?.code_solution as string) || task.starter_code || "",
             initialCode: task.starter_code || "",
@@ -164,15 +175,15 @@ export function ModuleUnifiedPage({
             testResults: null,
             running: false,
             testing: false,
-            isCompleted: isCompleted || (lastAttempt?.is_successful || false),
+            isCompleted: isCompleted || lastAttempt?.is_successful || false,
             lastAttempt,
           };
         }
-        
+
         setTaskStates(newTaskStates);
       }
     };
-    
+
     loadAttempts();
   }, [user, tasks, completedTaskIds]);
 
@@ -187,7 +198,7 @@ export function ModuleUnifiedPage({
 
   // Получаем задания с статусами
   const tasksWithStatus: TaskWithStatus[] = useMemo(() => {
-    return tasks.map(task => ({
+    return tasks.map((task) => ({
       ...task,
       status: getTaskStatus(task.id),
       lastAttempt: taskStates[task.id]?.lastAttempt || null,
@@ -197,31 +208,35 @@ export function ModuleUnifiedPage({
   // Фильтруем задания
   const filteredTasks = useMemo(() => {
     let filtered = tasksWithStatus;
-    
+
     if (filterStatus !== "all") {
-      filtered = filtered.filter(task => task.status === filterStatus);
+      filtered = filtered.filter((task) => task.status === filterStatus);
     }
-    
+
     return filtered;
   }, [tasksWithStatus, filterStatus]);
 
   // Сортируем задания
   const sortedTasks = useMemo(() => {
     const sorted = [...filteredTasks];
-    
+
     switch (sortOption) {
       case "order":
         return sorted.sort((a, b) => a.order_index - b.order_index);
-      case "status":
+      case "status": {
         const statusOrder: Record<TaskStatus, number> = {
           not_started: 0,
           in_progress: 1,
           completed: 2,
         };
         return sorted.sort((a, b) => statusOrder[a.status] - statusOrder[b.status]);
-      case "difficulty":
+      }
+      case "difficulty": {
         const difficultyOrder: Record<string, number> = { easy: 0, medium: 1, hard: 2 };
-        return sorted.sort((a, b) => (difficultyOrder[a.difficulty] || 0) - (difficultyOrder[b.difficulty] || 0));
+        return sorted.sort(
+          (a, b) => (difficultyOrder[a.difficulty] || 0) - (difficultyOrder[b.difficulty] || 0)
+        );
+      }
       default:
         return sorted;
     }
@@ -231,7 +246,7 @@ export function ModuleUnifiedPage({
   const handleRunCode = async (taskId: string) => {
     const state = taskStates[taskId];
     if (!state || !pyodide) return;
-    
+
     if (pyodideError) {
       toast({
         title: "Ошибка Pyodide",
@@ -250,20 +265,20 @@ export function ModuleUnifiedPage({
       return;
     }
 
-    setTaskStates(prev => ({
+    setTaskStates((prev) => ({
       ...prev,
       [taskId]: { ...prev[taskId], running: true, executionResult: null },
     }));
 
     try {
       const result = await executeCode(state.code, 10000);
-      setTaskStates(prev => ({
+      setTaskStates((prev) => ({
         ...prev,
         [taskId]: { ...prev[taskId], running: false, executionResult: result },
       }));
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-      setTaskStates(prev => ({
+      setTaskStates((prev) => ({
         ...prev,
         [taskId]: {
           ...prev[taskId],
@@ -281,7 +296,7 @@ export function ModuleUnifiedPage({
   const handleTestTask = async (taskId: string) => {
     const state = taskStates[taskId];
     if (!state || !pyodide) return;
-    
+
     // КЛИЕНТСКАЯ ЗАЩИТА ОТ ЭКСПЛОИТА: Проверяем, не выполняется ли уже проверка
     if (state.testing) {
       return; // Игнорируем повторные вызовы во время обработки
@@ -305,7 +320,7 @@ export function ModuleUnifiedPage({
   const executeTestTask = async (taskId: string) => {
     const state = taskStates[taskId];
     if (!state || !pyodide) return;
-    
+
     if (pyodideError) {
       toast({
         title: "Ошибка Pyodide",
@@ -329,32 +344,33 @@ export function ModuleUnifiedPage({
     if (state.isCompleted) {
       toast({
         title: "Задание уже выполнено",
-        description: "Это задание уже было успешно выполнено. Вы можете улучшить решение, но XP не будет начислен повторно.",
+        description:
+          "Это задание уже было успешно выполнено. Вы можете улучшить решение, но XP не будет начислен повторно.",
         variant: "default",
         duration: 3000,
       });
     }
 
-    const task = tasks.find(t => t.id === taskId);
+    const task = tasks.find((t) => t.id === taskId);
     if (!task) return;
 
     const testCases: TestCase[] = Array.isArray(task.test_cases)
       ? (task.test_cases as unknown as TestCase[])
       : [];
 
-    setTaskStates(prev => ({
+    setTaskStates((prev) => ({
       ...prev,
       [taskId]: { ...prev[taskId], testing: true, testResults: null },
     }));
 
     try {
       const results = await runTestSuite(state.code, testCases, pyodide);
-      
-      setTaskStates(prev => ({
+
+      setTaskStates((prev) => ({
         ...prev,
-        [taskId]: { 
-          ...prev[taskId], 
-          testing: false, 
+        [taskId]: {
+          ...prev[taskId],
+          testing: false,
           testResults: results,
           isCompleted: results.allPassed,
         },
@@ -370,10 +386,10 @@ export function ModuleUnifiedPage({
               taskId,
               code: state.code,
               runtimeOutput: state.executionResult?.output,
-              testSummary: { 
-                allPassed: results.allPassed, 
-                passedCount: results.passedCount, 
-                total: results.totalCount 
+              testSummary: {
+                allPassed: results.allPassed,
+                passedCount: results.passedCount,
+                total: results.totalCount,
               },
             }),
           });
@@ -396,25 +412,6 @@ export function ModuleUnifiedPage({
 
         // Сохраняем попытку и начисляем XP
         if (user) {
-          const supabase = createClient();
-          
-          const { count: attemptsCount } = await supabase
-            .from("task_attempts")
-            .select("*", { count: "exact", head: true })
-            .eq("user_id", user.id)
-            .eq("task_id", taskId);
-
-          const attemptNumber = (attemptsCount || 0) + 1;
-
-          const { data: successfulAttempts } = await supabase
-            .from("task_attempts")
-            .select("id")
-            .eq("user_id", user.id)
-            .eq("task_id", taskId)
-            .eq("is_successful", true);
-
-          const isFirstSuccessfulAttempt = results.allPassed && (!successfulAttempts || successfulAttempts.length === 0);
-
           // Вычисляем время решения (от открытия до проверки)
           let solvingTimeMs: number | null = null;
           if (typeof window !== "undefined") {
@@ -429,17 +426,33 @@ export function ModuleUnifiedPage({
             }
           }
 
-          await (supabase.from("task_attempts") as any).insert({
-            user_id: user.id,
-            task_id: taskId,
-            code_solution: state.code,
-            test_results: results as any,
-            is_successful: results.allPassed,
-            execution_time_ms: results.executionTime,
-            solving_time_ms: solvingTimeMs,
-            error_message: results.results.find((r) => !r.passed)?.error ?? null,
-            used_ai_hint: false,
+          const attemptResponse = await fetch("/api/tasks/attempts", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+              taskId,
+              code: state.code,
+              testResults: results,
+              isSuccessful: results.allPassed,
+              executionTimeMs: results.executionTime,
+              solvingTimeMs,
+              errorMessage: results.results.find((r) => !r.passed)?.error ?? null,
+              usedAiHint: false,
+            }),
           });
+
+          if (!attemptResponse.ok) {
+            throw new Error(`HTTP error! status: ${attemptResponse.status}`);
+          }
+
+          const attemptData = (await attemptResponse.json()) as {
+            attemptNumber: number;
+            isFirstSuccessfulAttempt: boolean;
+          };
+
+          const attemptNumber = attemptData.attemptNumber;
+          const isFirstSuccessfulAttempt = attemptData.isFirstSuccessfulAttempt;
 
           // КЛИЕНТСКАЯ ЗАЩИТА ОТ ЭКСПЛОИТА: Не вызываем API начисления XP, если задание уже было выполнено
           // Это уменьшает нагрузку на сервер и улучшает UX
@@ -473,11 +486,13 @@ export function ModuleUnifiedPage({
                 // Сервер вернул, что задание уже было выполнено
                 toast({
                   title: "Все тесты пройдены! ✅",
-                  description: xpData.message || "Задание уже было успешно выполнено ранее. XP не начисляется повторно.",
+                  description:
+                    xpData.message ||
+                    "Задание уже было успешно выполнено ранее. XP не начисляется повторно.",
                   variant: "default",
                   duration: 3000,
                 });
-                setTaskStates(prev => ({
+                setTaskStates((prev) => ({
                   ...prev,
                   [taskId]: { ...prev[taskId], isCompleted: true },
                 }));
@@ -489,7 +504,10 @@ export function ModuleUnifiedPage({
                   duration: 5000,
                 });
 
-                if (xpData.newlyUnlockedAchievements && xpData.newlyUnlockedAchievements.length > 0) {
+                if (
+                  xpData.newlyUnlockedAchievements &&
+                  xpData.newlyUnlockedAchievements.length > 0
+                ) {
                   for (const achievement of xpData.newlyUnlockedAchievements) {
                     setTimeout(() => {
                       toast({
@@ -502,7 +520,7 @@ export function ModuleUnifiedPage({
                 }
 
                 // Обновляем состояние задания
-                setTaskStates(prev => ({
+                setTaskStates((prev) => ({
                   ...prev,
                   [taskId]: { ...prev[taskId], isCompleted: true },
                 }));
@@ -514,7 +532,7 @@ export function ModuleUnifiedPage({
                   variant: "default",
                   duration: 3000,
                 });
-                setTaskStates(prev => ({
+                setTaskStates((prev) => ({
                   ...prev,
                   [taskId]: { ...prev[taskId], isCompleted: true },
                 }));
@@ -528,7 +546,7 @@ export function ModuleUnifiedPage({
               variant: "default",
               duration: 3000,
             });
-            setTaskStates(prev => ({
+            setTaskStates((prev) => ({
               ...prev,
               [taskId]: { ...prev[taskId], isCompleted: true },
             }));
@@ -542,7 +560,7 @@ export function ModuleUnifiedPage({
         description: errorMessage,
         variant: "destructive",
       });
-      setTaskStates(prev => ({
+      setTaskStates((prev) => ({
         ...prev,
         [taskId]: { ...prev[taskId], testing: false },
       }));
@@ -552,8 +570,8 @@ export function ModuleUnifiedPage({
   const handleResetCode = (taskId: string) => {
     const state = taskStates[taskId];
     if (!state) return;
-    
-    setTaskStates(prev => ({
+
+    setTaskStates((prev) => ({
       ...prev,
       [taskId]: {
         ...prev[taskId],
@@ -567,9 +585,7 @@ export function ModuleUnifiedPage({
   const handleAiHint = async (taskId: string) => {
     const state = taskStates[taskId];
     if (!state) return;
-    
-    setCurrentTaskId(taskId);
-    
+
     try {
       const res = await fetch("/api/ai/hint", {
         method: "POST",
@@ -607,9 +623,9 @@ export function ModuleUnifiedPage({
   };
 
   const handleCodeChange = (taskId: string, value: string | undefined) => {
-    setTaskStates(prev => {
+    setTaskStates((prev) => {
       const currentState = prev[taskId];
-      const task = tasks.find(t => t.id === taskId);
+      const task = tasks.find((t) => t.id === taskId);
       if (!currentState && task) {
         // Создаем новое состояние, если его еще нет
         return {
@@ -636,25 +652,25 @@ export function ModuleUnifiedPage({
   const getStatusConfig = (status: TaskStatus) => {
     switch (status) {
       case "completed":
-        return { 
-          label: "Завершено", 
-          icon: "🟢", 
-          variant: "secondary" as const, 
-          className: "" // Используем стандартный стиль secondary, как у бейджа XP
+        return {
+          label: "Завершено",
+          icon: "🟢",
+          variant: "secondary" as const,
+          className: "", // Используем стандартный стиль secondary, как у бейджа XP
         };
       case "in_progress":
-        return { 
-          label: "В процессе", 
-          icon: "🟡", 
-          variant: "secondary" as const, 
-          className: "" // Используем стандартный стиль secondary, как у бейджа XP
+        return {
+          label: "В процессе",
+          icon: "🟡",
+          variant: "secondary" as const,
+          className: "", // Используем стандартный стиль secondary, как у бейджа XP
         };
       default:
-        return { 
-          label: "Не начато", 
-          icon: "🔴", 
-          variant: "secondary" as const, 
-          className: "" // Используем стандартный стиль secondary, как у бейджа XP
+        return {
+          label: "Не начато",
+          icon: "🔴",
+          variant: "secondary" as const,
+          className: "", // Используем стандартный стиль secondary, как у бейджа XP
         };
     }
   };
@@ -687,8 +703,11 @@ export function ModuleUnifiedPage({
               <CardContent>
                 <nav className="space-y-1">
                   <button
+                    type="button"
                     onClick={() => {
-                      document.getElementById("theory-section")?.scrollIntoView({ behavior: "smooth" });
+                      document
+                        .getElementById("theory-section")
+                        ?.scrollIntoView({ behavior: "smooth" });
                     }}
                     className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-accent transition-colors"
                   >
@@ -698,6 +717,7 @@ export function ModuleUnifiedPage({
                     const statusConfig = getStatusConfig(task.status);
                     return (
                       <button
+                        type="button"
                         key={task.id}
                         onClick={() => scrollToTask(task.id)}
                         className={`w-full text-left px-3 py-2 text-sm rounded-md hover:bg-accent transition-colors flex items-center justify-between group ${
@@ -720,406 +740,465 @@ export function ModuleUnifiedPage({
 
           {/* Основной контент */}
           <div>
-        {/* Заголовок модуля */}
-        <div className="mb-8" id="theory-section">
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <h1 className="text-3xl font-bold mb-2">{module.title}</h1>
-              <p className="text-lg text-muted-foreground">{module.topic}</p>
+            {/* Заголовок модуля */}
+            <div className="mb-8" id="theory-section">
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h1 className="text-3xl font-bold mb-2">{module.title}</h1>
+                  <p className="text-lg text-muted-foreground">{module.topic}</p>
+                </div>
+                <Badge variant="outline">Уровень {module.level}</Badge>
+              </div>
             </div>
-            <Badge variant="outline">Уровень {module.level}</Badge>
-          </div>
-        </div>
 
-        {/* Статистика изучения */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Прогресс</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{completedTaskIds.length} / {tasks.length}</div>
-              <p className="text-xs text-muted-foreground">заданий завершено</p>
-              <Progress value={moduleProgress} className="mt-2 h-2" />
-            </CardContent>
-          </Card>
-
-          {userProgress && (
-            <>
+            {/* Статистика изучения */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Заработано XP</CardTitle>
-                  <Award className="h-4 w-4 text-muted-foreground" />
+                  <CardTitle className="text-sm font-medium">Прогресс</CardTitle>
+                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{userProgress.xpEarned}</div>
-                  <p className="text-xs text-muted-foreground">очков за модуль</p>
+                  <div className="text-2xl font-bold">
+                    {completedTaskIds.length} / {tasks.length}
+                  </div>
+                  <p className="text-xs text-muted-foreground">заданий завершено</p>
+                  <Progress value={moduleProgress} className="mt-2 h-2" />
                 </CardContent>
               </Card>
 
-              {userProgress.avgScore !== undefined && (
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Средний балл</CardTitle>
-                    <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{userProgress.avgScore.toFixed(0)}%</div>
-                    <p className="text-xs text-muted-foreground">AI-оценка</p>
-                  </CardContent>
-                </Card>
-              )}
+              {userProgress && (
+                <>
+                  <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">Заработано XP</CardTitle>
+                      <Award className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{userProgress.xpEarned}</div>
+                      <p className="text-xs text-muted-foreground">очков за модуль</p>
+                    </CardContent>
+                  </Card>
 
-              {userProgress.timeSpent !== undefined && (
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Время</CardTitle>
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{Math.round(userProgress.timeSpent / 60)}</div>
-                    <p className="text-xs text-muted-foreground">минут</p>
-                  </CardContent>
-                </Card>
-              )}
-            </>
-          )}
-        </div>
-
-        {/* Теория модуля */}
-        {module.description && (
-          <Card className="mb-8">
-            <Accordion type="single" collapsible className="w-full">
-              <AccordionItem value="theory">
-                <AccordionTrigger className="px-6">
-                  <div className="flex items-center gap-2">
-                    <BookOpen className="h-5 w-5" />
-                    <span className="font-semibold">Теория модуля</span>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="px-6 pb-6">
-                  <div className="prose prose-sm dark:prose-invert max-w-none">
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm, remarkBreaks]}
-                      components={{
-                        code(props) {
-                          const { node, className, children, ...rest } = props as any;
-                          const inline = !className || !className.includes('language-');
-                          const match = /language-(\w+)/.exec(className || "");
-                          const isDark = mounted && (
-                            theme === "dark" || 
-                            (theme === "system" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches)
-                          );
-                          return !inline && match ? (
-                            <SyntaxHighlighter
-                              style={(isDark ? oneDark : oneLight) as any}
-                              language={match[1]}
-                              PreTag="div"
-                              className="font-ubuntu-mono rounded-md"
-                              customStyle={{ fontFamily: 'Ubuntu Mono, monospace' }}
-                              {...rest}
-                            >
-                              {String(children).replace(/\n$/, "")}
-                            </SyntaxHighlighter>
-                          ) : (
-                            <code className={`font-ubuntu-mono ${className}`} {...rest}>
-                              {children}
-                            </code>
-                          );
-                        },
-                        p: ({ children }) => <p className="mb-4 last:mb-0 whitespace-pre-line">{children}</p>,
-                      }}
-                    >
-                      {module.description}
-                    </ReactMarkdown>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-          </Card>
-        )}
-
-        {/* Фильтры и сортировка */}
-        <div className="flex flex-wrap gap-4 mb-6 items-center">
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-muted-foreground" />
-            <Select value={filterStatus} onValueChange={(v) => setFilterStatus(v as FilterStatus)}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Фильтр" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Все задания</SelectItem>
-                <SelectItem value="completed">Завершенные</SelectItem>
-                <SelectItem value="in_progress">В процессе</SelectItem>
-                <SelectItem value="not_started">Не начатые</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
-            <Select value={sortOption} onValueChange={(v) => setSortOption(v as SortOption)}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Сортировка" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="order">По порядку</SelectItem>
-                <SelectItem value="status">По статусу</SelectItem>
-                <SelectItem value="difficulty">По сложности</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="ml-auto text-sm text-muted-foreground">
-            Показано: {sortedTasks.length} из {tasks.length}
-          </div>
-        </div>
-
-        {/* Список заданий */}
-        <div className="space-y-4">
-          <h2 className="text-2xl font-bold mb-4">
-            <BookOpen className="inline mr-2 h-6 w-6" />
-            Задания ({sortedTasks.length})
-          </h2>
-
-          {sortedTasks.length === 0 ? (
-            <Card>
-              <CardContent className="pt-6">
-                <p className="text-center text-muted-foreground">
-                  Нет заданий, соответствующих выбранным фильтрам
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <Accordion 
-              type="multiple" 
-              className="w-full space-y-4"
-              value={openItems}
-              onValueChange={setOpenItems}
-            >
-              {sortedTasks.map((task, index) => {
-                const state = taskStates[task.id];
-                const statusConfig = getStatusConfig(task.status);
-                const testCases: TestCase[] = Array.isArray(task.test_cases)
-                  ? (task.test_cases as unknown as TestCase[])
-                  : [];
-
-                return (
-                  <Card key={task.id} id={`task-${task.id}`} className="overflow-hidden scroll-mt-24 hover:shadow-lg transition-shadow">
-                    <AccordionItem value={task.id} className="border-none">
-                      <AccordionTrigger className="px-6 hover:no-underline">
-                        <div className="flex items-center justify-between w-full pr-4">
-                          <div className="flex items-center gap-4 flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className="font-semibold text-lg">Задание {index + 1}</span>
-                              <span className="text-lg font-bold">{task.title}</span>
-                            </div>
-                            <Badge 
-                              variant={task.difficulty === "hard" ? "destructive" : "default"}
-                              className={
-                                task.difficulty === "easy" 
-                                  ? "bg-green-500 hover:bg-green-600 text-white border-transparent"
-                                  : task.difficulty === "medium"
-                                  ? "bg-yellow-500 hover:bg-yellow-600 text-white border-transparent"
-                                  : undefined
-                              }
-                            >
-                              {task.difficulty === "easy"
-                                ? "Легкое"
-                                : task.difficulty === "medium"
-                                  ? "Среднее"
-                                  : "Сложное"}
-                            </Badge>
-                            <Badge variant="secondary">+{(task.difficulty === "easy" ? 10 : task.difficulty === "medium" ? 20 : 30)} XP</Badge>
-                          </div>
-                          <Badge variant={statusConfig.variant} className={statusConfig.className || undefined}>
-                            <span className="mr-1">{statusConfig.icon}</span>
-                            {statusConfig.label}
-                          </Badge>
+                  {userProgress.avgScore !== undefined && (
+                    <Card>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Средний балл</CardTitle>
+                        <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">
+                          {userProgress.avgScore.toFixed(0)}%
                         </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="px-6 pb-6">
-                        <div className="space-y-6">
-                          {/* Описание задания */}
-                          <div className="prose prose-sm dark:prose-invert max-w-none">
-                            <ReactMarkdown 
-                              remarkPlugins={[remarkGfm, remarkBreaks]}
-                              components={{
-                                code({ node, inline, className, children, ...props }: any) {
-                                  const match = /language-(\w+)/.exec(className || "");
-                                  const isDark = mounted && (
-                                    theme === "dark" || 
-                                    (theme === "system" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches)
-                                  );
-                                  const inlineProp = (props as any).inline;
-                                  return !inlineProp && match ? (
-                                    <SyntaxHighlighter
-                                      style={(isDark ? oneDark : oneLight) as any}
-                                      language={match[1]}
-                                      PreTag="div"
-                                      className="font-ubuntu-mono rounded-md"
-                                      customStyle={{ fontFamily: 'Ubuntu Mono, monospace' }}
-                                    >
-                                      {String(children).replace(/\n$/, "")}
-                                    </SyntaxHighlighter>
-                                  ) : (
-                                    <code className={`font-ubuntu-mono ${className}`} {...props}>
-                                      {children}
-                                    </code>
-                                  );
-                                },
-                                p: ({ children }) => <p className="mb-4 last:mb-0 whitespace-pre-line">{children}</p>,
-                              }}
-                            >
-                              {task.description}
-                            </ReactMarkdown>
-                          </div>
+                        <p className="text-xs text-muted-foreground">AI-оценка</p>
+                      </CardContent>
+                    </Card>
+                  )}
 
-                          {/* Редактор кода */}
-                          <Card>
-                            <CardHeader>
-                              <CardTitle>Редактор кода</CardTitle>
-                              <CardDescription>
-                                Напишите решение задачи на Python
-                              </CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                              <CodeEditor
-                                value={state?.code || task.starter_code || ""}
-                                onChange={(value) => handleCodeChange(task.id, value)}
-                                height="400px"
-                                language="python"
-                              />
+                  {userProgress.timeSpent !== undefined && (
+                    <Card>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Время</CardTitle>
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">
+                          {Math.round(userProgress.timeSpent / 60)}
+                        </div>
+                        <p className="text-xs text-muted-foreground">минут</p>
+                      </CardContent>
+                    </Card>
+                  )}
+                </>
+              )}
+            </div>
 
-                              {/* Кнопки управления */}
-                              <div className="flex flex-wrap gap-2">
-                                <Button
-                                  onClick={() => handleRunCode(task.id)}
-                                  variant="default"
-                                  disabled={state?.running || pyodideLoading || !(state?.code || task.starter_code || "").trim()}
+            {/* Теория модуля */}
+            {module.description && (
+              <Card className="mb-8">
+                <Accordion type="single" collapsible className="w-full">
+                  <AccordionItem value="theory">
+                    <AccordionTrigger className="px-6">
+                      <div className="flex items-center gap-2">
+                        <BookOpen className="h-5 w-5" />
+                        <span className="font-semibold">Теория модуля</span>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-6 pb-6">
+                      <div className="prose prose-sm dark:prose-invert max-w-none">
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm, remarkBreaks]}
+                          components={{
+                            code(props) {
+                              const { node, className, children, ...rest } = props as any;
+                              const inline = !className || !className.includes("language-");
+                              const match = /language-(\w+)/.exec(className || "");
+                              const isDark =
+                                mounted &&
+                                (theme === "dark" ||
+                                  (theme === "system" &&
+                                    typeof window !== "undefined" &&
+                                    window.matchMedia("(prefers-color-scheme: dark)").matches));
+                              return !inline && match ? (
+                                <SyntaxHighlighter
+                                  style={(isDark ? oneDark : oneLight) as any}
+                                  language={match[1]}
+                                  PreTag="div"
+                                  className="font-ubuntu-mono rounded-md"
+                                  customStyle={{ fontFamily: "Ubuntu Mono, monospace" }}
+                                  {...rest}
                                 >
-                                  {state?.running ? (
-                                    <>
-                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                      Выполнение...
-                                    </>
-                                  ) : (
-                                    "Запустить код"
-                                  )}
-                                </Button>
-                                <Button
-                                  onClick={() => handleTestTask(task.id)}
-                                  variant="default"
-                                  disabled={state?.testing || pyodideLoading || !(state?.code || task.starter_code || "").trim()}
+                                  {String(children).replace(/\n$/, "")}
+                                </SyntaxHighlighter>
+                              ) : (
+                                <code className={`font-ubuntu-mono ${className}`} {...rest}>
+                                  {children}
+                                </code>
+                              );
+                            },
+                            p: ({ children }) => (
+                              <p className="mb-4 last:mb-0 whitespace-pre-line">{children}</p>
+                            ),
+                          }}
+                        >
+                          {module.description}
+                        </ReactMarkdown>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+              </Card>
+            )}
+
+            {/* Фильтры и сортировка */}
+            <div className="flex flex-wrap gap-4 mb-6 items-center">
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-muted-foreground" />
+                <Select
+                  value={filterStatus}
+                  onValueChange={(v) => setFilterStatus(v as FilterStatus)}
+                >
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Фильтр" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Все задания</SelectItem>
+                    <SelectItem value="completed">Завершенные</SelectItem>
+                    <SelectItem value="in_progress">В процессе</SelectItem>
+                    <SelectItem value="not_started">Не начатые</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
+                <Select value={sortOption} onValueChange={(v) => setSortOption(v as SortOption)}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Сортировка" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="order">По порядку</SelectItem>
+                    <SelectItem value="status">По статусу</SelectItem>
+                    <SelectItem value="difficulty">По сложности</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="ml-auto text-sm text-muted-foreground">
+                Показано: {sortedTasks.length} из {tasks.length}
+              </div>
+            </div>
+
+            {/* Список заданий */}
+            <div className="space-y-4">
+              <h2 className="text-2xl font-bold mb-4">
+                <BookOpen className="inline mr-2 h-6 w-6" />
+                Задания ({sortedTasks.length})
+              </h2>
+
+              {sortedTasks.length === 0 ? (
+                <Card>
+                  <CardContent className="pt-6">
+                    <p className="text-center text-muted-foreground">
+                      Нет заданий, соответствующих выбранным фильтрам
+                    </p>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Accordion
+                  type="multiple"
+                  className="w-full space-y-4"
+                  value={openItems}
+                  onValueChange={setOpenItems}
+                >
+                  {sortedTasks.map((task, index) => {
+                    const state = taskStates[task.id];
+                    const statusConfig = getStatusConfig(task.status);
+                    const testCases: TestCase[] = Array.isArray(task.test_cases)
+                      ? (task.test_cases as unknown as TestCase[])
+                      : [];
+
+                    return (
+                      <Card
+                        key={task.id}
+                        id={`task-${task.id}`}
+                        className="overflow-hidden scroll-mt-24 hover:shadow-lg transition-shadow"
+                      >
+                        <AccordionItem value={task.id} className="border-none">
+                          <AccordionTrigger className="px-6 hover:no-underline">
+                            <div className="flex items-center justify-between w-full pr-4">
+                              <div className="flex items-center gap-4 flex-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-semibold text-lg">Задание {index + 1}</span>
+                                  <span className="text-lg font-bold">{task.title}</span>
+                                </div>
+                                <Badge
+                                  variant={task.difficulty === "hard" ? "destructive" : "default"}
+                                  className={
+                                    task.difficulty === "easy"
+                                      ? "bg-green-500 hover:bg-green-600 text-white border-transparent"
+                                      : task.difficulty === "medium"
+                                        ? "bg-yellow-500 hover:bg-yellow-600 text-white border-transparent"
+                                        : undefined
+                                  }
                                 >
-                                  {state?.testing ? (
-                                    <>
-                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                      Проверка...
-                                    </>
-                                  ) : (
-                                    "Проверить задание"
-                                  )}
-                                </Button>
-                                <Button
-                                  onClick={() => handleResetCode(task.id)}
-                                  variant="outline"
-                                  disabled={(state?.code || task.starter_code || "") === (state?.initialCode || task.starter_code || "")}
+                                  {task.difficulty === "easy"
+                                    ? "Легкое"
+                                    : task.difficulty === "medium"
+                                      ? "Среднее"
+                                      : "Сложное"}
+                                </Badge>
+                                <Badge variant="secondary">
+                                  +
+                                  {task.difficulty === "easy"
+                                    ? 10
+                                    : task.difficulty === "medium"
+                                      ? 20
+                                      : 30}{" "}
+                                  XP
+                                </Badge>
+                              </div>
+                              <Badge
+                                variant={statusConfig.variant}
+                                className={statusConfig.className || undefined}
+                              >
+                                <span className="mr-1">{statusConfig.icon}</span>
+                                {statusConfig.label}
+                              </Badge>
+                            </div>
+                          </AccordionTrigger>
+                          <AccordionContent className="px-6 pb-6">
+                            <div className="space-y-6">
+                              {/* Описание задания */}
+                              <div className="prose prose-sm dark:prose-invert max-w-none">
+                                <ReactMarkdown
+                                  remarkPlugins={[remarkGfm, remarkBreaks]}
+                                  components={{
+                                    code({ node, inline, className, children, ...props }: any) {
+                                      const match = /language-(\w+)/.exec(className || "");
+                                      const isDark =
+                                        mounted &&
+                                        (theme === "dark" ||
+                                          (theme === "system" &&
+                                            typeof window !== "undefined" &&
+                                            window.matchMedia("(prefers-color-scheme: dark)")
+                                              .matches));
+                                      const inlineProp = (props as any).inline;
+                                      return !inlineProp && match ? (
+                                        <SyntaxHighlighter
+                                          style={(isDark ? oneDark : oneLight) as any}
+                                          language={match[1]}
+                                          PreTag="div"
+                                          className="font-ubuntu-mono rounded-md"
+                                          customStyle={{ fontFamily: "Ubuntu Mono, monospace" }}
+                                        >
+                                          {String(children).replace(/\n$/, "")}
+                                        </SyntaxHighlighter>
+                                      ) : (
+                                        <code
+                                          className={`font-ubuntu-mono ${className}`}
+                                          {...props}
+                                        >
+                                          {children}
+                                        </code>
+                                      );
+                                    },
+                                    p: ({ children }) => (
+                                      <p className="mb-4 last:mb-0 whitespace-pre-line">
+                                        {children}
+                                      </p>
+                                    ),
+                                  }}
                                 >
-                                  <RotateCcw className="mr-2 h-4 w-4" />
-                                  Сбросить код
-                                </Button>
-                                <Button onClick={() => handleAiHint(task.id)} variant="outline">
-                                  <Sparkles className="mr-2 h-4 w-4" />
-                                  AI-подсказка
-                                </Button>
+                                  {task.description}
+                                </ReactMarkdown>
                               </div>
 
-                              {/* Отображение ошибки Pyodide */}
-                              {pyodideError && (
-                                <div className="mt-4 p-4 rounded-md bg-destructive/10 border border-destructive">
-                                  <div className="flex items-start gap-2">
-                                    <AlertCircle className="h-5 w-5 text-destructive mt-0.5 flex-shrink-0" />
-                                    <div>
-                                      <h4 className="font-medium text-destructive">Ошибка загрузки Python среды</h4>
-                                      <p className="text-sm text-muted-foreground mt-1">
-                                        {pyodideError.message}
-                                      </p>
-                                      <Button
-                                        onClick={() => window.location.reload()}
-                                        variant="outline"
-                                        size="sm"
-                                        className="mt-2"
-                                      >
-                                        Перезагрузить страницу
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
+                              {/* Редактор кода */}
+                              <Card>
+                                <CardHeader>
+                                  <CardTitle>Редактор кода</CardTitle>
+                                  <CardDescription>
+                                    Напишите решение задачи на Python
+                                  </CardDescription>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                  <CodeEditor
+                                    value={state?.code || task.starter_code || ""}
+                                    onChange={(value) => handleCodeChange(task.id, value)}
+                                    height="400px"
+                                    language="python"
+                                  />
 
-                              {/* Индикатор загрузки Pyodide */}
-                              {pyodideLoading && (
-                                <div className="mt-4 p-4 rounded-md bg-muted">
-                                  <div className="flex items-center gap-2">
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                    <span className="text-sm">Загрузка Python среды... Это может занять несколько секунд</span>
+                                  {/* Кнопки управления */}
+                                  <div className="flex flex-wrap gap-2">
+                                    <Button
+                                      onClick={() => handleRunCode(task.id)}
+                                      variant="default"
+                                      disabled={
+                                        state?.running ||
+                                        pyodideLoading ||
+                                        !(state?.code || task.starter_code || "").trim()
+                                      }
+                                    >
+                                      {state?.running ? (
+                                        <>
+                                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                          Выполнение...
+                                        </>
+                                      ) : (
+                                        "Запустить код"
+                                      )}
+                                    </Button>
+                                    <Button
+                                      onClick={() => handleTestTask(task.id)}
+                                      variant="default"
+                                      disabled={
+                                        state?.testing ||
+                                        pyodideLoading ||
+                                        !(state?.code || task.starter_code || "").trim()
+                                      }
+                                    >
+                                      {state?.testing ? (
+                                        <>
+                                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                          Проверка...
+                                        </>
+                                      ) : (
+                                        "Проверить задание"
+                                      )}
+                                    </Button>
+                                    <Button
+                                      onClick={() => handleResetCode(task.id)}
+                                      variant="outline"
+                                      disabled={
+                                        (state?.code || task.starter_code || "") ===
+                                        (state?.initialCode || task.starter_code || "")
+                                      }
+                                    >
+                                      <RotateCcw className="mr-2 h-4 w-4" />
+                                      Сбросить код
+                                    </Button>
+                                    <Button onClick={() => handleAiHint(task.id)} variant="outline">
+                                      <Sparkles className="mr-2 h-4 w-4" />
+                                      AI-подсказка
+                                    </Button>
                                   </div>
-                                </div>
-                              )}
 
-                              {/* Выполнение кода */}
-                              {state?.executionResult && (
-                                <Card className="mt-4">
-                                  <CardHeader>
-                                    <CardTitle>
-                                      {state.executionResult.error ? "Ошибка выполнения" : "Код выполнен успешно"}
-                                    </CardTitle>
-                                    {state.executionResult.executionTime > 0 && (
-                                      <CardDescription>
-                                        Время выполнения: {state.executionResult.executionTime} мс
-                                      </CardDescription>
-                                    )}
-                                  </CardHeader>
-                                  <CardContent>
-                                    {state.executionResult.error ? (
-                                      <div className="rounded-md bg-destructive/10 p-4">
-                                        <pre className="text-sm text-destructive whitespace-pre-wrap font-mono">
-                                          {state.executionResult.error}
-                                        </pre>
-                                      </div>
-                                    ) : (
-                                      <div className="space-y-2">
-                                        <h4 className="text-sm font-medium">Вывод:</h4>
-                                        <div className="rounded-md bg-muted p-4">
-                                          <pre className="text-sm whitespace-pre-wrap font-mono">
-                                            {state.executionResult.output || "(нет вывода)"}
-                                          </pre>
+                                  {/* Отображение ошибки Pyodide */}
+                                  {pyodideError && (
+                                    <div className="mt-4 p-4 rounded-md bg-destructive/10 border border-destructive">
+                                      <div className="flex items-start gap-2">
+                                        <AlertCircle className="h-5 w-5 text-destructive mt-0.5 flex-shrink-0" />
+                                        <div>
+                                          <h4 className="font-medium text-destructive">
+                                            Ошибка загрузки Python среды
+                                          </h4>
+                                          <p className="text-sm text-muted-foreground mt-1">
+                                            {pyodideError.message}
+                                          </p>
+                                          <Button
+                                            onClick={() => window.location.reload()}
+                                            variant="outline"
+                                            size="sm"
+                                            className="mt-2"
+                                          >
+                                            Перезагрузить страницу
+                                          </Button>
                                         </div>
                                       </div>
-                                    )}
-                                  </CardContent>
-                                </Card>
-                              )}
+                                    </div>
+                                  )}
 
-                              {/* Результаты тестов */}
-                              {state?.testResults && (
-                                <div className="mt-4">
-                                  <TestResults testResults={state.testResults} testCases={testCases} />
-                                </div>
-                              )}
-                            </CardContent>
-                          </Card>
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  </Card>
-                );
-              })}
-            </Accordion>
-          )}
-        </div>
+                                  {/* Индикатор загрузки Pyodide */}
+                                  {pyodideLoading && (
+                                    <div className="mt-4 p-4 rounded-md bg-muted">
+                                      <div className="flex items-center gap-2">
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        <span className="text-sm">
+                                          Загрузка Python среды... Это может занять несколько секунд
+                                        </span>
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Выполнение кода */}
+                                  {state?.executionResult && (
+                                    <Card className="mt-4">
+                                      <CardHeader>
+                                        <CardTitle>
+                                          {state.executionResult.error
+                                            ? "Ошибка выполнения"
+                                            : "Код выполнен успешно"}
+                                        </CardTitle>
+                                        {state.executionResult.executionTime > 0 && (
+                                          <CardDescription>
+                                            Время выполнения: {state.executionResult.executionTime}{" "}
+                                            мс
+                                          </CardDescription>
+                                        )}
+                                      </CardHeader>
+                                      <CardContent>
+                                        {state.executionResult.error ? (
+                                          <div className="rounded-md bg-destructive/10 p-4">
+                                            <pre className="text-sm text-destructive whitespace-pre-wrap font-mono">
+                                              {state.executionResult.error}
+                                            </pre>
+                                          </div>
+                                        ) : (
+                                          <div className="space-y-2">
+                                            <h4 className="text-sm font-medium">Вывод:</h4>
+                                            <div className="rounded-md bg-muted p-4">
+                                              <pre className="text-sm whitespace-pre-wrap font-mono">
+                                                {state.executionResult.output || "(нет вывода)"}
+                                              </pre>
+                                            </div>
+                                          </div>
+                                        )}
+                                      </CardContent>
+                                    </Card>
+                                  )}
+
+                                  {/* Результаты тестов */}
+                                  {state?.testResults && (
+                                    <div className="mt-4">
+                                      <TestResults
+                                        testResults={state.testResults}
+                                        testCases={testCases}
+                                      />
+                                    </div>
+                                  )}
+                                </CardContent>
+                              </Card>
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      </Card>
+                    );
+                  })}
+                </Accordion>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -1137,15 +1216,17 @@ export function ModuleUnifiedPage({
             <Card className="font-ubuntu-mono">
               <CardContent className="pt-6">
                 <div className="prose prose-sm dark:prose-invert max-w-none [&_*]:font-ubuntu-mono [&_h1]:font-ubuntu-mono [&_h2]:font-ubuntu-mono [&_h3]:font-ubuntu-mono [&_li]:font-ubuntu-mono [&_strong]:font-ubuntu-mono [&_em]:font-ubuntu-mono">
-                  <ReactMarkdown 
+                  <ReactMarkdown
                     remarkPlugins={[remarkGfm, remarkBreaks]}
                     components={{
                       code({ node, inline, className, children, ...props }: any) {
                         const match = /language-(\w+)/.exec(className || "");
-                        const isDark = mounted && (
-                          theme === "dark" || 
-                          (theme === "system" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches)
-                        );
+                        const isDark =
+                          mounted &&
+                          (theme === "dark" ||
+                            (theme === "system" &&
+                              typeof window !== "undefined" &&
+                              window.matchMedia("(prefers-color-scheme: dark)").matches));
                         const inlineProp = (props as any).inline;
                         return !inlineProp && match ? (
                           <SyntaxHighlighter
@@ -1153,7 +1234,7 @@ export function ModuleUnifiedPage({
                             language={match[1]}
                             PreTag="div"
                             className="font-ubuntu-mono rounded-md"
-                            customStyle={{ fontFamily: 'Ubuntu Mono, monospace' }}
+                            customStyle={{ fontFamily: "Ubuntu Mono, monospace" }}
                           >
                             {String(children).replace(/\n$/, "")}
                           </SyntaxHighlighter>
@@ -1163,7 +1244,11 @@ export function ModuleUnifiedPage({
                           </code>
                         );
                       },
-                      p: ({ children }) => <p className="mb-4 last:mb-0 whitespace-pre-line font-ubuntu-mono">{children}</p>,
+                      p: ({ children }) => (
+                        <p className="mb-4 last:mb-0 whitespace-pre-line font-ubuntu-mono">
+                          {children}
+                        </p>
+                      ),
                     }}
                   >
                     {hintMarkdown}
@@ -1190,16 +1275,21 @@ export function ModuleUnifiedPage({
           <div className="max-h-[60vh] overflow-y-auto">
             <Card className="font-ubuntu-mono">
               <CardContent className="pt-6">
-                <div id="feedback-description" className="prose prose-sm dark:prose-invert max-w-none [&_*]:font-ubuntu-mono [&_h1]:font-ubuntu-mono [&_h2]:font-ubuntu-mono [&_h3]:font-ubuntu-mono [&_li]:font-ubuntu-mono [&_strong]:font-ubuntu-mono [&_em]:font-ubuntu-mono">
-                  <ReactMarkdown 
+                <div
+                  id="feedback-description"
+                  className="prose prose-sm dark:prose-invert max-w-none [&_*]:font-ubuntu-mono [&_h1]:font-ubuntu-mono [&_h2]:font-ubuntu-mono [&_h3]:font-ubuntu-mono [&_li]:font-ubuntu-mono [&_strong]:font-ubuntu-mono [&_em]:font-ubuntu-mono"
+                >
+                  <ReactMarkdown
                     remarkPlugins={[remarkGfm, remarkBreaks]}
                     components={{
                       code({ node, inline, className, children, ...props }: any) {
                         const match = /language-(\w+)/.exec(className || "");
-                        const isDark = mounted && (
-                          theme === "dark" || 
-                          (theme === "system" && typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches)
-                        );
+                        const isDark =
+                          mounted &&
+                          (theme === "dark" ||
+                            (theme === "system" &&
+                              typeof window !== "undefined" &&
+                              window.matchMedia("(prefers-color-scheme: dark)").matches));
                         const inlineProp = (props as any).inline;
                         return !inlineProp && match ? (
                           <SyntaxHighlighter
@@ -1207,7 +1297,7 @@ export function ModuleUnifiedPage({
                             language={match[1]}
                             PreTag="div"
                             className="font-ubuntu-mono rounded-md"
-                            customStyle={{ fontFamily: 'Ubuntu Mono, monospace' }}
+                            customStyle={{ fontFamily: "Ubuntu Mono, monospace" }}
                           >
                             {String(children).replace(/\n$/, "")}
                           </SyntaxHighlighter>
@@ -1217,7 +1307,11 @@ export function ModuleUnifiedPage({
                           </code>
                         );
                       },
-                      p: ({ children }) => <p className="mb-4 last:mb-0 whitespace-pre-line font-ubuntu-mono">{children}</p>,
+                      p: ({ children }) => (
+                        <p className="mb-4 last:mb-0 whitespace-pre-line font-ubuntu-mono">
+                          {children}
+                        </p>
+                      ),
                     }}
                   >
                     {feedbackMarkdown}
@@ -1234,4 +1328,3 @@ export function ModuleUnifiedPage({
     </>
   );
 }
-

@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -12,42 +14,65 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { createClient } from "@/lib/supabase/client";
-import Link from "next/link";
-import { useState } from "react";
+
+interface ResetResponse {
+  success?: boolean;
+  message?: string;
+  error?: string;
+}
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [message, setMessage] = useState("");
   const { toast } = useToast();
-  const supabase = createClient();
 
   async function handleReset(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
 
-    const { getBaseUrl } = await import("@/lib/utils/get-base-url");
-    const baseUrl = getBaseUrl();
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${baseUrl}/auth/reset-password`,
-    });
+    try {
+      const response = await fetch("/api/auth/password-reset", {
+        method: "POST",
+        credentials: "include",
+        cache: "no-store",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email }),
+      });
 
-    if (error) {
+      const data = (await response.json().catch(() => null)) as ResetResponse | null;
+
+      if (!response.ok) {
+        toast({
+          title: "Ошибка",
+          description: data?.error || "Не удалось отправить письмо",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const serverMessage =
+        data?.message || "Если такой email зарегистрирован, письмо со ссылкой отправлено.";
+
+      setMessage(serverMessage);
+      setSent(true);
       toast({
-        title: "Ошибка",
-        description: error.message,
+        title: "Письмо отправлено",
+        description: serverMessage,
+      });
+    } catch (error) {
+      console.error("Unexpected password reset error", error);
+      toast({
+        title: "Неожиданная ошибка",
+        description: "Не удалось отправить письмо. Попробуйте снова чуть позже",
         variant: "destructive",
       });
+    } finally {
       setLoading(false);
-      return;
     }
-
-    setSent(true);
-    toast({
-      title: "Письмо отправлено",
-      description: "Проверьте почту для восстановления пароля",
-    });
   }
 
   if (sent) {
@@ -56,7 +81,9 @@ export default function ForgotPasswordPage() {
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle>Письмо отправлено</CardTitle>
-            <CardDescription>Проверьте вашу почту для восстановления пароля</CardDescription>
+            <CardDescription>
+              {message || "Если такой email зарегистрирован, письмо со ссылкой отправлено."}
+            </CardDescription>
           </CardHeader>
           <CardFooter>
             <Link href="/login" className="w-full">

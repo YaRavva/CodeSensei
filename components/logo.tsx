@@ -1,6 +1,6 @@
 "use client";
 
-import * as React from "react";
+import type * as React from "react";
 
 interface LogoProps extends React.SVGProps<SVGSVGElement> {
   size?: number;
@@ -18,6 +18,7 @@ export function Logo({ size = 28, className, ...props }: LogoProps) {
       className={className}
       {...props}
     >
+      <title>CodeSensei</title>
       {/* Левая скобка «<» */}
       <path
         d="M16 32 L26 22 M16 32 L26 42"
@@ -65,5 +66,3 @@ export function Logo({ size = 28, className, ...props }: LogoProps) {
     </svg>
   );
 }
-
-

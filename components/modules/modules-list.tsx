@@ -1,6 +1,6 @@
 "use client";
 
-import type { Database } from "@/types/supabase";
+import { useMemo, useState } from "react";
 import { ModuleCard } from "@/components/modules/module-card";
 import {
   Select,
@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useMemo, useState } from "react";
+import type { Database } from "@/types/db";
 
 type Module = Database["public"]["Tables"]["modules"]["Row"];
 type UserProgress = Database["public"]["Tables"]["user_progress"]["Row"];
@@ -26,10 +26,7 @@ type SortOption = "order" | "level" | "status" | "title";
 /**
  * Определяет статус модуля на основе прогресса пользователя
  */
-function getModuleStatus(
-  moduleId: string,
-  userProgress: UserProgress[]
-): ModuleStatus {
+function getModuleStatus(moduleId: string, userProgress: UserProgress[]): ModuleStatus {
   // Находим прогресс для этого модуля
   const progressEntry = userProgress.find((p) => p.module_id === moduleId);
 
@@ -65,13 +62,13 @@ export function ModulesList({ modules, userProgress, tasksCountMap = {} }: Modul
 
   const sortedModules = useMemo(() => {
     const sorted = [...filteredModules];
-    
+
     switch (sortOption) {
       case "order":
         return sorted.sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
       case "level":
         return sorted.sort((a, b) => a.level - b.level);
-      case "status":
+      case "status": {
         const statusOrder: Record<ModuleStatus, number> = {
           not_started: 0,
           in_progress: 1,
@@ -82,6 +79,7 @@ export function ModulesList({ modules, userProgress, tasksCountMap = {} }: Modul
           const statusB = getModuleStatus(b.id, userProgress);
           return statusOrder[statusA] - statusOrder[statusB];
         });
+      }
       case "title":
         return sorted.sort((a, b) => a.title.localeCompare(b.title, "ru"));
       default:
@@ -105,9 +103,7 @@ export function ModulesList({ modules, userProgress, tasksCountMap = {} }: Modul
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold">Модули</h1>
-          <p className="text-muted-foreground mt-2">
-            Выберите модуль для изучения Python
-          </p>
+          <p className="text-muted-foreground mt-2">Выберите модуль для изучения Python</p>
         </div>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
           <Select
@@ -119,7 +115,10 @@ export function ModulesList({ modules, userProgress, tasksCountMap = {} }: Modul
               }));
             }}
           >
-            <SelectTrigger className="w-full min-w-[200px] sm:w-auto" onClick={(e) => e.stopPropagation()}>
+            <SelectTrigger
+              className="w-full min-w-[200px] sm:w-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
               <SelectValue placeholder="Все статусы" />
             </SelectTrigger>
             <SelectContent>
@@ -139,7 +138,10 @@ export function ModulesList({ modules, userProgress, tasksCountMap = {} }: Modul
               }));
             }}
           >
-            <SelectTrigger className="w-full min-w-[220px] sm:w-auto" onClick={(e) => e.stopPropagation()}>
+            <SelectTrigger
+              className="w-full min-w-[220px] sm:w-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
               <SelectValue placeholder="Все уровни" />
             </SelectTrigger>
             <SelectContent>
@@ -158,7 +160,10 @@ export function ModulesList({ modules, userProgress, tasksCountMap = {} }: Modul
               setSortOption(value as SortOption);
             }}
           >
-            <SelectTrigger className="w-full min-w-[200px] sm:w-auto" onClick={(e) => e.stopPropagation()}>
+            <SelectTrigger
+              className="w-full min-w-[200px] sm:w-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
               <SelectValue placeholder="Сортировка" />
             </SelectTrigger>
             <SelectContent>
@@ -184,12 +189,9 @@ export function ModulesList({ modules, userProgress, tasksCountMap = {} }: Modul
 
       {sortedModules.length === 0 && (
         <div className="text-center py-12">
-          <p className="text-muted-foreground">
-            Модули не найдены по выбранным фильтрам
-          </p>
+          <p className="text-muted-foreground">Модули не найдены по выбранным фильтрам</p>
         </div>
       )}
     </div>
   );
 }
-

@@ -1,57 +1,67 @@
 "use client";
 
+import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { createClient } from "@/lib/supabase/client";
-import type { Database } from "@/types/supabase";
-import Link from "next/link";
-import { useEffect, useState } from "react";
-
-type Task = Database["public"]["Tables"]["tasks"]["Row"];
+import type { Task } from "@/types/db";
 
 interface TasksListProps {
-  lessonId: string;
+  moduleId: string;
 }
 
-export function TasksList({ lessonId }: TasksListProps) {
+async function readApiError(response: Response): Promise<string> {
+  const body = (await response.json().catch(() => ({}))) as { error?: string };
+  return body.error || `${response.status} ${response.statusText}`;
+}
+
+export function TasksList({ moduleId }: TasksListProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
 
-  useEffect(() => {
-    loadTasks();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lessonId]);
-
-  async function loadTasks() {
+  const loadTasks = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from("tasks")
-        .select("*")
-        .eq("lesson_id", lessonId)
-        .order("order_index");
+      const res = await fetch(`/api/admin/modules/${moduleId}/tasks`, {
+        credentials: "include",
+      });
 
-      if (error) throw error;
-      setTasks(data || []);
+      if (!res.ok) {
+        throw new Error(await readApiError(res));
+      }
+
+      const body = (await res.json()) as { tasks?: Task[] };
+      setTasks(body.tasks ?? []);
     } catch (error) {
       console.error("Error loading tasks:", error);
     } finally {
       setLoading(false);
     }
-  }
+  }, [moduleId]);
+
+  useEffect(() => {
+    loadTasks();
+  }, [loadTasks]);
 
   async function handleDelete(id: string) {
     if (!confirm("Вы уверены, что хотите удалить это задание?")) return;
 
-    const { error } = await supabase.from("tasks").delete().eq("id", id);
+    try {
+      const res = await fetch(`/api/admin/tasks/${id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
 
-    if (error) {
-      alert(`Ошибка: ${error.message}`);
-      return;
+      if (!res.ok) {
+        throw new Error(await readApiError(res));
+      }
+
+      await loadTasks();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Не удалось удалить задание";
+      alert(`Ошибка: ${message}`);
     }
-
-    await loadTasks();
   }
 
   if (loading) {
@@ -72,8 +82,14 @@ export function TasksList({ lessonId }: TasksListProps) {
 
   const getDifficultyBadge = (difficulty: string) => {
     const variants = {
-      easy: { variant: "default" as const, className: "bg-green-500 hover:bg-green-600 text-white border-transparent" },
-      medium: { variant: "default" as const, className: "bg-yellow-500 hover:bg-yellow-600 text-white border-transparent" },
+      easy: {
+        variant: "default" as const,
+        className: "bg-green-500 hover:bg-green-600 text-white border-transparent",
+      },
+      medium: {
+        variant: "default" as const,
+        className: "bg-yellow-500 hover:bg-yellow-600 text-white border-transparent",
+      },
       hard: { variant: "destructive" as const, className: undefined },
     } as const;
 

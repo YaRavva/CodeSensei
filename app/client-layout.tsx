@@ -1,12 +1,13 @@
 "use client";
 
 import "./globals.css";
+import type React from "react";
+import { useEffect } from "react";
 import { AuthProvider } from "@/components/auth/auth-provider";
 import { Layout } from "@/components/layout";
 import { Navigation } from "@/components/navigation";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/toaster";
-import React, { useEffect } from "react";
 
 export function ClientLayout({
   children,
@@ -27,8 +28,8 @@ export function ClientLayout({
           message.includes("error-stack-parser") ||
           message.includes("intercept-console-error") ||
           message.includes("browser-polyfill") ||
-          message.includes("Loading \"stackframe\" failed") ||
-          message.includes("Loading \"error-stack-parser\" failed"))
+          message.includes('Loading "stackframe" failed') ||
+          message.includes('Loading "error-stack-parser" failed'))
       ) {
         return true; // Подавляем ошибку
       }
@@ -58,8 +59,8 @@ export function ClientLayout({
           event.reason.message.includes("stackframe") ||
           event.reason.message.includes("error-stack-parser") ||
           event.reason.message.includes("browser-polyfill") ||
-          event.reason.message.includes("Loading \"stackframe\" failed") ||
-          event.reason.message.includes("Loading \"error-stack-parser\" failed"))
+          event.reason.message.includes('Loading "stackframe" failed') ||
+          event.reason.message.includes('Loading "error-stack-parser" failed'))
       ) {
         event.preventDefault();
         return;
@@ -67,16 +68,23 @@ export function ClientLayout({
       // Игнорируем ошибки загрузки через Event объект
       if (event.reason && event.reason instanceof ErrorEvent) {
         const target = event.reason.target;
-        if (target && "src" in target && typeof target.src === "string" && 
-            (target.src.includes("stackframe") || target.src.includes("error-stack-parser"))) {
+        if (
+          target &&
+          "src" in target &&
+          typeof target.src === "string" &&
+          (target.src.includes("stackframe") || target.src.includes("error-stack-parser"))
+        ) {
           event.preventDefault();
           return;
         }
       }
       // Игнорируем массивы с названиями модулей (например ["error-stack-parser"])
-      if (Array.isArray(event.reason) && event.reason.length > 0 && 
-          typeof event.reason[0] === "string" &&
-          (event.reason[0].includes("error-stack-parser") || event.reason[0].includes("stackframe"))) {
+      if (
+        Array.isArray(event.reason) &&
+        event.reason.length > 0 &&
+        typeof event.reason[0] === "string" &&
+        (event.reason[0].includes("error-stack-parser") || event.reason[0].includes("stackframe"))
+      ) {
         event.preventDefault();
         return;
       }

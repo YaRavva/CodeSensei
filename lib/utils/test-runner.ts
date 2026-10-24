@@ -46,80 +46,6 @@ function inputToPythonArgs(input: Record<string, unknown>): string {
 }
 
 /**
- * Сравнивает два значения с учетом типов Python
- */
-function compareValues(actual: unknown, expected: unknown): boolean {
-  // Строгое сравнение для примитивов
-  if (
-    typeof actual === "number" &&
-    typeof expected === "number"
-  ) {
-    // Для чисел используем приблизительное сравнение для float
-    if (Number.isInteger(actual) && Number.isInteger(expected)) {
-      return actual === expected;
-    }
-    // Для float допускаем небольшую погрешность
-    return Math.abs((actual as number) - (expected as number)) < 0.0001;
-  }
-
-  if (
-    typeof actual === "boolean" &&
-    typeof expected === "boolean"
-  ) {
-    return actual === expected;
-  }
-
-  if (typeof actual === "string" && typeof expected === "string") {
-    return actual.trim() === expected.trim();
-  }
-
-  // Для массивов сравниваем поэлементно
-  if (Array.isArray(actual) && Array.isArray(expected)) {
-    if (actual.length !== expected.length) {
-      return false;
-    }
-    return actual.every((item, index) =>
-      compareValues(item, expected[index])
-    );
-  }
-
-  // Для объектов сравниваем ключи и значения
-  if (
-    typeof actual === "object" &&
-    actual !== null &&
-    typeof expected === "object" &&
-    expected !== null &&
-    !Array.isArray(actual) &&
-    !Array.isArray(expected)
-  ) {
-    const actualKeys = Object.keys(actual).sort();
-    const expectedKeys = Object.keys(expected).sort();
-    if (actualKeys.length !== expectedKeys.length) {
-      return false;
-    }
-    return actualKeys.every(
-      (key) =>
-        key in expected &&
-        compareValues(
-          (actual as Record<string, unknown>)[key],
-          (expected as Record<string, unknown>)[key]
-        )
-    );
-  }
-
-  // Для None/null
-  if (
-    (actual === null || actual === undefined) &&
-    (expected === null || expected === undefined)
-  ) {
-    return true;
-  }
-
-  // Fallback: строгое сравнение
-  return actual === expected;
-}
-
-/**
  * Выполняет один тестовый случай
  */
 export async function runTestCase(
@@ -137,7 +63,8 @@ export async function runTestCase(
       return {
         testCaseId: testCase.id,
         passed: false,
-        error: "Не найдено определение функции. Убедитесь, что функция определена как def function_name(...)",
+        error:
+          "Не найдено определение функции. Убедитесь, что функция определена как def function_name(...)",
       };
     }
 
@@ -190,8 +117,8 @@ except Exception as e:
 
     // Получаем результаты
     let passed = false;
-    let result: any = undefined;
-    let error: string | undefined = undefined;
+    let result: any;
+    let error: string | undefined;
 
     try {
       passed = Boolean(pyodide.runPython("bool(_test_passed)"));
@@ -201,18 +128,18 @@ except Exception as e:
 
     try {
       const resultValue = pyodide.runPython("_test_result");
-      result = resultValue !== undefined && resultValue !== null && resultValue !== "None"
-        ? resultValue
-        : undefined;
+      result =
+        resultValue !== undefined && resultValue !== null && resultValue !== "None"
+          ? resultValue
+          : undefined;
     } catch {
       result = undefined;
     }
 
     try {
       const errorValue = pyodide.runPython("_test_error");
-      error = errorValue && errorValue !== "None" && errorValue !== null 
-        ? String(errorValue) 
-        : undefined;
+      error =
+        errorValue && errorValue !== "None" && errorValue !== null ? String(errorValue) : undefined;
     } catch {
       error = undefined;
     }
@@ -240,22 +167,22 @@ except:
     };
   } catch (err) {
     const executionTime = Date.now() - startTime;
-    
+
     // Улучшенная обработка ошибок
     let errorMessage = "";
-    
+
     if (err instanceof Error) {
       errorMessage = err.message;
-      
+
       // Извлекаем более понятное сообщение из traceback Python
-      const lines = errorMessage.split('\n');
+      const lines = errorMessage.split("\n");
       const errorLine = lines[lines.length - 1] || errorMessage;
-      
+
       // Упрощаем сообщение для пользователя
-      if (errorLine.includes('UnboundLocalError')) {
+      if (errorLine.includes("UnboundLocalError")) {
         const match = errorLine.match(/UnboundLocalError: (.+)/);
         errorMessage = match ? `Ошибка: ${match[1]}` : errorLine;
-      } else if (errorLine.includes('NameError')) {
+      } else if (errorLine.includes("NameError")) {
         const match = errorLine.match(/NameError: (.+)/);
         errorMessage = match ? `Ошибка: ${match[1]}` : errorLine;
       } else {
@@ -322,4 +249,3 @@ export async function runTestSuite(
     executionTime,
   };
 }
-

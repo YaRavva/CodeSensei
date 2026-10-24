@@ -1,74 +1,78 @@
 "use client";
 
-import { Badge, badgeVariants } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { createClient } from "@/lib/supabase/client";
-import type { Database } from "@/types/supabase";
+import { AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { badgeVariants } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { AlertTriangle } from "lucide-react";
-
-type Module = Database["public"]["Tables"]["modules"]["Row"];
+import type { Module } from "@/types/db";
 
 interface ModulesListProps {
   initialModules?: Module[];
 }
 
+async function readApiError(response: Response): Promise<string> {
+  const body = (await response.json().catch(() => ({}))) as { error?: string };
+  return body.error || `${response.status} ${response.statusText}`;
+}
+
 export function ModulesList({ initialModules }: ModulesListProps) {
   const [modules, setModules] = useState<Module[]>(initialModules ?? []);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(initialModules === undefined);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deletingTitle, setDeletingTitle] = useState<string>("");
-  const supabase = createClient();
   const { toast } = useToast();
 
   useEffect(() => {
-    if (initialModules && initialModules.length >= 0) {
+    if (initialModules !== undefined) {
+      setModules(initialModules);
       setLoading(false);
-    } else {
-      loadModules();
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
-  async function loadModules() {
-    try {
-      // Проверяем текущего пользователя
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      
-      if (userError || !user) {
-        console.error("Auth error in loadModules:", userError);
-        setLoading(false);
-        return;
-      }
+    let cancelled = false;
 
-      console.log("Loading modules for user:", user.id, user.email);
-
-      const { data, error } = await supabase.from("modules").select("*").order("order_index");
-
-      if (error) {
+    async function loadModules() {
+      try {
+        const res = await fetch("/api/admin/modules", { credentials: "include" });
+        if (!res.ok) {
+          throw new Error(await readApiError(res));
+        }
+        const body = (await res.json()) as { modules?: Module[] };
+        if (!cancelled) {
+          setModules(body.modules ?? []);
+        }
+      } catch (error) {
+        if (cancelled) return;
         console.error("Error loading modules:", error);
-        console.error("Error details:", {
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
+        toast({
+          title: "Ошибка загрузки",
+          description: error instanceof Error ? error.message : "Не удалось загрузить модули",
+          variant: "destructive",
         });
-        throw error;
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
-      
-      console.log("Modules loaded:", data?.length || 0);
-      setModules(data || []);
-    } catch (error) {
-      console.error("Error loading modules:", error);
-    } finally {
-      setLoading(false);
     }
-  }
+
+    loadModules();
+    return () => {
+      cancelled = true;
+    };
+  }, [initialModules, toast]);
 
   function requestDelete(id: string, title: string) {
     setDeletingId(id);
@@ -78,19 +82,31 @@ export function ModulesList({ initialModules }: ModulesListProps) {
 
   async function handleDeleteConfirmed() {
     if (!deletingId) return;
-    // Жёсткое удаление через серверный маршрут (с каскадным удалением зависимостей)
-    const res = await fetch(`/api/admin/modules/${deletingId}/delete`, { method: "POST" });
+    const id = deletingId;
     setConfirmOpen(false);
     setDeletingId(null);
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      const msg = body?.error || `${res.status} ${res.statusText}`;
+
+    try {
+      const res = await fetch(`/api/admin/modules/${id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        throw new Error(await readApiError(res));
+      }
+
+      setModules((prev) => prev.filter((module) => module.id !== id));
+      toast({
+        title: "Модуль удалён",
+        description: `«${deletingTitle}» успешно удалён из базы`,
+      });
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : "Не удалось удалить модуль";
       console.error("Delete error:", msg);
       toast({ title: "Ошибка удаления", description: msg, variant: "destructive" });
-      return;
     }
-    toast({ title: "Модуль удалён", description: `«${deletingTitle}» успешно удалён из базы` });
-    await loadModules();
   }
 
   if (loading) {
@@ -119,7 +135,11 @@ export function ModulesList({ initialModules }: ModulesListProps) {
                 <CardTitle>{module.title}</CardTitle>
                 <CardDescription>{module.topic}</CardDescription>
               </div>
-              <div className={badgeVariants({ variant: module.is_published ? "default" : "secondary" })}>
+              <div
+                className={badgeVariants({
+                  variant: module.is_published ? "default" : "secondary",
+                })}
+              >
                 {module.is_published ? "Опубликован" : "Черновик"}
               </div>
             </div>
@@ -133,7 +153,12 @@ export function ModulesList({ initialModules }: ModulesListProps) {
               <Button variant="outline" size="sm" asChild>
                 <Link href={`/admin/modules/${module.id}/edit`}>Редактировать</Link>
               </Button>
-            <Button type="button" variant="destructive" size="sm" onClick={() => requestDelete(module.id, module.title)}>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                onClick={() => requestDelete(module.id, module.title)}
+              >
                 Удалить
               </Button>
             </div>
@@ -150,15 +175,20 @@ export function ModulesList({ initialModules }: ModulesListProps) {
               <div className="space-y-1">
                 <DialogTitle>Удалить модуль?</DialogTitle>
                 <DialogDescription>
-                  Вы действительно хотите удалить «<span className="font-medium text-foreground">{deletingTitle}</span>»?
-                  Это действие нельзя отменить.
+                  Вы действительно хотите удалить «
+                  <span className="font-medium text-foreground">{deletingTitle}</span>»? Это
+                  действие нельзя отменить.
                 </DialogDescription>
               </div>
             </div>
           </DialogHeader>
           <DialogFooter className="sm:justify-end">
-            <Button type="button" variant="outline" onClick={() => setConfirmOpen(false)}>Отмена</Button>
-            <Button type="button" variant="destructive" onClick={handleDeleteConfirmed}>Удалить</Button>
+            <Button type="button" variant="outline" onClick={() => setConfirmOpen(false)}>
+              Отмена
+            </Button>
+            <Button type="button" variant="destructive" onClick={handleDeleteConfirmed}>
+              Удалить
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

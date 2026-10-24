@@ -1,32 +1,27 @@
-import { createClient } from "@/lib/supabase/server";
+import { countGenerationsToday, logGeneration } from "@/lib/appwrite/ai-logs";
 
 const MAX_GENERATIONS_PER_DAY = 50;
 
 /**
- * Проверяет, не превышен ли лимит генераций для пользователя
- * @param userId ID пользователя
- * @param generationType Тип генерации ('module' | 'task')
- * @returns {canGenerate: boolean, remaining: number, error?: string}
+ * Checks the daily AI generation quota for a user.
  */
 export async function checkRateLimit(
   userId: string,
   generationType: "module" | "task"
 ): Promise<{ canGenerate: boolean; remaining: number; error?: string }> {
-  const supabase = await createClient();
+  try {
+    const used = await countGenerationsToday(userId, generationType);
+    const remaining = Math.max(0, MAX_GENERATIONS_PER_DAY - used);
 
-  // Подсчитываем количество генераций за сегодня
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD
-
-  const { count, error } = await supabase
-    .from("ai_generation_logs")
-    .select("*", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .eq("generation_type", generationType)
-    .eq("created_date", todayStr);
-
-  if (error) {
+    return {
+      canGenerate: remaining > 0,
+      remaining,
+      error:
+        remaining === 0
+          ? `Достигнут дневной лимит генераций (${MAX_GENERATIONS_PER_DAY}/день)`
+          : undefined,
+    };
+  } catch (error) {
     console.error("Error checking rate limit:", error);
     return {
       canGenerate: false,
@@ -34,65 +29,14 @@ export async function checkRateLimit(
       error: "Ошибка при проверке лимита",
     };
   }
-
-  const used = count ?? 0;
-  const remaining = Math.max(0, MAX_GENERATIONS_PER_DAY - used);
-
-  return {
-    canGenerate: remaining > 0,
-    remaining,
-    error: remaining === 0 ? `Достигнут дневной лимит генераций (${MAX_GENERATIONS_PER_DAY}/день)` : undefined,
-  };
 }
 
-/**
- * Записывает факт генерации в лог
- * @param userId ID пользователя
- * @param generationType Тип генерации ('module' | 'task')
- */
-export async function logGeneration(
+/** Records one AI generation in the daily log. */
+export async function recordGeneration(
   userId: string,
   generationType: "module" | "task"
 ): Promise<void> {
-  const supabase = await createClient();
-
-  // Получаем текущую дату
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const todayStr = today.toISOString().split('T')[0]; // YYYY-MM-DD
-
-  // Сначала проверяем, существует ли уже запись
-  const { data: existing } = await supabase
-    .from("ai_generation_logs")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("generation_type", generationType)
-    .eq("created_date", todayStr)
-    .maybeSingle();
-
-  // Если запись уже существует, ничего не делаем
-  if (existing) {
-    return;
-  }
-
-  // Вставляем новую запись
-  const { error } = await (supabase
-    .from("ai_generation_logs") as any)
-    .insert({
-      user_id: userId,
-      generation_type: generationType,
-      created_date: todayStr,
-    });
-
-  if (error) {
-    // Игнорируем ошибку уникальности (23505) - это нормально, если запись уже существует
-    // (может произойти в случае race condition)
-    if (error.code === "23505") {
-      // Запись уже существует, это нормально - просто игнорируем
-      return;
-    }
-    console.error("Error logging generation:", error);
-    // Не бросаем ошибку, так как это не критично
-  }
+  await logGeneration(userId, generationType);
 }
 
+export { logGeneration };

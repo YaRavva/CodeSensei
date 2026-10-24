@@ -1,9 +1,9 @@
 "use client";
 
-import type { Database } from "@/types/supabase";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import Link from "next/link";
+import type { Database } from "@/types/db";
 
 type Module = Database["public"]["Tables"]["modules"]["Row"];
 
@@ -15,10 +15,7 @@ interface ModuleCardProps {
   tasksCount?: number;
 }
 
-const statusConfig: Record<
-  ModuleStatus,
-  { label: string; icon: string; tone: string }
-> = {
+const statusConfig: Record<ModuleStatus, { label: string; icon: string; tone: string }> = {
   not_started: {
     label: "Не начат",
     icon: "⏳",
@@ -42,10 +39,11 @@ export function ModuleCard({ module, status, tasksCount }: ModuleCardProps) {
 
   return (
     <Card
-      className={`group relative flex h-full flex-col overflow-hidden rounded-2xl border p-4 sm:p-5 transition-all duration-300 ${isCompleted
+      className={`group relative flex h-full flex-col overflow-hidden rounded-2xl border p-4 sm:p-5 transition-all duration-300 ${
+        isCompleted
           ? "border-primary/60 bg-gradient-to-b from-primary/10 via-background/90 to-background shadow-[0_18px_40px_-24px_rgba(15,23,42,0.7)]"
           : "border-border/70 bg-card/70 shadow-[0_16px_40px_-26px_rgba(15,23,42,0.9)]"
-        }`}
+      }`}
     >
       <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
         <div className="absolute -top-10 right-0 h-32 w-32 rounded-full bg-[radial-gradient(circle_at_top,_rgba(148,163,184,0.35),_transparent_60%)]" />
@@ -82,7 +80,9 @@ export function ModuleCard({ module, status, tasksCount }: ModuleCardProps) {
         </div>
 
         <div className="flex items-center justify-between text-[11px] text-muted-foreground/90">
-          <span className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 ${statusInfo.tone}`}>
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 ${statusInfo.tone}`}
+          >
             <span className="h-1.5 w-1.5 rounded-full bg-gradient-to-r from-primary to-primary/60" />
             {statusInfo.label}
           </span>
@@ -113,4 +113,3 @@ export function ModuleCard({ module, status, tasksCount }: ModuleCardProps) {
     </Card>
   );
 }
-

@@ -1,5 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { AchievementsList } from "@/components/achievements/achievements-list";
+import { useAuth } from "@/components/auth/auth-provider";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -7,57 +10,32 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { createClient } from "@/lib/supabase/client";
 import { calculateLevelProgress } from "@/lib/utils/levels";
-import { isValidRussianName, getNameValidationError } from "@/lib/utils/name-validation";
-import { useState, useEffect } from "react";
-import { AchievementsList } from "@/components/achievements/achievements-list";
-import { useAuth } from "@/components/auth/auth-provider";
-import type { Database } from "@/types/supabase";
-import type { User } from "@supabase/supabase-js";
-
-type UserProfile = Database["public"]["Tables"]["users"]["Row"];
-type UserUpdate = Database["public"]["Tables"]["users"]["Update"];
+import { getNameValidationError, isValidRussianName } from "@/lib/utils/name-validation";
+import type { UserProfile } from "@/types/db";
 
 interface ProfileContentProps {
-  user: User;
   initialProfile: UserProfile;
 }
 
-export function ProfileContent({ user, initialProfile }: ProfileContentProps) {
+export function ProfileContent({ initialProfile }: ProfileContentProps) {
   const { profile, refreshProfile } = useAuth();
   const [displayName, setDisplayName] = useState(initialProfile.display_name || "");
   const [loading, setLoading] = useState(false);
   const [nameError, setNameError] = useState<string | null>(null);
   const { toast } = useToast();
-  const supabase = createClient();
 
-  // Используем актуальный профиль из AuthProvider, если он доступен
   const currentProfile = profile || initialProfile;
 
-  // Логирование для диагностики
-  useEffect(() => {
-    console.log("[ProfileContent] Profile state:", {
-      hasProfile: !!profile,
-      hasInitialProfile: !!initialProfile,
-      currentProfile: currentProfile ? {
-        id: currentProfile.id,
-        role: currentProfile.role,
-        display_name: currentProfile.display_name,
-        avatar_url: currentProfile.avatar_url,
-      } : null,
-    });
-  }, [profile, initialProfile, currentProfile]);
-
-  // Обновляем displayName когда профиль меняется
   useEffect(() => {
     if (currentProfile.display_name) {
       setDisplayName(currentProfile.display_name);
     }
   }, [currentProfile.display_name]);
 
-  // Используем current_level из БД или рассчитываем, если его нет
-  const currentLevel = currentProfile.current_level ?? calculateLevelProgress(currentProfile.total_xp ?? 0).currentLevel;
+  const currentLevel =
+    currentProfile.current_level ??
+    calculateLevelProgress(currentProfile.total_xp ?? 0).currentLevel;
 
   async function handleUpdate(e: React.FormEvent) {
     e.preventDefault();
@@ -77,26 +55,34 @@ export function ProfileContent({ user, initialProfile }: ProfileContentProps) {
     setNameError(null);
     setLoading(true);
 
-    const { error } = await (supabase
-      .from("users") as any)
-      .update({ display_name: trimmedName || null })
-      .eq("id", user.id);
-
-    if (error) {
-      toast({
-        title: "Ошибка",
-        description: error.message,
-        variant: "destructive",
+    try {
+      const response = await fetch("/api/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ display_name: trimmedName }),
       });
-    } else {
+
+      const data = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        throw new Error(data.error || "Не удалось обновить профиль");
+      }
+
       toast({
         title: "Профиль обновлен",
         description: "Изменения сохранены",
       });
       await refreshProfile();
+    } catch (error) {
+      toast({
+        title: "Ошибка",
+        description: error instanceof Error ? error.message : "Не удалось обновить профиль",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   }
 
   return (
@@ -113,36 +99,33 @@ export function ProfileContent({ user, initialProfile }: ProfileContentProps) {
                 <AvatarImage src={currentProfile.avatar_url ?? undefined} />
                 <AvatarFallback className="text-3xl font-semibold">
                   {(() => {
-                    // Инициалы берутся ТОЛЬКО из display_name (фамилия и имя)
                     if (currentProfile.display_name) {
                       const trimmed = String(currentProfile.display_name).trim();
                       if (trimmed) {
                         const parts = trimmed.split(/\s+/).filter(Boolean);
                         if (parts.length >= 2) {
-                          // Есть фамилия и имя - берем первые буквы
-                          const firstInitial = parts[0][0] ?? "";
-                          const secondInitial = parts[1][0] ?? "";
-                          return `${firstInitial}${secondInitial}`.toUpperCase();
+                          return `${parts[0][0] ?? ""}${parts[1][0] ?? ""}`.toUpperCase();
                         }
-                        // Если только одно слово - берем первые две буквы
                         if (parts.length === 1 && parts[0].length >= 2) {
                           return parts[0].substring(0, 2).toUpperCase();
                         }
-                        // Если только одна буква
                         if (parts.length === 1 && parts[0].length === 1) {
                           return parts[0].toUpperCase();
                         }
                       }
                     }
-                    // Если нет display_name - возвращаем заглушку
                     return "U";
                   })()}
                 </AvatarFallback>
               </Avatar>
               <div>
-                <h2 className="text-2xl font-bold">{currentProfile.display_name || currentProfile.email}</h2>
+                <h2 className="text-2xl font-bold">
+                  {currentProfile.display_name || currentProfile.email}
+                </h2>
                 <Badge variant="secondary">Уровень {currentLevel}</Badge>
-                <p className="text-sm text-muted-foreground mt-1">{currentProfile.total_xp ?? 0} XP</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {currentProfile.total_xp ?? 0} XP
+                </p>
               </div>
             </div>
 
@@ -159,9 +142,7 @@ export function ProfileContent({ user, initialProfile }: ProfileContentProps) {
                   value={displayName}
                   onChange={(e) => {
                     setDisplayName(e.target.value);
-                    if (nameError) {
-                      setNameError(null);
-                    }
+                    if (nameError) setNameError(null);
                   }}
                   onBlur={() => {
                     const trimmed = displayName.trim();
@@ -197,9 +178,8 @@ export function ProfileContent({ user, initialProfile }: ProfileContentProps) {
           </CardContent>
         </Card>
 
-        <AchievementsList userId={user.id} />
+        <AchievementsList />
       </div>
     </div>
   );
 }
-

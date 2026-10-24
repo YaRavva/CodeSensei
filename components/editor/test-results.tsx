@@ -1,9 +1,9 @@
 "use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { CheckCircle2, Eye, EyeOff, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import type { TestSuiteResult, TestResult } from "@/types/test-case";
-import { CheckCircle2, XCircle, Eye, EyeOff } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import type { TestResult, TestSuiteResult } from "@/types/test-case";
 
 interface TestResultsProps {
   testResults: TestSuiteResult;
@@ -92,9 +92,7 @@ export function TestResults({ testResults, testCases }: TestResultsProps) {
                     <div className="mt-3 space-y-2 text-sm">
                       {result.error && (
                         <div className="p-2 bg-destructive/20 rounded">
-                          <p className="font-medium text-destructive">
-                            Ошибка:
-                          </p>
+                          <p className="font-medium text-destructive">Ошибка:</p>
                           <pre className="text-xs text-destructive/90 mt-1 whitespace-pre-wrap font-mono">
                             {result.error}
                           </pre>
@@ -140,4 +138,3 @@ export function TestResults({ testResults, testCases }: TestResultsProps) {
     </Card>
   );
 }
-

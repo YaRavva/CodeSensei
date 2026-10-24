@@ -35,10 +35,8 @@ export function AchievementBadge({
   const isEarned = Boolean(achievement.earned_at);
   const xp = achievement.xp_reward ?? 0;
 
-  const iconWrapperSize =
-    size === "lg" ? "h-16 w-16" : size === "sm" ? "h-12 w-12" : "h-14 w-14";
-  const titleSize =
-    size === "lg" ? "text-base" : size === "sm" ? "text-sm" : "text-sm";
+  const iconWrapperSize = size === "lg" ? "h-16 w-16" : size === "sm" ? "h-12 w-12" : "h-14 w-14";
+  const titleSize = size === "lg" ? "text-base" : size === "sm" ? "text-sm" : "text-sm";
 
   return (
     <div
@@ -68,9 +66,7 @@ export function AchievementBadge({
             </div>
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <h3 className={`font-semibold leading-tight ${titleSize}`}>
-                  {achievement.title}
-                </h3>
+                <h3 className={`font-semibold leading-tight ${titleSize}`}>{achievement.title}</h3>
                 {isEarned && (
                   <span className="inline-flex items-center rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-400">
                     Открыто
@@ -110,4 +106,3 @@ export function AchievementBadge({
     </div>
   );
 }
-

@@ -1,142 +1,69 @@
-import { requireAuth } from "@/lib/utils/auth";
 import { redirect } from "next/navigation";
 import { ModuleUnifiedPage } from "@/components/modules/module-unified-page";
-import { createClient } from "@/lib/supabase/server";
-import type { Database } from "@/types/supabase";
+import { listAttemptsForTasks } from "@/lib/appwrite/attempts";
+import { getPublishedModule } from "@/lib/appwrite/modules";
+import { listTasksByModule } from "@/lib/appwrite/tasks";
+import { requireAuth } from "@/lib/utils/auth";
+import type { Json } from "@/types/db";
 
-type Task = Database["public"]["Tables"]["tasks"]["Row"];
-
-export default async function ModulePage({
-  params,
-}: {
-  params: Promise<{ moduleId: string }>;
-}) {
-  const { user, supabase } = await requireAuth();
+export default async function ModulePage({ params }: { params: Promise<{ moduleId: string }> }) {
+  const { user } = await requireAuth();
   const { moduleId } = await params;
 
-  // Получаем модуль
-  const { data: module, error: moduleError } = await supabase
-    .from("modules")
-    .select("*")
-    .eq("id", moduleId)
-    .eq("is_published", true)
-    .single();
-
-  if (moduleError || !module) {
+  const module = await getPublishedModule(moduleId);
+  if (!module) {
     redirect("/modules");
   }
 
-  // Получаем все задачи модуля (полные данные для редактора)
-  const { data: tasks, error: tasksError } = await supabase
-    .from("tasks")
-    .select("*")
-    .eq("module_id", moduleId)
-    .order("order_index");
-  if (tasksError) {
-    console.error("Error loading tasks:", tasksError);
-  }
+  const tasks = await listTasksByModule(moduleId);
+  const taskIds = tasks.map((task) => task.id);
+  const attempts = await listAttemptsForTasks(user.$id, taskIds);
 
-  const typedTasks = (tasks || []) as Task[];
+  const completedTaskIds = Array.from(
+    new Set(attempts.filter((attempt) => attempt.is_successful).map((attempt) => attempt.task_id))
+  );
 
-  // Прогресс по задачам: количество задач с успешными попытками пользователя
-  let completedTaskIds: string[] = [];
-  if (typedTasks.length) {
-    const { data: attempts } = await supabase
-      .from("task_attempts")
-      .select("task_id,is_successful")
-      .eq("user_id", user.id)
-      .in("task_id", typedTasks.map((t) => t.id));
-    if (attempts) {
-      const typedAttempts = attempts as Array<{ task_id: string; is_successful: boolean }>;
-      const set = new Set<string>();
-      for (const a of typedAttempts) {
-        if (a.is_successful) set.add(a.task_id);
+  const totalTasks = tasks.length;
+  const progress = totalTasks > 0 ? Math.round((completedTaskIds.length / totalTasks) * 100) : 0;
+
+  const successfulAttempts = attempts.filter((attempt) => attempt.is_successful);
+  let xpEarned = 0;
+  let totalScore = 0;
+  let scoreCount = 0;
+  let totalTime = 0;
+
+  for (const attempt of successfulAttempts) {
+    const task = tasks.find((item) => item.id === attempt.task_id);
+    if (task?.xp_reward) xpEarned += task.xp_reward;
+
+    const testResults = attempt.test_results as Record<string, Json> | null;
+    if (testResults && typeof testResults === "object" && "ai_score" in testResults) {
+      const score = Number(testResults.ai_score);
+      if (!Number.isNaN(score)) {
+        totalScore += score * 100;
+        scoreCount++;
       }
-      completedTaskIds = Array.from(set);
     }
+
+    if (attempt.execution_time_ms) totalTime += attempt.execution_time_ms;
   }
-  const totalTasks = typedTasks.length;
-  const completedTasks = completedTaskIds.length;
-  const progress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
-  // Получаем статистику модуля
-  let userProgress: {
-    xpEarned: number;
-    avgScore?: number;
-    timeSpent?: number;
-  } | undefined = undefined;
-
-  if (typedTasks.length > 0) {
-    const taskIds = typedTasks.map((t) => t.id);
-    
-    // Получаем все попытки пользователя для заданий модуля
-    const { data: allAttempts } = await supabase
-      .from("task_attempts")
-      .select("is_successful, execution_time_ms, test_results")
-      .eq("user_id", user.id)
-      .in("task_id", taskIds);
-
-    if (allAttempts) {
-      // Подсчитываем XP из всех успешных попыток (базовые значения)
-      let xpEarned = 0;
-      let totalScore = 0;
-      let scoreCount = 0;
-      let totalTime = 0;
-
-      const typedAllAttempts = (allAttempts || []) as Array<{ 
-        is_successful: boolean; 
-        task_id: string; 
-        execution_time_ms: number | null; 
-        test_results: any 
-      }>;
-      
-      for (const attempt of typedAllAttempts) {
-        if (attempt.is_successful) {
-          // Находим задание для получения xp_reward
-          const task = typedTasks.find((t) => t.id === attempt.task_id);
-          if (task && task.xp_reward) {
-            xpEarned += task.xp_reward;
-          }
-
-          // Извлекаем AI оценку из test_results если есть
-          if (attempt.test_results) {
-            try {
-              const testResults = typeof attempt.test_results === 'string' 
-                ? JSON.parse(attempt.test_results) 
-                : attempt.test_results;
-              
-              // Если есть AI оценка в test_results
-              if (testResults.ai_score !== undefined) {
-                totalScore += testResults.ai_score * 100;
-                scoreCount++;
-              }
-            } catch {
-              // Игнорируем ошибки парсинга
-            }
-          }
-
-          if (attempt.execution_time_ms) {
-            totalTime += attempt.execution_time_ms;
-          }
+  const userProgress =
+    tasks.length > 0
+      ? {
+          xpEarned,
+          avgScore: scoreCount > 0 ? totalScore / scoreCount : undefined,
+          timeSpent: totalTime > 0 ? totalTime / 1000 : undefined,
         }
-      }
-
-      userProgress = {
-        xpEarned,
-        avgScore: scoreCount > 0 ? totalScore / scoreCount : undefined,
-        timeSpent: totalTime > 0 ? totalTime / 1000 : undefined, // в секундах
-      };
-    }
-  }
+      : undefined;
 
   return (
-    <ModuleUnifiedPage 
-      module={module} 
-      tasks={typedTasks} 
-      completedTaskIds={completedTaskIds} 
+    <ModuleUnifiedPage
+      module={module}
+      tasks={tasks}
+      completedTaskIds={completedTaskIds}
       moduleProgress={progress}
       userProgress={userProgress}
     />
   );
 }
-

@@ -1,5 +1,8 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -12,18 +15,23 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { createClient } from "@/lib/supabase/client";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
 
-export default function ResetPasswordPage() {
+interface ConfirmResetResponse {
+  success?: boolean;
+  error?: string;
+}
+
+const MIN_PASSWORD_LENGTH = 8;
+
+function ResetPasswordForm() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
-  const supabase = createClient();
+  const searchParams = useSearchParams();
+  const userId = searchParams.get("userId");
+  const secret = searchParams.get("secret");
 
   async function handleReset(e: React.FormEvent) {
     e.preventDefault();
@@ -37,37 +45,81 @@ export default function ResetPasswordPage() {
       return;
     }
 
-    if (password.length < 6) {
+    if (password.length < MIN_PASSWORD_LENGTH) {
       toast({
         title: "Ошибка",
-        description: "Пароль должен содержать минимум 6 символов",
+        description: `Пароль должен содержать минимум ${MIN_PASSWORD_LENGTH} символов`,
         variant: "destructive",
       });
+      return;
+    }
+
+    if (!userId || !secret) {
       return;
     }
 
     setLoading(true);
 
-    const { error } = await supabase.auth.updateUser({
-      password: password,
-    });
+    try {
+      const response = await fetch("/api/auth/password-reset/confirm", {
+        method: "POST",
+        credentials: "include",
+        cache: "no-store",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId, secret, password }),
+      });
 
-    if (error) {
+      const data = (await response.json().catch(() => null)) as ConfirmResetResponse | null;
+
+      if (!response.ok) {
+        toast({
+          title: "Ошибка",
+          description: data?.error || "Не удалось обновить пароль",
+          variant: "destructive",
+        });
+        return;
+      }
+
       toast({
-        title: "Ошибка",
-        description: error.message,
+        title: "Пароль обновлен",
+        description: "Вы можете войти с новым паролем",
+      });
+
+      router.push("/login");
+    } catch (error) {
+      console.error("Unexpected password update error", error);
+      toast({
+        title: "Неожиданная ошибка",
+        description: "Не удалось обновить пароль. Попробуйте снова чуть позже",
         variant: "destructive",
       });
+    } finally {
       setLoading(false);
-      return;
     }
+  }
 
-    toast({
-      title: "Пароль обновлен",
-      description: "Вы можете войти с новым паролем",
-    });
-
-    router.push("/login");
+  if (!userId || !secret) {
+    return (
+      <div className="container mx-auto flex min-h-screen items-center justify-center px-4">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Ссылка недействительна</CardTitle>
+            <CardDescription>
+              Ссылка для восстановления пароля недействительна или устарела. Запросите новую ссылку.
+            </CardDescription>
+          </CardHeader>
+          <CardFooter>
+            <Link href="/forgot-password" className="w-full">
+              <Button variant="outline" className="w-full">
+                Запросить новую ссылку
+              </Button>
+            </Link>
+          </CardFooter>
+        </Card>
+      </div>
+    );
   }
 
   return (
@@ -88,7 +140,7 @@ export default function ResetPasswordPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                minLength={6}
+                minLength={MIN_PASSWORD_LENGTH}
                 disabled={loading}
               />
             </div>
@@ -101,7 +153,7 @@ export default function ResetPasswordPage() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
-                minLength={6}
+                minLength={MIN_PASSWORD_LENGTH}
                 disabled={loading}
               />
             </div>
@@ -120,5 +172,24 @@ export default function ResetPasswordPage() {
         </form>
       </Card>
     </div>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="container mx-auto flex min-h-screen items-center justify-center px-4">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle>Загрузка...</CardTitle>
+              <CardDescription>Проверяем ссылку для восстановления пароля</CardDescription>
+            </CardHeader>
+          </Card>
+        </div>
+      }
+    >
+      <ResetPasswordForm />
+    </Suspense>
   );
 }

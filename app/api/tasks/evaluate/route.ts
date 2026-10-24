@@ -1,17 +1,21 @@
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 
-const HF_API_KEY = process.env.HUGGINGFACE_API_KEY;
+import { type NextRequest, NextResponse } from "next/server";
+import {
+  clipForPrompt,
+  createChatCompletion,
+  isOmnirouteConfigured,
+  OMNIROUTE_MAX_OUTPUT_TOKENS,
+  OmnirouteError,
+} from "@/lib/ai/omniroute";
+import { getTask } from "@/lib/appwrite/tasks";
+import { getAuthContext } from "@/lib/utils/auth";
 
 export async function POST(req: NextRequest) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const context = await getAuthContext();
+    if (!context) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await req.json();
     const { taskId, code, runtimeOutput, testSummary } = body || {};
@@ -19,49 +23,43 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "taskId and code are required" }, { status: 400 });
     }
 
-    if (!HF_API_KEY) {
-      return NextResponse.json({ error: "Hugging Face API key is not configured" }, { status: 500 });
+    if (!isOmnirouteConfigured()) {
+      return NextResponse.json(
+        { error: "Omniroute не настроен: задайте OMNIROUTE_BASE_URL и OMNIROUTE_API_KEY" },
+        { status: 500 }
+      );
     }
 
     // Получим описание задачи (минимальный контекст)
-    const { data: task } = await supabase
-      .from("tasks")
-      .select("title, description")
-      .eq("id", taskId)
-      .maybeSingle();
+    const task = await getTask(String(taskId));
 
     const typedTask = task as { title: string; description: string } | null;
-    const prompt = `Ты — наставник по Python для школьника. Оцени решение задачи по критериям: корректность, покрытие крайних случаев, читаемость. Верни ТОЛЬКО JSON {\"score\": number 0..1, \"feedback\": string}.
+    const prompt = `Ты — наставник по Python для школьника. Оцени решение задачи по критериям: корректность, покрытие крайних случаев, читаемость. Верни ТОЛЬКО JSON {"score": number 0..1, "feedback": string}.
 
 Задача: ${typedTask?.title ?? "Без названия"}
-Описание (Markdown):\n${(typedTask?.description ?? "").slice(0, 2000)}
+Описание (Markdown):\n${clipForPrompt(typedTask?.description ?? "")}
 
-Код ученика:\n\n${code.slice(0, 4000)}
+Код ученика:\n\n${clipForPrompt(code)}
 
-Вывод выполнения:${runtimeOutput ? `\n${String(runtimeOutput).slice(0, 2000)}` : "\n(нет)"}
-Результаты тестов (сводка):${testSummary ? `\n${String(testSummary).slice(0, 1000)}` : "\n(нет)"}`;
+Вывод выполнения:${runtimeOutput ? `\n${clipForPrompt(runtimeOutput)}` : "\n(нет)"}
+Результаты тестов (сводка):${testSummary ? `\n${clipForPrompt(testSummary)}` : "\n(нет)"}`;
 
-    const response = await fetch("https://router.huggingface.co/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${HF_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "openai/gpt-oss-20b",
+    let content = "";
+
+    try {
+      const completion = await createChatCompletion({
         messages: [{ role: "user", content: prompt }],
         temperature: 0.2,
-        max_tokens: 800,
-      }),
-    });
-
-    if (!response.ok) {
-      const err = await response.text();
-      return NextResponse.json({ error: `HF error ${response.status}`, details: err.slice(0, 1000) }, { status: 502 });
+        maxTokens: OMNIROUTE_MAX_OUTPUT_TOKENS,
+      });
+      content = completion.content.trim();
+    } catch (error) {
+      if (error instanceof OmnirouteError) {
+        return NextResponse.json({ error: error.message, details: error.details }, { status: 502 });
+      }
+      throw error;
     }
 
-    const data = await response.json();
-    let content = data.choices?.[0]?.message?.content?.trim() || "";
     if (content.startsWith("```")) {
       content = content.replace(/^```[a-zA-Z]*\n?/, "").replace(/```$/, "");
     }
@@ -77,8 +75,9 @@ export async function POST(req: NextRequest) {
     const passed = score >= 0.7;
     return NextResponse.json({ success: true, score, feedback, passed });
   } catch (e) {
-    return NextResponse.json({ error: e instanceof Error ? e.message : "Unknown error" }, { status: 500 });
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "Unknown error" },
+      { status: 500 }
+    );
   }
 }
-
-

@@ -1,11 +1,11 @@
 "use client";
 
+import { AlertCircle, CheckCircle2, Loader2, Play, RefreshCw } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { usePyodide } from "@/hooks/use-pyodide";
-import { useState } from "react";
-import { Play, Loader2, AlertCircle, CheckCircle2, RefreshCw } from "lucide-react";
 
 interface CodeRunnerProps {
   code: string;
@@ -92,11 +92,9 @@ export function CodeRunner({ code, onExecutionComplete }: CodeRunnerProps) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground mb-4">
-            {pyodideError.message}
-          </p>
-          <Button 
-            onClick={() => window.location.reload()} 
+          <p className="text-sm text-muted-foreground mb-4">{pyodideError.message}</p>
+          <Button
+            onClick={() => window.location.reload()}
             variant="outline"
             className="flex items-center gap-2"
           >
@@ -110,11 +108,7 @@ export function CodeRunner({ code, onExecutionComplete }: CodeRunnerProps) {
 
   return (
     <div className="space-y-4">
-      <Button
-        onClick={handleRun}
-        disabled={executing || !pyodide}
-        className="w-full"
-      >
+      <Button onClick={handleRun} disabled={executing || !pyodide} className="w-full">
         {executing ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -145,9 +139,7 @@ export function CodeRunner({ code, onExecutionComplete }: CodeRunnerProps) {
               )}
             </CardTitle>
             {result.executionTime > 0 && (
-              <CardDescription>
-                Время выполнения: {result.executionTime} мс
-              </CardDescription>
+              <CardDescription>Время выполнения: {result.executionTime} мс</CardDescription>
             )}
           </CardHeader>
           <CardContent className="space-y-4">

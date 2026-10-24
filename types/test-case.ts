@@ -28,4 +28,3 @@ export interface TestSuiteResult {
   allPassed: boolean;
   executionTime: number;
 }
-

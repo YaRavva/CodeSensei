@@ -1,17 +1,13 @@
-import { LoginForm } from "@/components/login-form";
-import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { LoginForm } from "@/components/login-form";
+import { getCurrentAccount } from "@/lib/utils/auth";
 
 export default async function LoginPage() {
-  const supabase = await createClient();
-  
   // Проверяем, авторизован ли пользователь
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  const user = await getCurrentAccount();
 
   // Если пользователь уже авторизован, редиректим на модули
-  if (session?.user) {
+  if (user) {
     redirect("/modules");
   }
 

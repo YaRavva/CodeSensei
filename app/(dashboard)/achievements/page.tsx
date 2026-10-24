@@ -1,67 +1,31 @@
 import { AchievementBadge } from "@/components/achievements/achievement-badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { createClient } from "@/lib/supabase/server";
+import { listAchievements, listUserAchievements } from "@/lib/appwrite/achievements";
 import { requireAuth } from "@/lib/utils/auth";
-import type { Database } from "@/types/supabase";
-
-type Achievement = Database["public"]["Tables"]["achievements"]["Row"];
-
-type UserAchievementRow = {
-  achievement: Achievement | null;
-  earned_at: string | null;
-};
 
 export default async function AchievementsPage() {
   const { user } = await requireAuth();
-  const supabase = await createClient();
 
-  // Получаем все достижения
-  const { data: allAchievements, error: allError } = await supabase
-    .from("achievements")
-    .select("*")
-    .order("created_at", { ascending: true });
+  const [allAchievements, userAchievements] = await Promise.all([
+    listAchievements(),
+    listUserAchievements(user.$id),
+  ]);
 
-  if (allError) {
-    console.error("Error loading achievements:", allError);
-  }
-
-  const typedAll: Achievement[] = (allAchievements || []) as Achievement[];
-
-  // Получаем достижения пользователя, чтобы отметить полученные
-  const { data: userAchievements, error: userError } = await supabase
-    .from("user_achievements")
-    .select(
-      `
-      earned_at,
-      achievement:achievements(*)
-    `
-    )
-    .eq("user_id", user.id)
-    .order("earned_at", { ascending: false });
-
-  if (userError) {
-    console.error("Error loading user achievements:", userError);
-  }
-
-  const typedUser: UserAchievementRow[] = (userAchievements || []) as UserAchievementRow[];
   const earnedMap = new Map<string, string>();
-  for (const row of typedUser) {
-    if (row.achievement?.id && row.earned_at) {
-      // Сохраняем только первую (самую раннюю/позднюю) дату получения для наглядности
-      if (!earnedMap.has(row.achievement.id)) {
-        earnedMap.set(row.achievement.id, row.earned_at);
-      }
+  for (const row of userAchievements) {
+    if (!earnedMap.has(row.achievement_id)) {
+      earnedMap.set(row.achievement_id, row.earned_at);
     }
   }
 
-  const merged = typedAll.map((a) => ({
-    ...a,
-    earned_at: earnedMap.get(a.id) ?? null,
+  const merged = allAchievements.map((achievement) => ({
+    ...achievement,
+    earned_at: earnedMap.get(achievement.id) ?? null,
   }));
 
   const totalCount = merged.length;
-  const earnedCount = merged.filter((a) => a.earned_at).length;
+  const earnedCount = merged.filter((achievement) => achievement.earned_at).length;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -102,7 +66,8 @@ export default async function AchievementsPage() {
             </div>
             {merged.length === 0 ? (
               <p className="text-muted-foreground">
-                Достижения пока не настроены. Добавьте записи в таблицу "achievements" в Supabase.
+                Достижения пока не настроены. Запустите <code>pnpm appwrite:seed</code>, чтобы
+                добавить стандартный набор.
               </p>
             ) : (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

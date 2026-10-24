@@ -56,14 +56,15 @@ const BONUSES = {
  * Рассчитывает XP за выполнение задания
  */
 export function calculateXP(params: XPCalculationParams): XPCalculationResult {
-  const { baseXP, attemptNumber, usedAiHint, isFirstAttempt, executionTime, averageExecutionTime } = params;
+  const { baseXP, attemptNumber, usedAiHint, isFirstAttempt, executionTime, averageExecutionTime } =
+    params;
 
   // Используем базовое значение из задания или по умолчанию по сложности
   const actualBaseXP = baseXP || BASE_XP_BY_DIFFICULTY[params.difficulty];
 
   // Определяем множитель попытки
   let attemptMultiplier = ATTEMPT_MULTIPLIERS[attemptNumber] || 0.5; // 3+ попытка = 0.5x
-  
+
   // Если использована подсказка, применяем штраф 0.5x вместо обычного множителя
   const hintPenalty = usedAiHint;
   if (hintPenalty) {
@@ -101,12 +102,14 @@ export function calculateXP(params: XPCalculationParams): XPCalculationResult {
   // Формируем описание расчета
   const breakdown: string[] = [];
   breakdown.push(`Базовая награда: ${actualBaseXP} XP`);
-  breakdown.push(`Множитель попытки ${attemptNumber}: ${(attemptMultiplier * 100).toFixed(0)}% = ${baseWithMultiplier} XP`);
-  
+  breakdown.push(
+    `Множитель попытки ${attemptNumber}: ${(attemptMultiplier * 100).toFixed(0)}% = ${baseWithMultiplier} XP`
+  );
+
   if (hintPenalty) {
     breakdown.push(`Штраф за использование подсказки: 50%`);
   }
-  
+
   if (bonuses.perfectSolution > 0) {
     breakdown.push(`Бонус "Идеальное решение": +${bonuses.perfectSolution} XP`);
   }
@@ -127,4 +130,3 @@ export function calculateXP(params: XPCalculationParams): XPCalculationResult {
     breakdown,
   };
 }
-
