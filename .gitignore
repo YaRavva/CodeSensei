@@ -28,6 +28,12 @@ yarn-error.log*
 .env*.local
 .env
 
+# migration dumps (contain personal data)
+/.migration/
+
+# appwrite CLI session/config
+.appwrite/
+
 # vercel
 .vercel
 

@@ -1,6 +1,6 @@
 import { LeaderboardContent } from "@/components/leaderboard/leaderboard-content";
 import { getAchievementsForUsers } from "@/lib/appwrite/achievements";
-import { countUsersWithMoreXp, listLeaderboardUsers } from "@/lib/appwrite/users";
+import { listLeaderboardUsers } from "@/lib/appwrite/users";
 import { requireAuth } from "@/lib/utils/auth";
 
 type LeaderboardPeriod = "all_time" | "month" | "week";
@@ -38,17 +38,7 @@ export default async function LeaderboardPage({
 
   const userInList = usersWithRank.find((leaderboardUser) => leaderboardUser.id === user.$id);
   const currentUserRank = userInList ? userInList.rank : null;
-
-  let currentUserData = null;
-
-  if (!currentUserRank) {
-    const profile = users.find((leaderboardUser) => leaderboardUser.id === user.$id);
-
-    if (profile) {
-      const usersWithMoreXp = await countUsersWithMoreXp(profile.total_xp || 0);
-      currentUserData = { ...profile, rank: usersWithMoreXp + 1 };
-    }
-  }
+  const currentUserData = userInList ?? null;
 
   return (
     <LeaderboardContent

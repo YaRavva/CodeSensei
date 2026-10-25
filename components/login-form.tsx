@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { OAuthButtons } from "@/components/oauth-buttons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -19,6 +20,17 @@ export function LoginForm() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+
+  useEffect(() => {
+    const failed = new URLSearchParams(window.location.search).get("oauth");
+    if (failed === "failed") {
+      toast({
+        title: "Ошибка входа через OAuth",
+        description: "Не удалось войти через внешний провайдер. Попробуйте ещё раз.",
+        variant: "destructive",
+      });
+    }
+  }, [toast]);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -116,6 +128,8 @@ export function LoginForm() {
                   {loading ? "Вход..." : "Войти"}
                 </Button>
               </div>
+
+              <OAuthButtons disabled={loading} />
 
               <p className="text-center text-sm text-muted-foreground">
                 Нет аккаунта?{" "}

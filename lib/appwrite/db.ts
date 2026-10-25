@@ -25,7 +25,7 @@ export async function getRowOrNull(tableId: string, rowId: string): Promise<Appw
 
 export async function listRows(tableId: string, queries: string[] = []): Promise<AppwriteRow[]> {
   const tablesDB = getTablesDB();
-  const pageSize = 100;
+  const pageSize = 1000;
   const maxRows = 5000;
   const rows: AppwriteRow[] = [];
   let offset = 0;
