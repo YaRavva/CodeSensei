@@ -85,31 +85,30 @@ export function DashboardContent({ profile, stats, achievements }: DashboardCont
         </Card>
       </div>
 
-      {/* Прогресс до следующего уровня */}
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle>Прогресс до уровня {stats.currentLevel + 1}</CardTitle>
-          <CardDescription>
-            Текущий уровень: {stats.currentLevel} • XP: {stats.totalXp}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span>Прогресс</span>
-              <span>{Math.round(levelProgress.progress)}%</span>
+      {/* Прогресс и Статистика решений */}
+      <div className="grid gap-6 md:grid-cols-2 mb-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Прогресс до уровня {stats.currentLevel + 1}</CardTitle>
+            <CardDescription>
+              Текущий уровень: {stats.currentLevel} • XP: {stats.totalXp}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Прогресс</span>
+                <span>{Math.round(levelProgress.progress)}%</span>
+              </div>
+              <Progress value={levelProgress.progress} className="h-2" />
+              <p className="text-xs text-muted-foreground">
+                Осталось {levelProgress.xpNeededForNext - levelProgress.xpInCurrentLevel} XP до уровня{" "}
+                {stats.currentLevel + 1}
+              </p>
             </div>
-            <Progress value={levelProgress.progress} className="h-2" />
-            <p className="text-xs text-muted-foreground">
-              Осталось {levelProgress.xpNeededForNext - levelProgress.xpInCurrentLevel} XP до уровня{" "}
-              {stats.currentLevel + 1}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      {/* Дополнительная статистика и достижения */}
-      <div className="grid gap-6 md:grid-cols-[2fr,3fr]">
         <Card>
           <CardHeader>
             <CardTitle>Статистика решений</CardTitle>
@@ -153,8 +152,10 @@ export function DashboardContent({ profile, stats, achievements }: DashboardCont
             )}
           </CardContent>
         </Card>
-        {profile && <AchievementsList initialAchievements={achievements ?? []} />}
       </div>
+
+      {/* Достижения */}
+      {profile && <AchievementsList initialAchievements={achievements ?? []} />}
     </div>
   );
 }

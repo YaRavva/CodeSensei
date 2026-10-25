@@ -86,8 +86,8 @@ export function ProfileContent({ initialProfile }: ProfileContentProps) {
   }
 
   return (
-    <div className="container mx-auto px-4 py-16">
-      <div className="mx-auto max-w-2xl">
+    <div className="container mx-auto px-4 py-8">
+      <div className="grid gap-6 items-start lg:grid-cols-[1fr,2fr]">
         <Card>
           <CardHeader>
             <CardTitle>Профиль</CardTitle>
