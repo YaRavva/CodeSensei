@@ -18,6 +18,12 @@ export function getAdminClient(): Client {
     .setProject(APPWRITE_PROJECT_ID)
     .setKey(process.env.APPWRITE_API_KEY as string);
 
+  // If using internal direct IP/proxy, ensure correct Host & Proto headers are set
+  if (APPWRITE_ENDPOINT.includes("100.89.46.62") || APPWRITE_ENDPOINT.includes("172.")) {
+    adminClient.addHeader("Host", "appwrite.ravva.su");
+    adminClient.addHeader("X-Forwarded-Proto", "https");
+  }
+
   return adminClient;
 }
 
@@ -38,10 +44,17 @@ export function getAdminUsers(): Users {
 export function getSessionClient(secret: string): Client {
   assertAppwriteConfig();
 
-  return new Client()
+  const client = new Client()
     .setEndpoint(APPWRITE_ENDPOINT)
     .setProject(APPWRITE_PROJECT_ID)
     .setSession(secret);
+
+  if (APPWRITE_ENDPOINT.includes("100.89.46.62") || APPWRITE_ENDPOINT.includes("172.")) {
+    client.addHeader("Host", "appwrite.ravva.su");
+    client.addHeader("X-Forwarded-Proto", "https");
+  }
+
+  return client;
 }
 
 export function getSessionAccount(secret: string): Account {

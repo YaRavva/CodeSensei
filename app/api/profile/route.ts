@@ -4,6 +4,16 @@ import { updateUserProfile } from "@/lib/appwrite/users";
 import { getAuthContext } from "@/lib/utils/auth";
 import { getNameValidationError } from "@/lib/utils/name-validation";
 
+export async function GET() {
+  const context = await getAuthContext();
+
+  if (!context) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  return NextResponse.json({ user: context.user, profile: context.profile });
+}
+
 export async function PATCH(request: Request) {
   const context = await getAuthContext();
 
