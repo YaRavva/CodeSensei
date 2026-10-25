@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { OAuthProvider } from "node-appwrite";
-import { getAdminAccount } from "@/lib/appwrite/client";
+import { getOAuthAdminAccount } from "@/lib/appwrite/client";
 
 const PROVIDERS = {
   google: OAuthProvider.Google,
@@ -30,7 +30,7 @@ export async function GET(
   const origin = siteOrigin(request);
 
   try {
-    const redirectUrl = await getAdminAccount().createOAuth2Token({
+    const redirectUrl = await getOAuthAdminAccount().createOAuth2Token({
       provider: PROVIDERS[provider],
       success: `${origin}/api/auth/oauth/callback`,
       failure: `${origin}/login?oauth=failed`,
