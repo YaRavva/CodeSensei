@@ -1,0 +1,24 @@
+{
+  "projectId": "6adc4f50003202881547",
+  "endpoint": "https://aw.note-canopus.ts.net/v1",
+  "projectName": "CodeSensei",
+  "sites": [
+    {
+      "$id": "codesensei",
+      "name": "CodeSensei",
+      "framework": "nextjs",
+      "adapter": "ssr",
+      "buildRuntime": "node-22",
+      "installCommand": "npm install --legacy-peer-deps",
+      "buildCommand": "npm run build",
+      "outputDirectory": "./.next",
+      "fallbackFile": "",
+      "buildSpecification": "s-2vcpu-2gb",
+      "runtimeSpecification": "s-2vcpu-2gb",
+      "deploymentRetention": 0,
+      "timeout": 30,
+      "logging": true,
+      "path": "."
+    }
+  ]
+}

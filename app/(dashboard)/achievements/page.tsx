@@ -1,0 +1,89 @@
+import { AchievementBadge } from "@/components/achievements/achievement-badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { listAchievements, listUserAchievements } from "@/lib/appwrite/achievements";
+import { requireAuth } from "@/lib/utils/auth";
+
+export default async function AchievementsPage() {
+  const { user } = await requireAuth();
+
+  const [allAchievements, userAchievements] = await Promise.all([
+    listAchievements(),
+    listUserAchievements(user.$id),
+  ]);
+
+  const earnedMap = new Map<string, string>();
+  for (const row of userAchievements) {
+    if (!earnedMap.has(row.achievement_id)) {
+      earnedMap.set(row.achievement_id, row.earned_at);
+    }
+  }
+
+  const merged = allAchievements.map((achievement) => ({
+    ...achievement,
+    earned_at: earnedMap.get(achievement.id) ?? null,
+  }));
+
+  const totalCount = merged.length;
+  const earnedCount = merged.filter((achievement) => achievement.earned_at).length;
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <div className="space-y-6">
+        <div className="rounded-2xl border bg-gradient-to-r from-primary/10 via-primary/5 to-accent/10 px-6 py-5 shadow-sm backdrop-blur">
+          <h1 className="text-3xl font-bold">Достижения</h1>
+          <p className="text-muted-foreground mt-2 max-w-2xl">
+            Здесь собраны все возможные достижения в CodeSensei. Получайте их, решая задания,
+            проходя модули и занимаясь регулярно.
+          </p>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Коллекция достижений</CardTitle>
+            <CardDescription>
+              Получено: {earnedCount} из {totalCount}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="mb-6 space-y-2">
+              <Progress
+                value={totalCount > 0 ? (earnedCount / totalCount) * 100 : 0}
+                className="h-2"
+              />
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>
+                  {earnedCount === 0
+                    ? "Начните с первого достижения — попробуйте решить одно задание."
+                    : earnedCount < totalCount
+                      ? "Отличное начало! Продолжайте открывать новые достижения."
+                      : "Вы собрали все достижения — впечатляющий результат!"}
+                </span>
+                <span>
+                  {totalCount > 0 ? `${Math.round((earnedCount / totalCount) * 100)}%` : "0%"}
+                </span>
+              </div>
+            </div>
+            {merged.length === 0 ? (
+              <p className="text-muted-foreground">
+                Достижения пока не настроены. Запустите <code>pnpm appwrite:seed</code>, чтобы
+                добавить стандартный набор.
+              </p>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {merged.map((achievement) => (
+                  <AchievementBadge
+                    key={achievement.id}
+                    achievement={achievement}
+                    showDescription
+                    size="md"
+                  />
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
