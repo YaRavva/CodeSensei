@@ -43,6 +43,11 @@ pnpm appwrite:seed    # достижения и демо-модули/задан
 
 Скрипты читают `.env.local` через `node --env-file-if-exists`.
 
+`appwrite:seed` обновляет существующие достижения (`ach_*`) — это позволяет
+синхронизировать с БД названия, иконки, XP и условия. Модули и задания
+создаются только если их ещё нет, чтобы не перезаписать контент и прогресс.
+Подробнее — в [MANAGING_ACHIEVEMENTS.md](./MANAGING_ACHIEVEMENTS.md).
+
 ## Модель данных
 
 База `codesensei`, таблицы:
@@ -96,3 +101,66 @@ Appwrite. Google/GitHub OAuth на сервере не настроены, по�
 удалены из интерфейса. После настройки провайдеров в Console можно вернуть
 вход через `account.createOAuth2Token` (см. `docs/APPWRITE.md` и официальную
 документацию Appwrite SSR).
+
+## Деплой сайта (Appwrite Sites)
+
+Прод-версия — Appwrite Site `codesensei`, а не Vercel. Конфигурация сайта лежит
+в `appwrite.config.json` (framework `nextjs`, adapter `ssr`, runtime `node-22`).
+
+### Авторизация CLI
+
+```bash
+npm install -g appwrite-cli
+
+appwrite client \
+  -e https://appwrite.ravva.su/v1 \
+  -p "$APPWRITE_PROJECT_ID" \
+  -k "$APPWRITE_API_KEY"
+```
+
+Команда сохраняет endpoint, project ID и API-ключ в конфиг CLI. Для
+project-команд (sites, tablesdb, functions) достаточно ключа. Консольные
+команды вроде `appwrite whoami` требуют полноценный `appwrite login` и с
+API-ключом не работают.
+
+### Деплой
+
+```bash
+appwrite sites create-deployment --site-id codesensei --code . --activate
+```
+
+CLI упаковывает текущую директорию (с учётом `.gitignore`), отправляет её в
+Appwrite и запускает сборку. Флаг `--activate` переключает сайт на новый
+деплой после успешного билда. Логи сборки выводятся в терминал и доступны в
+Console.
+
+### Проверка и откат
+
+```bash
+# текущий активный деплой
+appwrite sites get --site-id codesensei
+
+# история деплоев
+appwrite sites list-deployments --site-id codesensei
+
+# откат на предыдущий деплой
+appwrite sites update-site-deployment \
+  --site-id codesensei \
+  --deployment-id <deployment-id>
+```
+
+### Переменные окружения
+
+Переменные сайта задаются в Console (Sites → codesensei → Variables) или через
+CLI:
+
+```bash
+appwrite sites list-variables --site-id codesensei
+appwrite sites create-variable --site-id codesensei --key KEY --value VALUE --secret
+```
+
+Используются те же ключи, что и в `.env.local`: `APPWRITE_ENDPOINT`,
+`APPWRITE_PROJECT_ID`, `APPWRITE_DATABASE_ID`, `APPWRITE_API_KEY`,
+`NEXT_PUBLIC_APPWRITE_ENDPOINT`, `NEXT_PUBLIC_APPWRITE_PROJECT_ID`,
+`NEXT_PUBLIC_SITE_URL`, `OMNIROUTE_BASE_URL`, `OMNIROUTE_API_KEY`,
+`OMNIROUTE_MODEL`.
