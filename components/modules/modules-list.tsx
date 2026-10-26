@@ -44,7 +44,7 @@ export function ModulesList({ modules, userProgress, tasksCountMap = {} }: Modul
     status?: ModuleStatus;
     level?: number;
   }>({});
-  const [sortOption, setSortOption] = useState<SortOption>("order");
+  const [sortOption, setSortOption] = useState<SortOption>("level");
 
   const statusValue = filter.status ?? "all";
   const levelValue = filter.level ? String(filter.level) : "all";
