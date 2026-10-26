@@ -109,6 +109,7 @@ export function AchievementIcon({
   const twemojiUrl = `https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/${codepoints}.svg`;
 
   return (
+    // biome-ignore lint/performance/noImgElement: Twemoji SVG с CDN; next/image потребовал бы remotePatterns
     <img
       src={twemojiUrl}
       alt={name}

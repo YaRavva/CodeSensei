@@ -1,7 +1,9 @@
 /**
  * Seeds demo content and the standard achievement set.
  *
- * Idempotent: rows are created with stable IDs and skipped when they exist.
+ * Idempotent: rows are created with stable IDs.
+ * Achievements are upserted so changes to titles/icons/conditions reach the DB,
+ * modules and tasks are only created when missing (to not overwrite content).
  *
  * Usage:
  *   pnpm appwrite:seed
@@ -37,6 +39,17 @@ async function rowExists(tableId, rowId) {
 async function createIfMissing(tableId, rowId, data) {
   if (await rowExists(tableId, rowId)) {
     console.log(`= ${tableId}/${rowId} already exists`);
+    return;
+  }
+
+  await tablesDB.createRow({ databaseId: DATABASE_ID, tableId, rowId, data });
+  console.log(`+ ${tableId}/${rowId}`);
+}
+
+async function upsertRow(tableId, rowId, data) {
+  if (await rowExists(tableId, rowId)) {
+    await tablesDB.updateRow({ databaseId: DATABASE_ID, tableId, rowId, data });
+    console.log(`~ ${tableId}/${rowId} updated`);
     return;
   }
 
@@ -359,7 +372,7 @@ async function main() {
   console.log(`Seeding project ${process.env.APPWRITE_PROJECT_ID} (database ${DATABASE_ID})`);
 
   for (const achievement of achievements) {
-    await createIfMissing("achievements", achievement.id, {
+    await upsertRow("achievements", achievement.id, {
       title: achievement.title,
       description: achievement.description,
       icon_name: achievement.icon_name,

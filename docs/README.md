@@ -13,7 +13,9 @@
 
    > Бэкенд проекта переведён с Supabase на self-hosted Appwrite. Актуальная
    > схема, переменные окружения и инструкции по развёртыванию — в
-   > **[APPWRITE.md](./APPWRITE.md)**.
+   > **[APPWRITE.md](./APPWRITE.md)**. Упоминания Supabase/Vercel в исторических
+   > документах (PRD, DEVELOPMENT_PLAN, ARCHITECTURE_RECOMMENDATIONS) устарели.
+   > Деплой прода — Appwrite Sites, см. раздел «Деплой сайта» в APPWRITE.md.
 
 2. **[SUMMARY.md](./SUMMARY.md)** - Краткое резюме анализа ТЗ  
    Быстрый обзор найденных проблем и рекомендаций.
@@ -45,6 +47,9 @@
 8. **[IMPROVED_AI_PROMPTS.md](./IMPROVED_AI_PROMPTS.md)** - Промпты для AI  
    Улучшенные промпты для генерации контента и AI-подсказок с рекомендациями по использованию.
 
+9. **[MANAGING_ACHIEVEMENTS.md](./MANAGING_ACHIEVEMENTS.md)** - Управление достижениями  
+   Формат `icon_name`, синхронизация через seed-скрипт и правка данных в Appwrite.
+
 ---
 
 ## 🚀 Быстрый старт для разработчиков
@@ -73,7 +78,7 @@
 ### Технологический стек
 - **Frontend:** Next.js 16 (App Router), TypeScript, React 19, shadcn/ui, Tailwind CSS 4
 - **Код:** Pyodide (WebAssembly в браузере)
-- **Backend:** self-hosted Appwrite 1.9 (Auth + TablesDB, см. [APPWRITE.md](./APPWRITE.md)), деплой на Vercel
+- **Backend:** self-hosted Appwrite 1.9 (Auth + TablesDB + Sites, см. [APPWRITE.md](./APPWRITE.md))
 - **AI:** Omniroute (OpenAI-совместимый шлюз, модель `antigravity/gemini-3-flash`)
 
 ### Обновления (админский CRUD, аутентификация, AI)
@@ -127,7 +132,7 @@
     - Выход: `{ ok: true }` или `{ error }`
   - `POST /api/auth/set-session`
   - `POST /api/auth/signout`
-- Руководство по развертыванию
+- Руководство по развертыванию — [APPWRITE.md, раздел «Деплой сайта»](./APPWRITE.md#деплой-сайта-appwrite-sites)
 - Структура проекта
 
 ---
@@ -145,5 +150,5 @@
 
 ---
 
-**Последнее обновление:** 2025  
+**Последнее обновление:** 2026  
 **Статус проекта:** ✅ Готов к разработке MVP
