@@ -20,11 +20,12 @@ import {
   Trophy,
   Zap,
 } from "lucide-react";
+import { useState } from "react";
 
 /**
  * Реестр lucide-иконок, сопоставимый с icon_name в БД.
- * Найм генерации достижений хранит имена компонентов (см. scripts/appwrite/seed.mjs),
- * а legacy-данные (мигрированные с Supabase) - строки с эмодзи.
+ * Новые достижения хранят имена компонентов lucide (см. scripts/appwrite/seed.mjs),
+ * legacy-данные (мигрированные с Supabase) - строки с эмодзи.
  */
 const ICON_MAP: Record<string, LucideIcon> = {
   Award,
@@ -46,22 +47,34 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Zap,
 };
 
-const ASCII_ONLY = /^[\p{ASCII}]+$/u;
 const PICTOGRAPHIC = /\p{Extended_Pictographic}/u;
 
-function looksLikeEmoji(value: string): boolean {
-  // Эмодзи (в том числе с variation selectors) - берём как есть,
-  // мультисимвольные строки вроде "Award" в lucide-мапе не попали и латиницей написаны - фолбэк.
-  return !ASCII_ONLY.test(value) || PICTOGRAPHIC.test(value);
+/**
+ * Превращает эмодзи в имя SVG-файла Twemoji.
+ * Возвращает null, если строка не содержит эмодзи (например, "Award").
+ */
+function emojiToCodepoints(value: string): string | null {
+  if (!PICTOGRAPHIC.test(value)) return null;
+
+  const codes: string[] = [];
+  for (const char of value) {
+    const code = char.codePointAt(0);
+    // Variation selector-16 не входит в имена файлов Twemoji.
+    if (code !== undefined && code !== 0xfe0f) {
+      codes.push(code.toString(16));
+    }
+  }
+
+  return codes.length > 0 ? codes.join("-") : null;
 }
 
 interface AchievementIconProps {
   icon: string;
-  /** Классы для отображения эмодзи/текста (размер шрифта). */
+  /** Классы для эмодзи/текста (размер шрифта). */
   textClass?: string;
-  /** Классы для отображения lucide-иконки (размер box'а). */
+  /** Классы для lucide-иконки или Twemoji-картинки (размер box'а). */
   iconClass?: string;
-  /** Фолбэк при пустом распознавании. */
+  /** Фолбэк при пустом или нераспознанном значении. */
   fallback?: string;
 }
 
@@ -71,6 +84,7 @@ export function AchievementIcon({
   iconClass = "h-7 w-7",
   fallback = "🏆",
 }: AchievementIconProps) {
+  const [imageFailed, setImageFailed] = useState(false);
   const name = icon?.trim();
 
   if (!name) {
@@ -82,9 +96,24 @@ export function AchievementIcon({
     return <LucideIcon className={iconClass} />;
   }
 
-  if (looksLikeEmoji(name)) {
+  const codepoints = emojiToCodepoints(name);
+  if (!codepoints) {
+    return <span className={textClass}>{fallback}</span>;
+  }
+
+  // Если CDN недоступен, показываем нативный эмодзи вместо пустого места.
+  if (imageFailed) {
     return <span className={textClass}>{name}</span>;
   }
 
-  return <span className={textClass}>{fallback}</span>;
+  const twemojiUrl = `https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/${codepoints}.svg`;
+
+  return (
+    <img
+      src={twemojiUrl}
+      alt={name}
+      className={`select-none object-contain ${iconClass}`}
+      onError={() => setImageFailed(true)}
+    />
+  );
 }
