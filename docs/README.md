@@ -88,8 +88,9 @@
   - `POST /api/admin/modules/[moduleId]/delete` — удаление модуля (каскад: задачи → уроки → модуль)
 - Форма создания/редактирования модулей переводится на серверные эндпоинты для устранения «зависаний» клиентского insert при RLS/куках.
 - Аутентификация:
-  - После входа — синхронизация httpOnly-куки через `POST /api/auth/set-session`.
-  - Выход — через `POST /api/auth/signout` (чистит серверные куки) + клиентский signOut.
+  - Email/пароль — `POST /api/auth/login`, `POST /api/auth/register`, `POST /api/auth/logout`.
+  - OAuth — `GET /api/auth/oauth/{google|github}` и `/api/auth/oauth/callback`; кнопки на `/login` и `/register`.
+  - Сессия хранится в httpOnly-cookie, профиль создаётся/связывается по email автоматически.
 - Генерация AI:
   - Используется Omniroute (`OMNIROUTE_BASE_URL` + `OMNIROUTE_MODEL`, по умолчанию `antigravity/gemini-3-flash`).
   - Устойчивый парсинг JSON-ответов и мягкий фолбэк на текст при ошибке парсинга.
@@ -130,8 +131,8 @@
     - Выход: `{ ok: true }` или `{ error, code }`
   - `POST /api/admin/modules/[moduleId]/delete`
     - Выход: `{ ok: true }` или `{ error }`
-  - `POST /api/auth/set-session`
-  - `POST /api/auth/signout`
+  - `POST /api/auth/login`, `POST /api/auth/register`, `POST /api/auth/logout`
+  - `GET /api/auth/oauth/{google|github}`, `GET /api/auth/oauth/callback`
 - Руководство по развертыванию — [APPWRITE.md, раздел «Деплой сайта»](./APPWRITE.md#деплой-сайта-appwrite-sites)
 - Структура проекта
 
