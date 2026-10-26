@@ -14,6 +14,8 @@ APPWRITE_ENDPOINT=https://aw.example.com/v1
 APPWRITE_PROJECT_ID=your-project-id
 APPWRITE_DATABASE_ID=codesensei
 APPWRITE_API_KEY=standard_...
+# Необязательно: публичный endpoint для OAuth-редиректов (см. ниже)
+# APPWRITE_OAUTH_ENDPOINT=https://appwrite.example.com/v1
 
 OMNIROUTE_BASE_URL=https://omniroute.example.com/v1
 OMNIROUTE_API_KEY=sk-...
@@ -97,10 +99,35 @@ pnpm appwrite:seed    # достижения и демо-модули/задан
 ### Письма и OAuth
 
 Восстановление пароля (`/api/auth/password-reset`) требует настроенного SMTP в
-Appwrite. Google/GitHub OAuth на сервере не настроены, поэтому кнопки OAuth
-удалены из интерфейса. После настройки провайдеров в Console можно вернуть
-вход через `account.createOAuth2Token` (см. `docs/APPWRITE.md` и официальную
-документацию Appwrite SSR).
+Appwrite.
+
+Вход через **Google** и **GitHub** настроен и доступен на `/login` и
+`/register` (кнопки в `components/oauth-buttons.tsx`). Провайдеры включены в
+Appwrite Console → Auth → Providers.
+
+Callback URL, зарегистрированный у провайдеров:
+
+```text
+https://appwrite.ravva.su/v1/account/sessions/oauth2/callback/google/<PROJECT_ID>
+https://appwrite.ravva.su/v1/account/sessions/oauth2/callback/github/<PROJECT_ID>
+```
+
+Поток входа:
+
+1. `GET /api/auth/oauth/{provider}` (`google` | `github`) запрашивает OAuth2-URL
+   через `getOAuthAdminAccount()` и редиректит пользователя к провайдеру.
+2. Провайдер возвращает код на callback Appwrite, Appwrite — на
+   `/api/auth/oauth/callback` с параметрами `userId` и `secret`.
+3. Callback обменивает их на сессию (`createSession`), кладёт httpOnly-cookie и
+   вызывает `ensureUserProfile()`. Если OAuth-аккаунт получил новый Appwrite ID,
+   `reconcileByEmail()` переносит профиль, прогресс, попытки и достижения на
+   этот ID.
+
+`getOAuthAdminAccount()` намеренно ходит в Appwrite через **публичный домен**:
+провайдеры сверяют `redirect_uri` с зарегистрированным, а внутренний
+Tailscale/docker-endpoint дал бы приватный IP. Если `APPWRITE_ENDPOINT`
+внутренний, задайте `APPWRITE_OAUTH_ENDPOINT=https://appwrite.ravva.su/v1`
+(иначе будет использован публичный `NEXT_PUBLIC_APPWRITE_ENDPOINT`).
 
 ## Деплой сайта (Appwrite Sites)
 
@@ -163,4 +190,5 @@ appwrite sites create-variable --site-id codesensei --key KEY --value VALUE --se
 `APPWRITE_PROJECT_ID`, `APPWRITE_DATABASE_ID`, `APPWRITE_API_KEY`,
 `NEXT_PUBLIC_APPWRITE_ENDPOINT`, `NEXT_PUBLIC_APPWRITE_PROJECT_ID`,
 `NEXT_PUBLIC_SITE_URL`, `OMNIROUTE_BASE_URL`, `OMNIROUTE_API_KEY`,
-`OMNIROUTE_MODEL`.
+`OMNIROUTE_MODEL`. Для OAuth при внутреннем `APPWRITE_ENDPOINT` также нужен
+`APPWRITE_OAUTH_ENDPOINT`.
