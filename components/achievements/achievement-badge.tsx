@@ -1,5 +1,6 @@
 "use client";
 
+import { AchievementIcon } from "@/components/achievements/achievement-icon";
 import { Badge } from "@/components/ui/badge";
 
 type Achievement = {
@@ -25,17 +26,17 @@ export function AchievementBadge({
   showDescription = false,
   size = "md",
 }: AchievementBadgeProps) {
-  const sizeMap = {
-    sm: "text-2xl",
-    md: "text-3xl",
-    lg: "text-4xl",
-  } as const;
-
-  const iconSizeClass = sizeMap[size];
   const isEarned = Boolean(achievement.earned_at);
   const xp = achievement.xp_reward ?? 0;
 
   const iconWrapperSize = size === "lg" ? "h-16 w-16" : size === "sm" ? "h-12 w-12" : "h-14 w-14";
+  const iconTextSize =
+    size === "lg"
+      ? "text-4xl drop-shadow-sm"
+      : size === "sm"
+        ? "text-2xl drop-shadow-sm"
+        : "text-3xl drop-shadow-sm";
+  const lucideSize = size === "lg" ? "h-9 w-9" : size === "sm" ? "h-6 w-6" : "h-7 w-7";
   const titleSize = size === "lg" ? "text-base" : size === "sm" ? "text-sm" : "text-sm";
 
   return (
@@ -60,9 +61,11 @@ export function AchievementBadge({
                   : "from-muted/50 via-muted/20 to-background text-muted-foreground"
               }`}
             >
-              <span className={`${iconSizeClass} drop-shadow-sm`}>
-                {achievement.icon_name || "🏆"}
-              </span>
+              <AchievementIcon
+                icon={achievement.icon_name}
+                textClass={iconTextSize}
+                iconClass={lucideSize}
+              />
             </div>
             <div className="space-y-1">
               <div className="flex items-center gap-2">

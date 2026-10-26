@@ -2,7 +2,7 @@
 
 import { Award, Crown, Medal, Trophy } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { AchievementIcon } from "@/components/achievements/achievement-icon";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -235,9 +235,11 @@ export function LeaderboardContent({
                               className="group relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary/80 via-primary/70 to-primary/90 text-primary-foreground shadow-sm cursor-default"
                               title={`${achievement.title} — ${achievement.description}`}
                             >
-                              <span className="text-xl drop-shadow-sm">
-                                {achievement.icon_name || "🏆"}
-                              </span>
+                              <AchievementIcon
+                                icon={achievement.icon_name}
+                                textClass="text-xl drop-shadow-sm"
+                                iconClass="h-5 w-5"
+                              />
                             </div>
                           ))}
                         </div>
