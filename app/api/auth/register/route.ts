@@ -35,12 +35,26 @@ export async function POST(request: Request) {
   }
 
   try {
+    const userId = ID.unique();
     const created = await getAdminAccount().create({
-      userId: ID.unique(),
+      userId,
       email,
       password,
       name: displayName || email.split("@")[0],
     });
+
+    // Автоматически подтверждаем email без отправки письма (так как нет SMTP)
+    try {
+      const { Client, Users } = await import("node-appwrite");
+      const client = new Client()
+        .setEndpoint(process.env.APPWRITE_ENDPOINT || "https://appwrite.ravva.su/v1")
+        .setProject(process.env.APPWRITE_PROJECT_ID || "6adc4f50003202881547")
+        .setKey(process.env.APPWRITE_API_KEY || "");
+      const users = new Users(client);
+      await users.updateEmailVerification(userId, true);
+    } catch (verifyErr) {
+      console.warn("Auto-verification warning:", verifyErr);
+    }
 
     const session = await getAdminAccount().createEmailPasswordSession({ email, password });
     const account = getSessionAccount(session.secret);
