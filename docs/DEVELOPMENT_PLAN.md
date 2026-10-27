@@ -661,35 +661,22 @@ codesensei/
 
 ---
 
-## ЭТАП 16: Деплой и CI/CD
+## ЭТАП 16: Деплой и CI/CD (Appwrite Sites)
 
-### 16.1 Настройка Vercel
-- [ ] Подключить репозиторий к Vercel
-- [ ] Настроить переменные окружения:
-  - NEXT_PUBLIC_SUPABASE_URL
-  - NEXT_PUBLIC_SUPABASE_ANON_KEY
-  - SUPABASE_SERVICE_KEY
-- [ ] Настроить production build
-- [ ] Настроить домен (опционально)
+### 16.1 Настройка Appwrite Sites
+- [x] Конфигурация `appwrite.config.json`
+- [x] Настройка переменных окружения в Appwrite Console
+- [x] Настройка production build (Next.js SSR)
 
 ### 16.2 Миграции БД
-- [ ] Проверить все миграции на production
-- [ ] Создать резервные копии
-- [ ] Заполнить начальные данные (опционально):
-  - Тестовые модули
-  - Базовые достижения
+- [x] Проверить все коллекции и атрибуты в Appwrite
+- [x] Заполнить начальные данные через скрипт `pnpm appwrite:seed`
 
 ### 16.3 CI/CD
-- [ ] Настроить GitHub Actions:
-  - Линтинг
-  - Тесты
-  - Автоматический деплой на Vercel
-- [ ] Настроить preview deployments для PR
+- [x] Деплой через Appwrite CLI (`appwrite sites create-deployment`)
 
 ### 16.4 Мониторинг
-- [ ] Настроить Sentry (опционально)
-- [ ] Настроить Vercel Analytics
-- [ ] Настроить логирование ошибок
+- [x] Логирование через Appwrite Console и логи Sites
 
 ---
 
