@@ -145,7 +145,7 @@ export function LoginForm() {
             <div className="flex items-center justify-center pt-6">
               <div
                 style={{
-                  transform: "scale(1.4)",
+                  transform: "scale(2.2)",
                   transformOrigin: "center",
                   maskImage: "url(/CodeSensei.svg)",
                   maskSize: "contain",
@@ -156,10 +156,10 @@ export function LoginForm() {
                   WebkitMaskRepeat: "no-repeat",
                   WebkitMaskPosition: "center",
                   backgroundColor: "var(--primary)",
-                  width: "128px",
-                  height: "128px",
-                  minWidth: "128px",
-                  minHeight: "128px",
+                  width: "192px",
+                  height: "192px",
+                  minWidth: "192px",
+                  minHeight: "192px",
                 }}
               />
             </div>
