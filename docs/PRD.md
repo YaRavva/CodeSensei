@@ -38,10 +38,9 @@ CodeSensei
 - **Безопасность:** Web Workers, timeout механизм
 
 ### Backend & База данных
-- **Хостинг:** Vercel (Deployment/Serverless Functions)
-- **База данных:** Supabase (PostgreSQL)
-- **Аутентификация:** Supabase Auth
-- **Serverless Functions:** Supabase Edge Functions (опционально)
+- **Хостинг:** Appwrite Sites (Self-hosted Appwrite SSR Node.js)
+- **База данных:** Appwrite Databases
+- **Аутентификация:** Appwrite Auth
 
 ### ИИ-сервисы
 - **Провайдер:** Hugging Face Inference API
