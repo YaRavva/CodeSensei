@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Ubuntu+Mono:wght@400;700&display=swap');
 @import "tailwindcss";
 
@@ -52,25 +53,25 @@
 }
 
 .dark {
-  --background: oklch(0.141 0.005 285.823);
+  --background: #1f1f1f;
   --foreground: oklch(0.985 0 0);
 
-  --card: oklch(0.21 0.006 285.885);
+  --card: #272727;
   --card-foreground: oklch(0.985 0 0);
 
-  --popover: oklch(0.21 0.006 285.885);
+  --popover: #272727;
   --popover-foreground: oklch(0.985 0 0);
 
   --primary: oklch(0.645 0.246 16.439);
   --primary-foreground: oklch(0.969 0.015 12.422);
 
-  --secondary: oklch(0.274 0.006 286.033);
+  --secondary: #272727;
   --secondary-foreground: oklch(0.985 0 0);
 
-  --muted: oklch(0.274 0.006 286.033);
+  --muted: #272727;
   --muted-foreground: oklch(0.705 0.015 286.067);
 
-  --accent: oklch(0.274 0.006 286.033);
+  --accent: #272727;
   --accent-foreground: oklch(0.985 0 0);
 
   --destructive: oklch(0.704 0.191 22.216);
@@ -86,11 +87,11 @@
   --chart-4: oklch(0.514 0.222 16.935);
   --chart-5: oklch(0.455 0.188 13.697);
 
-  --sidebar: oklch(0.21 0.006 285.885);
+  --sidebar: #181818;
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.645 0.246 16.439);
   --sidebar-primary-foreground: oklch(0.969 0.015 12.422);
-  --sidebar-accent: oklch(0.274 0.006 286.033);
+  --sidebar-accent: #313131;
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.41 0.159 10.272);
@@ -122,6 +123,10 @@
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
+
+  /* Шрифты */
+  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Ubuntu Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
 @layer base {
@@ -131,11 +136,36 @@
   body {
     background-color: var(--background);
     color: var(--foreground);
+    font-family: var(--font-sans);
   }
 }
 
 @layer utilities {
   .font-ubuntu-mono {
     font-family: 'Ubuntu Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  }
+
+  /* Hero-градиент только на тексте заголовка (B5) */
+  .hero-heading-gradient {
+    background-image: linear-gradient(to right, #000000, #666666);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .dark .hero-heading-gradient {
+    background-image: linear-gradient(to right, #ffffff, #9b9b9b);
+  }
+
+  /* Анимация появления для hero-элементов (B7) */
+  .landing-rise {
+    opacity: 0;
+    transform: translateY(24px);
+    animation: landing-rise 600ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+  @keyframes landing-rise {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 }

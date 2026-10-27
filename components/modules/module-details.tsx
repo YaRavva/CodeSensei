@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, BookOpen } from "lucide-react";
+import { ArrowLeft, BookOpen, CheckCircle2, Circle, CircleDot } from "lucide-react";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkBreaks from "remark-breaks";
@@ -120,17 +120,20 @@ export function ModuleDetails({
               const statusConfig = {
                 not_started: {
                   label: "Не начато",
-                  icon: "🔴",
+                  icon: Circle,
+                  iconClassName: "text-muted-foreground",
                   variant: "secondary" as const,
                 },
                 in_progress: {
                   label: "В процессе",
-                  icon: "🟡",
+                  icon: CircleDot,
+                  iconClassName: "text-primary",
                   variant: "secondary" as const,
                 },
                 completed: {
                   label: "Завершено",
-                  icon: "🟢",
+                  icon: CheckCircle2,
+                  iconClassName: "text-emerald-500",
                   variant: "secondary" as const,
                 },
               } as const;
@@ -150,7 +153,10 @@ export function ModuleDetails({
                         </CardDescription>
                       </div>
                       <Badge variant={statusInfo.variant}>
-                        <span className="mr-1">{statusInfo.icon}</span>
+                        <statusInfo.icon
+                          className={`mr-1 h-4 w-4 ${statusInfo.iconClassName}`}
+                          aria-hidden="true"
+                        />
                         {statusInfo.label}
                       </Badge>
                     </div>

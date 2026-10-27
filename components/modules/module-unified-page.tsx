@@ -2,17 +2,22 @@
 
 import {
   AlertCircle,
+  ArrowRight,
   ArrowUpDown,
   Award,
   BookOpen,
   CheckCircle2,
+  Circle,
+  CircleDot,
   Clock,
   Filter,
   List,
   Loader2,
+  Play,
   RotateCcw,
   Sparkles,
   TrendingUp,
+  type LucideIcon,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
@@ -204,6 +209,12 @@ export function ModuleUnifiedPage({
       lastAttempt: taskStates[task.id]?.lastAttempt || null,
     }));
   }, [tasks, taskStates, completedTaskIds]);
+
+  // Следующее не завершённое задание — основа главного действия модуля (A4)
+  const nextTask = useMemo(
+    () => tasksWithStatus.find((task) => task.status !== "completed") ?? null,
+    [tasksWithStatus]
+  );
 
   // Фильтруем задания
   const filteredTasks = useMemo(() => {
@@ -654,21 +665,24 @@ export function ModuleUnifiedPage({
       case "completed":
         return {
           label: "Завершено",
-          icon: "🟢",
+          icon: CheckCircle2,
+          iconClassName: "text-emerald-500",
           variant: "secondary" as const,
           className: "", // Используем стандартный стиль secondary, как у бейджа XP
         };
       case "in_progress":
         return {
           label: "В процессе",
-          icon: "🟡",
+          icon: CircleDot,
+          iconClassName: "text-primary",
           variant: "secondary" as const,
           className: "", // Используем стандартный стиль secondary, как у бейджа XP
         };
       default:
         return {
           label: "Не начато",
-          icon: "🔴",
+          icon: Circle,
+          iconClassName: "text-muted-foreground",
           variant: "secondary" as const,
           className: "", // Используем стандартный стиль secondary, как у бейджа XP
         };
@@ -711,7 +725,8 @@ export function ModuleUnifiedPage({
                     }}
                     className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-accent transition-colors"
                   >
-                    📚 Теория
+                    <BookOpen className="mr-2 inline h-4 w-4" aria-hidden="true" />
+                    Теория
                   </button>
                   {sortedTasks.map((task, index) => {
                     const statusConfig = getStatusConfig(task.status);
@@ -727,8 +742,11 @@ export function ModuleUnifiedPage({
                         <span className="truncate">
                           {index + 1}. {task.title}
                         </span>
-                        <span className="ml-2 text-xs opacity-70 group-hover:opacity-100">
-                          {statusConfig.icon}
+                        <span className="ml-2 shrink-0 opacity-70 group-hover:opacity-100">
+                          <statusConfig.icon
+                            className={`h-4 w-4 ${statusConfig.iconClassName}`}
+                            aria-hidden="true"
+                          />
                         </span>
                       </button>
                     );
@@ -740,15 +758,50 @@ export function ModuleUnifiedPage({
 
           {/* Основной контент */}
           <div>
-            {/* Заголовок модуля */}
+            {/* Заголовок модуля — hero-версия с единственным главным действием (A4/A5) */}
             <div className="mb-8" id="theory-section">
-              <div className="flex items-start justify-between mb-4">
+              <div className="mb-4 flex items-start justify-between gap-4">
                 <div>
-                  <h1 className="text-3xl font-bold mb-2">{module.title}</h1>
-                  <p className="text-lg text-muted-foreground">{module.topic}</p>
+                  <Badge variant="outline" className="mb-3">
+                    Уровень {module.level}
+                  </Badge>
+                  <h1 className="max-w-[680px] text-balance text-3xl font-bold md:text-4xl">
+                    {module.title}
+                  </h1>
+                  <p className="mt-3 max-w-[680px] text-lg text-muted-foreground">
+                    {module.topic} — небольшой модуль с заданиями и мгновенной проверкой кода.
+                  </p>
                 </div>
-                <Badge variant="outline">Уровень {module.level}</Badge>
               </div>
+              {nextTask ? (
+                <Button
+                  size="lg"
+                  className="h-11 px-6 text-base font-semibold"
+                  onClick={() => scrollToTask(nextTask.id)}
+                >
+                  {completedTaskIds.length === 0 ? (
+                    <>
+                      <Play className="size-5" />
+                      Начать с первого задания
+                    </>
+                  ) : (
+                    <>
+                      Продолжить с задания {nextTask.order_index}
+                      <ArrowRight className="size-5" />
+                    </>
+                  )}
+                </Button>
+              ) : (
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="h-11 px-6 text-base font-medium"
+                  onClick={() => scrollToTask(sortedTasks[0]?.id ?? tasks[0]?.id ?? "")}
+                >
+                  <RotateCcw className="size-5" />
+                  Пройти заново
+                </Button>
+              )}
             </div>
 
             {/* Статистика изучения */}
@@ -982,7 +1035,10 @@ export function ModuleUnifiedPage({
                                 variant={statusConfig.variant}
                                 className={statusConfig.className || undefined}
                               >
-                                <span className="mr-1">{statusConfig.icon}</span>
+                                <statusConfig.icon
+                                  className={`mr-1 h-4 w-4 ${statusConfig.iconClassName}`}
+                                  aria-hidden="true"
+                                />
                                 {statusConfig.label}
                               </Badge>
                             </div>

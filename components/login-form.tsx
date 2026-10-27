@@ -1,5 +1,6 @@
 "use client";
 
+import { CheckCircle2, Clock, Gauge, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -140,11 +141,11 @@ export function LoginForm() {
             </div>
           </form>
 
-          <div className="bg-muted relative hidden md:block overflow-hidden">
-            <div className="absolute inset-0 flex items-center justify-center">
+          <div className="relative hidden flex-col justify-between overflow-hidden bg-muted p-8 md:flex">
+            <div className="flex items-center justify-center pt-6">
               <div
                 style={{
-                  transform: "scale(2)",
+                  transform: "scale(1.4)",
                   transformOrigin: "center",
                   maskImage: "url(/CodeSensei.svg)",
                   maskSize: "contain",
@@ -155,12 +156,45 @@ export function LoginForm() {
                   WebkitMaskRepeat: "no-repeat",
                   WebkitMaskPosition: "center",
                   backgroundColor: "var(--primary)",
-                  width: "320px",
-                  height: "320px",
-                  minWidth: "320px",
-                  minHeight: "320px",
+                  width: "128px",
+                  height: "128px",
+                  minWidth: "128px",
+                  minHeight: "128px",
                 }}
               />
+            </div>
+
+            <div className="space-y-5">
+              <div className="flex items-start gap-3">
+                <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-primary" />
+                <p className="text-sm text-muted-foreground">
+                  <span className="font-semibold text-foreground">
+                    Настоящий код с первого урока
+                  </span>{" "}
+                  — первый рабочий скрипт уже в начале курса
+                </p>
+              </div>
+              <div className="flex items-start gap-3">
+                <Gauge className="mt-0.5 size-5 shrink-0 text-primary" />
+                <p className="text-sm text-muted-foreground">
+                  <span className="font-semibold text-foreground">Мгновенная проверка</span> —
+                  решение запускается прямо в браузере
+                </p>
+              </div>
+              <div className="flex items-start gap-3">
+                <Clock className="mt-0.5 size-5 shrink-0 text-primary" />
+                <p className="text-sm text-muted-foreground">
+                  <span className="font-semibold text-foreground">XP, уровни и достижения</span> —
+                  прогресс виден сразу
+                </p>
+              </div>
+              <div className="flex items-start gap-3">
+                <ShieldCheck className="mt-0.5 size-5 shrink-0 text-primary" />
+                <p className="text-sm text-muted-foreground">
+                  <span className="font-semibold text-foreground">Абсолютно бесплатно</span> — без
+                  карты и скрытых платежей
+                </p>
+              </div>
             </div>
           </div>
         </CardContent>

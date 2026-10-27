@@ -3,7 +3,9 @@
 import "./globals.css";
 import type React from "react";
 import { useEffect } from "react";
+import { BackgroundLogo } from "@/components/background-logo";
 import { AuthProvider } from "@/components/auth/auth-provider";
+import { Footer } from "@/components/footer";
 import { Layout } from "@/components/layout";
 import { Navigation } from "@/components/navigation";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -103,8 +105,18 @@ export function ClientLayout({
     <ThemeProvider>
       <AuthProvider>
         <Layout>
+          <BackgroundLogo />
+          <a
+            href="#main"
+            className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground"
+          >
+            Перейти к содержимому
+          </a>
           <Navigation />
-          <main className="flex-1">{children}</main>
+          <main id="main" className="flex-1">
+            {children}
+          </main>
+          <Footer />
         </Layout>
         <Toaster />
       </AuthProvider>

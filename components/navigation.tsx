@@ -1,5 +1,6 @@
 "use client";
 
+import { Menu, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -14,6 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 
 /**
  * Единая функция для определения состояния авторизации в навигации
@@ -115,9 +117,28 @@ function useNavigationAuth() {
   };
 }
 
+interface NavLink {
+  href: string;
+  label: string;
+}
+
+function isPathActive(pathname: string, href: string): boolean {
+  if (href === "/modules") {
+    return pathname === "/modules" || pathname.startsWith("/modules/");
+  }
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
 export function Navigation() {
   const { user, profile, signOut } = useAuth();
+  const pathname = usePathname();
   const { isAuthenticated, showModulesLink, loading, isAdmin } = useNavigationAuth();
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // Закрываем мобильное меню при смене маршрута
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
 
   // Функция для получения инициалов - ТОЛЬКО из фамилии и имени (profile.display_name)
   function getInitials(): string {
@@ -147,35 +168,63 @@ export function Navigation() {
     return "U";
   }
 
+  const links: NavLink[] = [
+    ...(showModulesLink ? [{ href: "/modules", label: "Модули" }] : []),
+    ...(isAuthenticated
+      ? [
+          { href: "/dashboard", label: "Личный кабинет" },
+          { href: "/leaderboard", label: "Лидеры" },
+          { href: "/achievements", label: "Достижения" },
+        ]
+      : []),
+    ...(isAdmin ? [{ href: "/admin/modules", label: "Админ-панель" }] : []),
+  ];
+
+  const activeLink = (href: string) =>
+    cn(
+      "rounded-md px-3 py-1.5 text-sm font-medium transition-colors duration-200",
+      isPathActive(pathname, href)
+        ? "bg-secondary text-foreground"
+        : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
+    );
+
   return (
-    <nav className="border-b bg-background shadow-sm">
-      <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        <Link href="/" className="text-xl font-bold">
+    <header className="sticky top-0 z-50 px-4 pt-3 md:pt-4">
+      <nav
+        aria-label="Основная навигация"
+        className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-2 rounded-2xl border bg-background/80 px-3 shadow-sm backdrop-blur-md md:px-4"
+      >
+        <Link
+          href={isAuthenticated ? "/modules" : "/"}
+          className="px-2 text-lg font-bold tracking-tight"
+        >
           CodeSensei
         </Link>
-        <div className="flex items-center gap-4">
-          {showModulesLink && (
-            <Button variant="ghost" asChild>
-              <Link href="/modules">Модули</Link>
+
+        {/* Desktop links */}
+        <div className="hidden items-center gap-1 md:flex">
+          {links.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              aria-current={isPathActive(pathname, link.href) ? "page" : undefined}
+              className={activeLink(link.href)}
+            >
+              {link.label}
+            </Link>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-1">
+          <ThemeToggle />
+
+          {!isAuthenticated && !loading && (
+            <Button asChild variant="ghost" className="rounded-md">
+              <Link href="/login">Войти</Link>
             </Button>
           )}
-          {isAuthenticated ? (
-            <>
-              <Button variant="ghost" asChild>
-                <Link href="/dashboard">Личный кабинет</Link>
-              </Button>
-              <Button variant="ghost" asChild>
-                <Link href="/leaderboard">Лидеры</Link>
-              </Button>
-              <Button variant="ghost" asChild>
-                <Link href="/achievements">Достижения</Link>
-              </Button>
-              {/* Кнопка админки: показываем если пользователь авторизован, профиль загружен И роль admin/teacher */}
-              {profile && user && isAdmin && (
-                <Button variant="ghost" asChild>
-                  <Link href="/admin/modules">Админ-панель</Link>
-                </Button>
-              )}
+          {isAuthenticated && (
+            <div className="hidden md:block">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-10 w-10 rounded-full">
@@ -183,7 +232,7 @@ export function Navigation() {
                       <AvatarImage src={profile?.avatar_url ?? undefined} />
                       <AvatarFallback
                         key={`${profile?.id || user?.id || "default"}-${profile?.display_name || user?.email || ""}`}
-                        className="text-sm font-semibold bg-primary text-primary-foreground"
+                        className="bg-primary text-sm font-semibold text-primary-foreground"
                       >
                         {getInitials()}
                       </AvatarFallback>
@@ -213,17 +262,89 @@ export function Navigation() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            </>
-          ) : (
-            !loading && (
-              <Button variant="default" asChild>
-                <Link href="/login">Войти</Link>
-              </Button>
-            )
+            </div>
           )}
-          <ThemeToggle />
+
+          {/* Mobile menu toggle */}
+          {isAuthenticated && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden"
+              aria-expanded={menuOpen}
+              aria-controls="mobile-menu"
+              onClick={() => setMenuOpen((open) => !open)}
+            >
+              {menuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+              <span className="sr-only">{menuOpen ? "Закрыть меню" : "Открыть меню"}</span>
+            </Button>
+          )}
         </div>
-      </div>
-    </nav>
+      </nav>
+
+      {/* Mobile menu: full-height panel */}
+      {menuOpen && (
+        <div
+          id="mobile-menu"
+          className="mx-auto mt-2 max-w-5xl overflow-hidden rounded-2xl border bg-background/90 backdrop-blur-md md:hidden"
+        >
+          <div className="flex flex-col p-2">
+            {links.map((link, index) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                aria-current={isPathActive(pathname, link.href) ? "page" : undefined}
+                className={cn(
+                  "rounded-lg px-4 py-3 text-base font-medium text-foreground transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-secondary/60",
+                  isPathActive(pathname, link.href) ? "bg-secondary" : ""
+                )}
+                style={{
+                  transitionDelay: `${Math.min(index * 60, 360)}ms`,
+                }}
+              >
+                {link.label}
+              </Link>
+            ))}
+            <div className="mt-1 border-t p-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="w-full justify-start px-4 py-3">
+                    <Avatar className="mr-3 h-8 w-8">
+                      <AvatarImage src={profile?.avatar_url ?? undefined} />
+                      <AvatarFallback
+                        key={`${profile?.id || user?.id || "default"}-${profile?.display_name || user?.email || ""}`}
+                        className="bg-primary text-xs font-semibold text-primary-foreground"
+                      >
+                        {getInitials()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span>Профиль</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile">Профиль</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      signOut().catch(() => {
+                        if (typeof window !== "undefined") {
+                          window.location.href = "/login";
+                        }
+                      });
+                    }}
+                  >
+                    Выйти
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+        </div>
+      )}
+    </header>
   );
 }

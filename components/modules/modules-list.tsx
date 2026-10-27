@@ -1,7 +1,10 @@
 "use client";
 
+import { Code2 } from "lucide-react";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ModuleCard } from "@/components/modules/module-card";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -89,10 +92,18 @@ export function ModulesList({ modules, userProgress, tasksCountMap = {} }: Modul
 
   if (modules.length === 0) {
     return (
-      <div className="text-center py-12">
-        <p className="text-muted-foreground">
-          Модули пока не доступны. Скоро здесь появятся учебные материалы!
+      <div className="flex flex-col items-center rounded-2xl border border-dashed bg-card/40 px-6 py-16 text-center">
+        <div className="mb-4 inline-flex h-14 w-14 items-center justify-center rounded-lg bg-primary/10">
+          <Code2 className="size-7 text-primary" />
+        </div>
+        <h2 className="text-xl font-semibold">Модули ещё в пути</h2>
+        <p className="mt-2 max-w-md text-muted-foreground">
+          Учебные материалы появятся здесь скоро. А пока можно разобраться, как устроен курс, и
+          подготовиться к первому модулю.
         </p>
+        <Button asChild variant="outline" className="mt-6">
+          <Link href="/dashboard">Перейти в личный кабинет</Link>
+        </Button>
       </div>
     );
   }
