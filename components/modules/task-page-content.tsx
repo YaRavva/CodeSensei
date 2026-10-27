@@ -351,7 +351,7 @@ export function TaskPageContent({
               if (xpData.alreadyCompleted) {
                 // Сервер вернул, что задание уже было выполнено
                 toast({
-                  title: "Все тесты пройдены! ✅",
+                  title: "Тесты пройдены",
                   description:
                     xpData.message ||
                     "Задание уже было успешно выполнено ранее. XP не начисляется повторно.",
@@ -362,7 +362,7 @@ export function TaskPageContent({
               } else if (xpData.xpAwarded > 0) {
                 // XP был начислен
                 toast({
-                  title: "Поздравляем! 🎉",
+                  title: "Тесты пройдены",
                   description: `Все тесты пройдены! Вы заработали ${xpData.xpAwarded} XP${xpData.newLevel !== undefined && xpData.newLevel !== null ? ` (Уровень ${xpData.newLevel})` : ""}`,
                   duration: 5000,
                 });
@@ -387,7 +387,7 @@ export function TaskPageContent({
               } else {
                 // Успех, но XP не начислен (возможно, это не первая попытка)
                 toast({
-                  title: "Все тесты пройдены! ✅",
+                  title: "Тесты пройдены",
                   description: "Задание успешно выполнено",
                   variant: "default",
                   duration: 3000,
@@ -405,7 +405,7 @@ export function TaskPageContent({
           } else {
             // Задание уже было выполнено ранее, не вызываем API начисления XP
             toast({
-              title: "Все тесты пройдены! ✅",
+              title: "Тесты пройдены",
               description: "Задание уже было успешно выполнено ранее. Попытка сохранена в историю.",
               variant: "default",
               duration: 3000,

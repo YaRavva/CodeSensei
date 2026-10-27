@@ -144,9 +144,8 @@ const achievements = [
 const modules = [
   {
     id: "module_basics",
-    title: "Переменные и функции",
-    description:
-      "Первый шаг в Python: переменные, простые функции и возврат значений. Разберём, как принимать аргументы и возвращать результат.",
+    title: "Основы Python: Переменные и функции",
+    description: "Первый шаг в Python: переменные, простые функции и возврат значений.",
     topic: "Переменные",
     level: 1,
     order_index: 1,
@@ -169,14 +168,17 @@ const tasks = [
     id: "task_sum",
     module_id: "module_basics",
     title: "Сумма двух чисел",
-    description: `Напишите функцию \`add(a, b)\`, которая возвращает сумму двух чисел.
+    description: `### Как устроена функция в Python?
+Функция — это мини-программа или «рецепт». Она принимает входящие данные (в скобках), что-то с ними делает и возвращает результат с помощью ключевого слова \`return\`.
 
-**Пример:**
+Напишите функцию \`add(a, b)\`, которая принимает два числа \`a\` и \`b\` и возвращает их сумму.
+
+**Пример использования:**
 \`\`\`python
-add(2, 3)  # 5
+add(2, 3)  # Вернет 5
 \`\`\``,
     starter_code: `def add(a, b):
-    # Верните сумму a и b
+    # Напишите return a + b
     pass
 `,
     solution_code: `def add(a, b):
@@ -211,7 +213,7 @@ add(2, 3)  # 5
     xp_reward: 10,
     difficulty: "easy",
     hints: [
-      { id: "hint_1", text: "Сумма в Python записывается оператором +.", unlock_after_attempts: 1 },
+      { id: "hint_1", text: "Используйте ключевое слово return перед сложением: return a + b", unlock_after_attempts: 1 },
     ],
     order_index: 1,
     variant_number: null,
@@ -220,14 +222,17 @@ add(2, 3)  # 5
     id: "task_greet",
     module_id: "module_basics",
     title: "Приветствие",
-    description: `Напишите функцию \`greet(name)\`, которая возвращает строку \`Привет, <name>!\`.
+    description: `### Работа со строками и f-строками
+В Python строки можно объединять. Удобный способ подставить переменную внутрь строки — использовать **f-строки** (ставим букву \`f\` перед кавычками, а переменные оборачиваем в фигурные скобки \`{name}\`).
+
+Напишите функцию \`greet(name)\`, которая принимает строку с именем и возвращает приветствие вида \`Привет, <name>!\`.
 
 **Пример:**
 \`\`\`python
-greet("Аня")  # "Привет, Аня!"
+greet("Аня")  # Вернет "Привет, Аня!"
 \`\`\``,
     starter_code: `def greet(name):
-    # Верните приветствие
+    # Верните f"Привет, {name}!"
     pass
 `,
     solution_code: `def greet(name):
@@ -254,7 +259,7 @@ greet("Аня")  # "Привет, Аня!"
     xp_reward: 10,
     difficulty: "easy",
     hints: [
-      { id: "hint_1", text: "Используйте f-строку: f\"Привет, {name}!\"", unlock_after_attempts: 1 },
+      { id: "hint_1", text: "Используйте f-строку: return f\"Привет, {name}!\"", unlock_after_attempts: 1 },
     ],
     order_index: 2,
     variant_number: null,

@@ -1,7 +1,10 @@
 "use client";
 
+import { ArrowRight } from "lucide-react";
+import Link from "next/link";
 import { AchievementsList } from "@/components/achievements/achievements-list";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { calculateLevelProgress } from "@/lib/utils/levels";
@@ -31,11 +34,19 @@ export function DashboardContent({ profile, stats, achievements }: DashboardCont
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Личный кабинет</h1>
-        <p className="text-muted-foreground">
-          Добро пожаловать, {profile?.display_name || profile?.email || "Пользователь"}!
-        </p>
+      <div className="mb-8 flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
+        <div>
+          <h1 className="mb-2 text-3xl font-bold">Личный кабинет</h1>
+          <p className="text-muted-foreground">
+            Добро пожаловать, {profile?.display_name || profile?.email || "Пользователь"}!
+          </p>
+        </div>
+        <Button asChild size="lg" className="h-11 px-6 text-base font-semibold">
+          <Link href="/modules">
+            Продолжить обучение
+            <ArrowRight className="size-5" />
+          </Link>
+        </Button>
       </div>
 
       {/* Основная статистика */}
@@ -102,8 +113,8 @@ export function DashboardContent({ profile, stats, achievements }: DashboardCont
               </div>
               <Progress value={levelProgress.progress} className="h-2" />
               <p className="text-xs text-muted-foreground">
-                Осталось {levelProgress.xpNeededForNext - levelProgress.xpInCurrentLevel} XP до уровня{" "}
-                {stats.currentLevel + 1}
+                Осталось {levelProgress.xpNeededForNext - levelProgress.xpInCurrentLevel} XP до
+                уровня {stats.currentLevel + 1}
               </p>
             </div>
           </CardContent>

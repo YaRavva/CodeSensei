@@ -176,19 +176,20 @@ export function ModuleTasksManager({
   }
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h3 className="text-lg font-semibold">Задания модуля</h3>
-        <p className="text-sm text-muted-foreground">Всего заданий: {tasks.length}</p>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-xl font-bold tracking-tight">Задания модуля</h3>
+          <p className="text-sm text-muted-foreground">Всего заданий в модуле: {tasks.length}</p>
+        </div>
       </div>
 
       {tasks.length === 0 ? (
-        <Card>
+        <Card className="border border-dashed border-border/80 bg-card/40 backdrop-blur-sm rounded-2xl">
           <CardContent className="pt-6">
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">
-                В этом модуле пока нет заданий. Используйте вкладку "Генерация заданий ИИ" для
-                создания заданий.
+            <div className="text-center py-12">
+              <p className="text-muted-foreground text-sm max-w-sm mx-auto">
+                В этом модуле пока нет заданий. Создайте первое задание вручную или сгенерируйте с помощью ИИ.
               </p>
             </div>
           </CardContent>
@@ -203,20 +204,18 @@ export function ModuleTasksManager({
         >
           {tasks.map((task, index) => (
             <AccordionItem key={task.id} value={task.id} className="border-none">
-              <Card className="hover:shadow-md transition-shadow">
+              <Card className="group relative overflow-hidden border border-border/60 bg-card/60 backdrop-blur-sm transition-all duration-300 hover:border-primary/50 hover:shadow-lg rounded-2xl">
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3 mb-2">
-                        <CardTitle className="text-base font-semibold">
+                      <div className="flex flex-wrap items-center gap-2.5 mb-2">
+                        <CardTitle className="text-base font-semibold tracking-tight">
                           {index + 1}. {task.title}
                         </CardTitle>
                         {getDifficultyBadge(task.difficulty)}
-                        <Badge variant="secondary" className="gap-1">
-                          +
-                          {task.difficulty === "easy" ? 10 : task.difficulty === "medium" ? 20 : 30}{" "}
-                          XP
-                        </Badge>
+                        <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary border border-primary/20">
+                          +{task.xp_reward} XP
+                        </span>
                       </div>
                       {task.description && (
                         <p className="text-sm text-muted-foreground line-clamp-2">
@@ -228,9 +227,9 @@ export function ModuleTasksManager({
                   </div>
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <span>Порядок: {task.order_index}</span>
+                  <div className="flex items-center justify-between border-t border-border/40 pt-3">
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground font-medium">
+                      <span>Порядок: #{task.order_index}</span>
                       <span>•</span>
                       <span>
                         Тестов: {Array.isArray(task.test_cases) ? task.test_cases.length : 0}
@@ -241,7 +240,7 @@ export function ModuleTasksManager({
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="gap-2"
+                        className="gap-1.5 rounded-xl transition-transform duration-200 active:scale-[0.98]"
                         onClick={() =>
                           setAccordionValue(accordionValue === task.id ? undefined : task.id)
                         }
@@ -251,10 +250,10 @@ export function ModuleTasksManager({
                       </Button>
                       <Button
                         type="button"
-                        variant="outline"
+                        variant="destructive"
                         size="sm"
+                        className="gap-1.5 rounded-xl transition-transform duration-200 active:scale-[0.98]"
                         onClick={() => handleDelete(task.id, task.title)}
-                        className="gap-2 text-destructive hover:text-destructive"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                         Удалить
@@ -263,11 +262,12 @@ export function ModuleTasksManager({
                   </div>
                 </CardContent>
                 <AccordionContent className="px-6 pb-6">
-                  <div className="pt-4 border-t">
+                  <div className="pt-4 border-t border-border/40">
                     <TaskForm
                       moduleId={moduleId}
                       taskId={task.id}
                       onSuccess={async () => {
+                        setAccordionValue(undefined);
                         setReloadTrigger((prev) => prev + 1);
                       }}
                       onCancel={() => {}}

@@ -56,51 +56,33 @@ export async function runTestCase(
   const startTime = Date.now();
 
   try {
-    // Извлекаем имя функции из кода пользователя
-    // Ищем определение функции (например, def function_name(...))
+    // Проверяем, есть ли определение функции в коде пользователя
     const functionMatch = userCode.match(/def\s+(\w+)\s*\(/);
-    if (!functionMatch) {
-      return {
-        testCaseId: testCase.id,
-        passed: false,
-        error:
-          "Не найдено определение функции. Убедитесь, что функция определена как def function_name(...)",
-      };
-    }
+    
+    let testCode = "";
 
-    const functionName = functionMatch[1];
-
-    // Создаем тестовый код
-    const testCode = `
+    if (functionMatch) {
+      const functionName = functionMatch[1];
+      testCode = `
 ${userCode}
 
-# Функция сравнения значений
 import json
 def _test_compare(actual, expected):
-    """Сравнивает два значения с учетом разных типов"""
     try:
-        # Для чисел используем приблизительное сравнение для float
         if isinstance(actual, (int, float)) and isinstance(expected, (int, float)):
             if isinstance(actual, float) or isinstance(expected, float):
                 return abs(actual - expected) < 0.0001
             return actual == expected
-        
-        # Для строк сравниваем с учетом пробелов
         if isinstance(actual, str) and isinstance(expected, str):
             return actual.strip() == expected.strip()
-        
-        # Для списков и словарей используем JSON сравнение
         if isinstance(actual, (list, dict)) or isinstance(expected, (list, dict)):
             actual_json = json.dumps(actual, sort_keys=True, ensure_ascii=False)
             expected_json = json.dumps(expected, sort_keys=True, ensure_ascii=False)
             return actual_json == expected_json
-        
-        # Для остальных случаев - прямое сравнение
         return actual == expected
     except Exception:
         return False
 
-# Выполняем тест
 try:
     _test_result = ${functionName}(${testCase.input ? inputToPythonArgs(testCase.input) : ""})
     _test_expected = ${valueToPython(testCase.expected_output)}
@@ -111,6 +93,54 @@ except Exception as e:
     _test_passed = False
     _test_error = str(e)
 `;
+    } else {
+      const expectedOutputPy = valueToPython(testCase.expected_output);
+      testCode = `
+${userCode}
+
+import json
+def _test_compare(actual, expected):
+    try:
+        if isinstance(actual, (int, float)) and isinstance(expected, (int, float)):
+            if isinstance(actual, float) or isinstance(expected, float):
+                return abs(actual - expected) < 0.0001
+            return actual == expected
+        if isinstance(actual, str) and isinstance(expected, str):
+            return actual.strip() == expected.strip()
+        if isinstance(actual, (list, dict)) or isinstance(expected, (list, dict)):
+            actual_json = json.dumps(actual, sort_keys=True, ensure_ascii=False)
+            expected_json = json.dumps(expected, sort_keys=True, ensure_ascii=False)
+            return actual_json == expected_json
+        return actual == expected
+    except Exception:
+        return False
+
+try:
+    _test_expected = ${expectedOutputPy}
+    _test_passed = True
+    _test_result = {}
+    
+    if isinstance(_test_expected, dict):
+        for _k, _v in _test_expected.items():
+            if _k not in globals():
+                raise NameError(f"Переменная '{_k}' не найдена в вашем коде.")
+            _actual_val = globals()[_k]
+            _test_result[_k] = _actual_val
+            if not _test_compare(_actual_val, _v):
+                _test_passed = False
+    else:
+        _target_var = 'result' if 'result' in globals() else ('output' if 'output' in globals() else list(globals().keys())[-1])
+        _actual_val = globals().get(_target_var)
+        _test_result = _actual_val
+        _test_passed = _test_compare(_actual_val, _test_expected)
+
+    _test_error = None
+except Exception as e:
+    _test_result = None
+    _test_passed = False
+    _test_error = str(e)
+`;
+    }
 
     // Выполняем тест
     await pyodide.runPythonAsync(testCode);

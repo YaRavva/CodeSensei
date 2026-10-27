@@ -126,31 +126,40 @@ export function ModulesList({ initialModules }: ModulesListProps) {
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
       {modules.map((module) => (
-        <Card key={module.id} className="flex h-full flex-col">
-          <CardHeader>
-            <div className="flex items-start justify-between">
-              <div>
-                <CardTitle>{module.title}</CardTitle>
-                <CardDescription>{module.topic}</CardDescription>
+        <Card key={module.id} className="group relative flex h-full flex-col overflow-hidden border border-border/60 bg-card/60 backdrop-blur-sm transition-all duration-300 hover:border-primary/50 hover:shadow-lg">
+          <CardHeader className="pb-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="space-y-1">
+                <CardTitle className="text-lg font-semibold tracking-tight text-foreground transition-colors group-hover:text-primary">
+                  {module.title}
+                </CardTitle>
+                <CardDescription className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                  Тема: {module.topic}
+                </CardDescription>
               </div>
               <div
-                className={badgeVariants({
-                  variant: module.is_published ? "default" : "secondary",
-                })}
+                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                  module.is_published
+                    ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
+                    : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                }`}
               >
                 {module.is_published ? "Опубликован" : "Черновик"}
               </div>
             </div>
           </CardHeader>
-          <CardContent className="flex flex-1 flex-col justify-between space-y-4">
-            <div className="text-sm text-muted-foreground">
-              <p>Уровень сложности: {module.level}</p>
-              <p>Порядок: {module.order_index}</p>
+          <CardContent className="flex flex-1 flex-col justify-between space-y-4 pt-0">
+            <p className="text-sm text-muted-foreground line-clamp-2">
+              {module.description || "Описание модуля отсутствует."}
+            </p>
+            <div className="flex items-center justify-between text-xs text-muted-foreground border-t border-border/40 pt-3">
+              <span>Сложность: Уровень {module.level}</span>
+              <span>Порядок: #{module.order_index}</span>
             </div>
-            <div className="mt-auto flex gap-2">
-              <Button variant="outline" size="sm" asChild>
+            <div className="flex gap-2 pt-2">
+              <Button variant="outline" size="sm" asChild className="flex-1 transition-transform duration-200 active:scale-[0.98]">
                 <Link href={`/admin/modules/${module.id}/edit`}>Редактировать</Link>
               </Button>
               <Button
@@ -158,6 +167,7 @@ export function ModulesList({ initialModules }: ModulesListProps) {
                 variant="destructive"
                 size="sm"
                 onClick={() => requestDelete(module.id, module.title)}
+                className="transition-transform duration-200 active:scale-[0.98]"
               >
                 Удалить
               </Button>
@@ -166,27 +176,27 @@ export function ModulesList({ initialModules }: ModulesListProps) {
         </Card>
       ))}
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md rounded-2xl border-border/80 bg-card/95 backdrop-blur-xl">
           <DialogHeader>
             <div className="flex items-start gap-3">
-              <div className="mt-0.5 rounded-full bg-destructive/10 p-2 text-destructive">
+              <div className="mt-0.5 rounded-full bg-destructive/10 p-2.5 text-destructive">
                 <AlertTriangle className="h-5 w-5" />
               </div>
               <div className="space-y-1">
-                <DialogTitle>Удалить модуль?</DialogTitle>
-                <DialogDescription>
+                <DialogTitle className="text-lg font-semibold">Удалить модуль?</DialogTitle>
+                <DialogDescription className="text-sm text-muted-foreground">
                   Вы действительно хотите удалить «
                   <span className="font-medium text-foreground">{deletingTitle}</span>»? Это
-                  действие нельзя отменить.
+                  действие нельзя отменить, все связанные задания будут удалены.
                 </DialogDescription>
               </div>
             </div>
           </DialogHeader>
-          <DialogFooter className="sm:justify-end">
-            <Button type="button" variant="outline" onClick={() => setConfirmOpen(false)}>
+          <DialogFooter className="sm:justify-end gap-2 pt-2">
+            <Button type="button" variant="outline" onClick={() => setConfirmOpen(false)} className="rounded-xl">
               Отмена
             </Button>
-            <Button type="button" variant="destructive" onClick={handleDeleteConfirmed}>
+            <Button type="button" variant="destructive" onClick={handleDeleteConfirmed} className="rounded-xl">
               Удалить
             </Button>
           </DialogFooter>

@@ -91,13 +91,13 @@ export function ProfileContent({ initialProfile }: ProfileContentProps) {
         <Card>
           <CardHeader>
             <CardTitle>Профиль</CardTitle>
-            <CardDescription>Управление вашим профилем</CardDescription>
+            <CardDescription>Управление вашим аккаунтом</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="flex items-center gap-4">
-              <Avatar className="h-20 w-20">
-                <AvatarImage src={currentProfile.avatar_url ?? undefined} />
-                <AvatarFallback className="text-3xl font-semibold">
+            <div className="flex items-center gap-4 rounded-2xl border bg-muted/30 p-4">
+              <Avatar className="h-16 w-16 rounded-full shrink-0 ring-2 ring-primary/20">
+                <AvatarImage src={currentProfile.avatar_url ?? undefined} className="rounded-full object-cover" />
+                <AvatarFallback className="rounded-full text-2xl font-semibold bg-primary/10 text-primary">
                   {(() => {
                     if (currentProfile.display_name) {
                       const trimmed = String(currentProfile.display_name).trim();
@@ -118,22 +118,29 @@ export function ProfileContent({ initialProfile }: ProfileContentProps) {
                   })()}
                 </AvatarFallback>
               </Avatar>
-              <div>
-                <h2 className="text-2xl font-bold">
+              <div className="min-w-0 flex-1">
+                <h2 className="text-lg font-bold truncate">
                   {currentProfile.display_name || currentProfile.email}
                 </h2>
-                <Badge variant="secondary">Уровень {currentLevel}</Badge>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {currentProfile.total_xp ?? 0} XP
-                </p>
+                <div className="flex flex-wrap items-center gap-2 mt-1">
+                  <Badge variant="secondary" className="whitespace-nowrap">Уровень {currentLevel}</Badge>
+                  <span className="text-xs font-semibold text-primary">{currentProfile.total_xp ?? 0} XP</span>
+                </div>
               </div>
             </div>
 
             <form onSubmit={handleUpdate} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" value={currentProfile.email ?? ""} disabled />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input id="email" type="email" value={currentProfile.email ?? ""} disabled className="bg-muted/50" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Роль</Label>
+                  <Input value={currentProfile.role} disabled className="bg-muted/50" />
+                </div>
               </div>
+
               <div className="space-y-2">
                 <Label htmlFor="displayName">Полное имя</Label>
                 <Input
@@ -159,7 +166,7 @@ export function ProfileContent({ initialProfile }: ProfileContentProps) {
                   aria-describedby={nameError ? "name-error" : undefined}
                 />
                 {nameError && (
-                  <p id="name-error" className="text-sm text-destructive">
+                  <p id="name-error" className="text-xs text-destructive">
                     {nameError}
                   </p>
                 )}
@@ -167,11 +174,8 @@ export function ProfileContent({ initialProfile }: ProfileContentProps) {
                   Укажите минимум 2 слова (например: Иван Петров)
                 </p>
               </div>
-              <div className="space-y-2">
-                <Label>Роль</Label>
-                <Input value={currentProfile.role} disabled />
-              </div>
-              <Button type="submit" disabled={loading}>
+
+              <Button type="submit" disabled={loading} className="w-full">
                 {loading ? "Сохранение..." : "Сохранить изменения"}
               </Button>
             </form>
