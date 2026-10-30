@@ -1,9 +1,10 @@
 "use client";
 
-import { CheckCircle2, Clock, Gauge, ShieldCheck } from "lucide-react";
+import { CheckCircle2, Clock, Database, Gauge } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { OAuthButtons } from "@/components/oauth-buttons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -93,7 +94,7 @@ export default function RegisterPage() {
                   <div className="flex flex-col items-center gap-2 text-center">
                     <h1 className="text-2xl font-bold">Создать аккаунт</h1>
                     <p className="text-muted-foreground text-balance">
-                      Абсолютно бесплатно — начните заниматься без карты и скрытых платежей
+                      Регистрация нужна только для хранения вашего прогресса
                     </p>
                   </div>
 
@@ -174,6 +175,8 @@ export default function RegisterPage() {
                     </Button>
                   </div>
 
+                  <OAuthButtons disabled={loading} />
+
                   <p className="text-center text-sm text-muted-foreground">
                     Уже есть аккаунт?{" "}
                     <Link href="/login" className="text-primary hover:underline font-medium">
@@ -231,10 +234,10 @@ export default function RegisterPage() {
                     </p>
                   </div>
                   <div className="flex items-start gap-3">
-                    <ShieldCheck className="mt-0.5 size-5 shrink-0 text-primary" />
+                    <Database className="mt-0.5 size-5 shrink-0 text-primary" />
                     <p className="text-sm text-muted-foreground">
-                      <span className="font-semibold text-foreground">Абсолютно бесплатно</span> —
-                      без карты и скрытых платежей
+                      <span className="font-semibold text-foreground">Хранение прогресса</span> —
+                      регистрация нужна только для хранения вашего прогресса
                     </p>
                   </div>
                 </div>
