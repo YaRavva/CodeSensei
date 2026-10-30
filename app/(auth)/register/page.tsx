@@ -4,6 +4,7 @@ import { CheckCircle2, Clock, Database, Gauge } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { KatanaLogo } from "@/components/brand-logo";
 import { OAuthButtons } from "@/components/oauth-buttons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -84,7 +85,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="bg-background flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center p-4 md:p-6">
+    <div className="bg-background flex min-h-[calc(100dvh-8rem)] flex-col items-center justify-center p-4 md:p-6">
       <div className="w-full max-w-sm md:max-w-4xl">
         <div className="flex flex-col gap-4">
           <Card className="overflow-hidden p-0">
@@ -186,28 +187,10 @@ export default function RegisterPage() {
                 </div>
               </form>
 
-              <div className="relative hidden flex-col items-center justify-center overflow-hidden bg-muted p-8 md:flex">
-                <div className="flex-1 flex items-center justify-center w-full py-4">
-                  <div
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      maxHeight: "220px",
-                      maxWidth: "220px",
-                      maskImage: "url(/CodeSensei.svg)",
-                      maskSize: "contain",
-                      maskRepeat: "no-repeat",
-                      maskPosition: "center",
-                      WebkitMaskImage: "url(/CodeSensei.svg)",
-                      WebkitMaskSize: "contain",
-                      WebkitMaskRepeat: "no-repeat",
-                      WebkitMaskPosition: "center",
-                      backgroundColor: "var(--primary)",
-                    }}
-                  />
-                </div>
+              <div className="relative hidden min-h-0 flex-col items-center overflow-hidden bg-muted p-8 md:flex">
+                <KatanaLogo />
 
-                <div className="w-full space-y-5 mt-4">
+                <div className="mt-4 w-full space-y-5">
                   <div className="flex items-start gap-3">
                     <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-primary" />
                     <p className="text-sm text-muted-foreground">
