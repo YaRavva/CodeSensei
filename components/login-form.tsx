@@ -141,11 +141,11 @@ export function LoginForm() {
             </div>
           </form>
 
-          <div className="relative hidden flex-col justify-between overflow-hidden bg-muted p-6 md:flex">
-            <div className="flex items-center justify-center pt-2">
+          <div className="relative hidden flex-col justify-between overflow-hidden bg-muted p-8 md:flex">
+            <div className="flex items-center justify-center pt-6">
               <div
                 style={{
-                  transform: "scale(1.8)",
+                  transform: "scale(2.2)",
                   transformOrigin: "center",
                   maskImage: "url(/CodeSensei.svg)",
                   maskSize: "contain",
@@ -156,15 +156,15 @@ export function LoginForm() {
                   WebkitMaskRepeat: "no-repeat",
                   WebkitMaskPosition: "center",
                   backgroundColor: "var(--primary)",
-                  width: "140px",
-                  height: "140px",
-                  minWidth: "140px",
-                  minHeight: "140px",
+                  width: "192px",
+                  height: "192px",
+                  minWidth: "192px",
+                  minHeight: "192px",
                 }}
               />
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-5">
               <div className="flex items-start gap-3">
                 <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-primary" />
                 <p className="text-sm text-muted-foreground">
