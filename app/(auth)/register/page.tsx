@@ -84,27 +84,27 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="bg-background flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center p-6 md:p-10">
+    <div className="bg-background flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center p-4 md:p-6">
       <div className="w-full max-w-sm md:max-w-4xl">
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-4">
           <Card className="overflow-hidden p-0">
             <CardContent className="grid p-0 md:grid-cols-2">
-              <form className="p-6 md:p-8" onSubmit={handleRegister}>
-                <div className="flex flex-col gap-6">
-                  <div className="flex flex-col items-center gap-2 text-center">
+              <form className="p-6" onSubmit={handleRegister}>
+                <div className="flex flex-col gap-4">
+                  <div className="flex flex-col items-center gap-1.5 text-center">
                     <h1 className="text-2xl font-bold">Создать аккаунт</h1>
-                    <p className="text-muted-foreground text-balance">
+                    <p className="text-muted-foreground text-balance text-sm">
                       Регистрация нужна только для хранения вашего прогресса
                     </p>
                   </div>
 
-                  <div className="space-y-4">
-                    <div className="space-y-2">
+                  <div className="space-y-3">
+                    <div className="space-y-1.5">
                       <div className="flex items-center">
                         <Label htmlFor="email">Email</Label>
                         <Link
                           href="/forgot-password"
-                          className="ml-auto text-sm text-muted-foreground underline-offset-2 hover:underline"
+                          className="ml-auto text-xs text-muted-foreground underline-offset-2 hover:underline"
                         >
                           Забыли пароль?
                         </Link>
@@ -120,7 +120,7 @@ export default function RegisterPage() {
                       />
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       <Label htmlFor="password">Пароль</Label>
                       <Input
                         id="password"
@@ -134,7 +134,7 @@ export default function RegisterPage() {
                       />
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       <Label htmlFor="displayName">Полное имя (необязательно)</Label>
                       <Input
                         id="displayName"
@@ -161,11 +161,11 @@ export default function RegisterPage() {
                         aria-describedby={nameError ? "name-error" : undefined}
                       />
                       {nameError && (
-                        <p id="name-error" className="text-sm text-destructive">
+                        <p id="name-error" className="text-xs text-destructive">
                           {nameError}
                         </p>
                       )}
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-[11px] text-muted-foreground">
                         Укажите минимум 2 слова (например: Иван Петров)
                       </p>
                     </div>
@@ -177,7 +177,7 @@ export default function RegisterPage() {
 
                   <OAuthButtons disabled={loading} />
 
-                  <p className="text-center text-sm text-muted-foreground">
+                  <p className="text-center text-xs text-muted-foreground">
                     Уже есть аккаунт?{" "}
                     <Link href="/login" className="text-primary hover:underline font-medium">
                       Войти
@@ -186,11 +186,11 @@ export default function RegisterPage() {
                 </div>
               </form>
 
-              <div className="relative hidden flex-col justify-between overflow-hidden bg-muted p-8 md:flex">
-                <div className="flex items-center justify-center pt-6">
+              <div className="relative hidden flex-col justify-between overflow-hidden bg-muted p-6 md:flex">
+                <div className="flex items-center justify-center pt-2">
                   <div
                     style={{
-                      transform: "scale(2.2)",
+                      transform: "scale(1.8)",
                       transformOrigin: "center",
                       maskImage: "url(/CodeSensei.svg)",
                       maskSize: "contain",
@@ -201,15 +201,15 @@ export default function RegisterPage() {
                       WebkitMaskRepeat: "no-repeat",
                       WebkitMaskPosition: "center",
                       backgroundColor: "var(--primary)",
-                      width: "192px",
-                      height: "192px",
-                      minWidth: "192px",
-                      minHeight: "192px",
+                      width: "140px",
+                      height: "140px",
+                      minWidth: "140px",
+                      minHeight: "140px",
                     }}
                   />
                 </div>
 
-                <div className="space-y-5">
+                <div className="space-y-3">
                   <div className="flex items-start gap-3">
                     <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-primary" />
                     <p className="text-sm text-muted-foreground">
