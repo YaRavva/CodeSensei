@@ -12,7 +12,7 @@ export default async function LoginPage() {
   }
 
   return (
-    <div className="bg-background flex min-h-[calc(100vh-4rem)] flex-col items-center justify-center p-6 md:p-10">
+    <div className="bg-background flex min-h-[calc(100dvh-8rem)] flex-col items-center justify-center p-4 md:p-6">
       <div className="w-full max-w-sm md:max-w-4xl">
         <LoginForm />
       </div>

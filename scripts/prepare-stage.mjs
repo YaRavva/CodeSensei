@@ -26,7 +26,8 @@ if (fs.existsSync(stage)) {
 }
 fs.mkdirSync(stage, { recursive: true });
 
-const dirs = ['app', 'components', 'hooks', 'lib', 'types', 'public', 'node_modules', '.next'];
+// EXCLUDE node_modules and .next per skill v1.2.0 (clean source staging ~220 KB)
+const dirs = ['app', 'components', 'hooks', 'lib', 'types', 'public'];
 for (const d of dirs) {
   console.log(`Copying dir: ${d}`);
   copyRecursiveSync(path.join(repo, d), path.join(stage, d));
@@ -60,4 +61,4 @@ for (const f of files) {
   }
 }
 
-console.log('Staging preparation with node_modules completed successfully.');
+console.log('Clean staging preparation completed successfully (node_modules and .next excluded).');
