@@ -2,27 +2,27 @@
 id: SPEC-landing-and-auth-redesign
 type: architecture-design
 status: active
-title: Landing Page and Auth Redesign Specification
+title: Спецификация редизайна лендинга и авторизации
 ---
 
-# Landing Page and Auth Redesign & Platform Structure Specification
+# Спецификация редизайна лендинга, авторизации и структуры платформы
 
-## Summary
+## Резюме
 
-This specification records the architectural and design decisions established during our work sessions regarding:
-1. **Authentication UI & Messaging**: Integration of OAuth providers (Google and GitHub) on both login and registration screens, replacing free-tier claims with clear progress storage messaging (`"Хранение прогресса — регистрация нужна только для хранения вашего прогресса"`), and aligning logo dimensions, styling, and sidebar feature list spacing.
-2. **Footer Optimization**: Minimization of footer padding and spacing to ensure clean layout structure across all pages.
-3. **Responsive Auth Layout**: Compact spacing and padding ensuring login and registration pages fit comfortably on a single viewport without vertical scrolling.
-4. **Curriculum Architecture (Modules & Tasks)**:
-   - Splitting the "Строки" module into **Строки (Базовый)** and **Строки (Углубленный)** (with F-strings).
-   - Converting all non-function tasks across all modules (except dedicated function, recursion, and class modules) to linear/procedural Python code without `def` functions.
-   - Introducing unique technical identifiers for module topics (`topic`).
-   - Creating two new advanced hard-level modules: **«Генераторы списков и словари (Углубленный)»** and **«Лямбда-функции и встроенные алгоритмы (Углубленный)»**.
-   - Standardizing and enriching module theory descriptions to meet reference Markdown formatting standards.
-5. **Landing Page Design Standards**: Adherence to the `landing-page-design` skill guidelines for typography, spacing, conversion clarity, and visual hierarchy.
+В данной спецификации зафиксированы архитектурные решения и проектные стандарты, принятые в ходе наших рабочих сессий:
+1. **Интерфейс и тексты авторизации**: Интеграция OAuth-провайдеров (Google и GitHub) на экранах входа и регистрации, замена утверждений о бесплатном доступе на акцент о сохранении прогресса (`"Хранение прогресса — регистрация нужна только для хранения вашего прогресса"`), а также выравнивание размеров логотипа, стилей и отступов списка преимуществ в сайдбаре.
+2. **Оптимизация футера**: Минимизация внутренних отступов и интервалов футера для поддержания аккуратной верстки на всех страницах.
+3. **Компактная адаптивная верстка авторизации**: Компактные отступы, обеспечивающие отображение страниц входа и регистрации целиком на одном экране без вертикального скролла.
+4. **Архитектура учебного курса (модули и задачи)**:
+   - Разделение модуля «Строки» на **Строки (Базовый)** и **Строки (Углубленный)** (с поддержкой F-строк).
+   - Перевод всех задач в не-функциональных модулях (за исключением специализированных модулей по функциям, рекурсии и классам) в линейный процедурный стиль без использования функций `def`.
+   - Внедрение уникальных технических идентификаторов для тем модулей (`topic`).
+   - Создание двух новых углубленных модулей повышенной сложности (`hard`): **«Генераторы списков и словари (Углубленный)»** и **«Лямбда-функции и встроенные алгоритмы (Углубленный)»**.
+   - Стандартизация и обогащение теоретических описаний модулей в соответствии с эталонными стандартами разметки Markdown.
+5. **Стандарты дизайна лендингов**: Соблюдение рекомендаций навыка `landing-page-design` в отношении типографики, отступов, конверсионной ясности и визуальной иерархии.
 
-## Requirements & Invariants
+## Требования и инварианты
 
-- **Auth Clarity**: Registration is explicitly positioned around progress tracking and achievement storage rather than pricing/billing.
-- **Code Execution Parity**: Non-function tasks operate correctly in the Pyodide test runner via global variable injection and `result` variable evaluation.
-- **Spec Ground Truth**: All architectural changes and module/task reorganizations are documented in the spec graph.
+- **Ясность назначения аккаунта**: Регистрация позиционируется исключительно как средство сохранения учебного прогресса и достижений, а не как платная подписка.
+- **Корректность выполнения кода**: Не-функциональные задачи корректно обрабатываются тест-раннером Pyodide через инъекцию глобальных переменных и оценку переменной `result`.
+- **Спецификации как источник правды**: Все архитектурные изменения и реорганизации учебных модулей и задач задокументированы в графе спецификаций.
