@@ -910,7 +910,7 @@ export function ModuleUnifiedPage({
                               );
                             },
                             p: ({ children }) => (
-                              <p className="mb-4 last:mb-0 whitespace-pre-line">{children}</p>
+                              <p className="mb-4 last:mb-0">{children}</p>
                             ),
                           }}
                         >
