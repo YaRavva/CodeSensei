@@ -882,6 +882,39 @@ export function ModuleUnifiedPage({
                         <ReactMarkdown
                           remarkPlugins={[remarkGfm, remarkBreaks]}
                           components={{
+                            h1: ({ children }) => (
+                              <h1 className="text-2xl font-bold tracking-tight mb-4 mt-6 text-foreground">{children}</h1>
+                            ),
+                            h2: ({ children }) => (
+                              <h2 className="text-xl font-bold tracking-tight mb-3 mt-5 text-foreground">{children}</h2>
+                            ),
+                            h3: ({ children }) => (
+                              <h3 className="text-lg font-semibold tracking-tight mb-2 mt-4 text-foreground">{children}</h3>
+                            ),
+                            h4: ({ children }) => (
+                              <h4 className="text-base font-semibold mb-2 mt-3 text-foreground">{children}</h4>
+                            ),
+                            p: ({ children }) => (
+                              <p className="mb-4 last:mb-0 text-muted-foreground leading-relaxed">{children}</p>
+                            ),
+                            ul: ({ children }) => (
+                              <ul className="list-disc pl-6 mb-4 space-y-1 text-muted-foreground">{children}</ul>
+                            ),
+                            ol: ({ children }) => (
+                              <ol className="list-decimal pl-6 mb-4 space-y-1 text-muted-foreground">{children}</ol>
+                            ),
+                            li: ({ children }) => (
+                              <li className="leading-relaxed">{children}</li>
+                            ),
+                            hr: () => (
+                              <hr className="my-6 border-border" />
+                            ),
+                            blockquote: ({ children }) => (
+                              <blockquote className="border-l-4 border-primary pl-4 italic my-4 text-muted-foreground">{children}</blockquote>
+                            ),
+                            strong: ({ children }) => (
+                              <strong className="font-semibold text-foreground">{children}</strong>
+                            ),
                             code(props) {
                               const { node, className, children, ...rest } = props as any;
                               const inline = !className || !className.includes("language-");
@@ -909,9 +942,6 @@ export function ModuleUnifiedPage({
                                 </code>
                               );
                             },
-                            p: ({ children }) => (
-                              <p className="mb-4 last:mb-0">{children}</p>
-                            ),
                           }}
                         >
                           {module.description}
