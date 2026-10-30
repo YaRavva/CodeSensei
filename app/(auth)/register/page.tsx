@@ -186,12 +186,14 @@ export default function RegisterPage() {
                 </div>
               </form>
 
-              <div className="relative hidden flex-col justify-between overflow-hidden bg-muted p-8 md:flex">
-                <div className="flex items-center justify-center pt-6">
+              <div className="relative hidden flex-col items-center justify-center overflow-hidden bg-muted p-8 md:flex">
+                <div className="flex-1 flex items-center justify-center w-full py-4">
                   <div
                     style={{
-                      transform: "scale(2.2)",
-                      transformOrigin: "center",
+                      width: "100%",
+                      height: "100%",
+                      maxHeight: "220px",
+                      maxWidth: "220px",
                       maskImage: "url(/CodeSensei.svg)",
                       maskSize: "contain",
                       maskRepeat: "no-repeat",
@@ -201,15 +203,11 @@ export default function RegisterPage() {
                       WebkitMaskRepeat: "no-repeat",
                       WebkitMaskPosition: "center",
                       backgroundColor: "var(--primary)",
-                      width: "192px",
-                      height: "192px",
-                      minWidth: "192px",
-                      minHeight: "192px",
                     }}
                   />
                 </div>
 
-                <div className="space-y-5">
+                <div className="w-full space-y-5 mt-4">
                   <div className="flex items-start gap-3">
                     <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-primary" />
                     <p className="text-sm text-muted-foreground">
