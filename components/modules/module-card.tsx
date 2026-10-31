@@ -33,7 +33,7 @@ const statusConfig: Record<ModuleStatus, { label: string; icon: typeof Clock; to
   completed: {
     label: "Завершен",
     icon: CheckCircle2,
-    tone: "border-emerald-500/60 bg-emerald-500/10 text-emerald-400",
+    tone: "border-emerald-600/30 bg-emerald-500/10 text-emerald-700 dark:border-emerald-500/30 dark:text-emerald-400",
   },
 };
 
@@ -44,10 +44,10 @@ export function ModuleCard({ module, status, tasksCount }: ModuleCardProps) {
 
   return (
     <Card
-      className={`group relative flex h-full flex-col overflow-hidden rounded-2xl border transition-[border-color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-primary/40 ${
+      className={`group relative flex h-full flex-col overflow-hidden rounded-2xl border bg-card/70 transition-[border-color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
         isCompleted
-          ? "border-emerald-500/60 bg-card/70 shadow-[0_18px_40px_-24px_rgba(15,23,42,0.7)]"
-          : "border-border/70 bg-card/70 shadow-[0_16px_40px_-26px_rgba(15,23,42,0.9)]"
+          ? "border-emerald-600/35 hover:border-emerald-600/50 dark:border-emerald-500/25 dark:hover:border-emerald-500/40 shadow-[0_18px_40px_-24px_rgba(15,23,42,0.7)]"
+          : "border-border/70 hover:border-primary/40 shadow-[0_16px_40px_-26px_rgba(15,23,42,0.9)]"
       }`}
     >
       <CardHeader className="relative space-y-4 p-4 sm:p-5 pb-3">

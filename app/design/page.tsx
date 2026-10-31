@@ -183,7 +183,7 @@ export default function DesignSystemPage() {
                 </div>
 
                 <div className="flex items-center justify-between gap-4 pt-3 border-t text-xs text-muted-foreground/90">
-                  <span className="inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-medium whitespace-nowrap shrink-0 border-emerald-500/60 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
+                  <span className="inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-medium whitespace-nowrap shrink-0 border-emerald-600/30 dark:border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
                     <CheckCircle2 className="size-3.5 shrink-0" />
                     <span>Завершен</span>
                   </span>
