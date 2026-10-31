@@ -13,7 +13,7 @@ interface ScrollRevealProps {
 /**
  * Обёртка секции по B7: подъём на 32px и затухание 0 → 100 за 600–800мс
  * на базовой кривой, срабатывает один раз через IntersectionObserver.
- * Уважает prefers-reduced-motion: при нём просто показывает контент.
+ * Уважает prefers-reduced-motion: движение заменяется появлением без сдвига.
  */
 export function ScrollReveal({ children, className, delay = 0 }: ScrollRevealProps) {
   const ref = useRef<HTMLDivElement>(null);
@@ -48,8 +48,9 @@ export function ScrollReveal({ children, className, delay = 0 }: ScrollRevealPro
     <div
       ref={ref}
       className={cn(
-        "motion-reduce:transition-none",
-        revealed ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+        "motion-reduce:translate-y-0 motion-reduce:opacity-100",
+        revealed ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8",
+        className
       )}
       style={{
         transitionProperty: "opacity, transform",

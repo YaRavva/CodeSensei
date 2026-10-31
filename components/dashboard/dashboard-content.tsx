@@ -16,7 +16,7 @@ type UserAchievementView = Achievement & { earned_at: string };
 interface DashboardStats {
   totalXp: number;
   currentLevel: number;
-  completedLessons: number;
+  completedModules: number;
   successfulAttempts: number;
   totalAttempts: number;
   avgExecutionTime: number;
@@ -38,10 +38,10 @@ export function DashboardContent({ profile, stats, achievements }: DashboardCont
         <div>
           <h1 className="mb-2 text-3xl font-bold">Личный кабинет</h1>
           <p className="text-muted-foreground">
-            Добро пожаловать, {profile?.display_name || profile?.email || "Пользователь"}!
+            Добро пожаловать, {profile?.display_name || profile?.email || "пользователь"}
           </p>
         </div>
-        <Button asChild size="lg" className="h-11 px-6 text-base font-semibold">
+        <Button asChild size="lg">
           <Link href="/modules">
             Продолжить обучение
             <ArrowRight className="size-5" />
@@ -87,11 +87,11 @@ export function DashboardContent({ profile, stats, achievements }: DashboardCont
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Завершенных уроков</CardTitle>
+            <CardTitle className="text-sm font-medium">Завершённых модулей</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.completedLessons}</div>
-            <p className="text-xs text-muted-foreground">уроков завершено</p>
+            <div className="text-2xl font-bold">{stats.completedModules}</div>
+            <p className="text-xs text-muted-foreground">модулей завершено</p>
           </CardContent>
         </Card>
       </div>

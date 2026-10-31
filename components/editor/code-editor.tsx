@@ -67,7 +67,7 @@ export function CodeEditor({
           tabSize: 4,
           automaticLayout: true,
           scrollBeyondLastLine: false,
-          fontFamily: "'Ubuntu Mono', monospace",
+          fontFamily: "'Geist Mono', ui-monospace, monospace",
           padding: { top: 12, bottom: 12 },
           suggest: {
             showWords: true,

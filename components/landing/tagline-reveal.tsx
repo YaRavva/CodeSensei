@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 
 const TAGLINE = ["Каждый пройденный модуль", "открывает следующий уровень"];
 
@@ -40,26 +40,26 @@ export function TaglineReveal() {
 
   return (
     <section className="container mx-auto max-w-6xl px-4 py-16 md:py-24">
-      <p
-        ref={containerRef}
-        className="max-w-[680px] text-4xl font-bold leading-tight text-balance md:text-5xl"
-      >
+      <p ref={containerRef} className="max-w-[680px] text-4xl font-bold text-balance md:text-5xl">
         {TAGLINE.map((line, li) => (
-          <span key={li} className="block">
+          <span key={line} className="block">
             {line.split(" ").map((word, wi) => (
-              <span
-                key={`${li}-${wi}`}
-                className="inline-block"
-                style={{
-                  color: active ? "var(--foreground)" : "var(--muted-foreground)",
-                  opacity: active ? 1 : 0.33,
-                  transition:
-                    "color 500ms cubic-bezier(0.22,1,0.36,1), opacity 500ms cubic-bezier(0.22,1,0.36,1)",
-                  transitionDelay: active ? `${wi * 60 + li * 120}ms` : "0ms",
-                }}
-              >
-                {word}&nbsp;
-              </span>
+              <Fragment key={`${line}-${word}`}>
+                <span
+                  className="inline-block"
+                  style={{
+                    color: active ? "var(--foreground)" : "var(--muted-foreground)",
+                    opacity: active ? 1 : 0.33,
+                    transitionProperty: "color, opacity",
+                    transitionTimingFunction: "cubic-bezier(0.22,1,0.36,1)",
+                    transitionDuration: "500ms",
+                    transitionDelay: active ? `${wi * 60 + li * 120}ms` : "0ms",
+                  }}
+                >
+                  {word}
+                </span>
+                {wi < line.split(" ").length - 1 ? " " : null}
+              </Fragment>
             ))}
           </span>
         ))}

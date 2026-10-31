@@ -8,11 +8,11 @@ const faqs = [
   },
   {
     q: "Для какого возраста подходит тренажёр?",
-    a: "Курс рассчитан на школьников 7–9 классов, но формат подходит и начинающим постарше. Уровни сложности регулируются.",
+    a: "Курс рассчитан на школьников 7–9 классов, но формат подходит и начинающим постарше. Уровень сложности видно до старта модуля.",
   },
   {
     q: "Это бесплатно?",
-    a: "Да, абсолютно бесплатно. Занимайтесь в своем темпе, никаких подписок и платных курсов у нас нет.",
+    a: "Да, заниматься можно бесплатно, в своём темпе. Подписок и платных курсов нет.",
   },
   {
     q: "С чего начинается обучение?",
@@ -30,7 +30,7 @@ const faqs = [
 
 export function LandingFaq() {
   return (
-    <section className="container mx-auto max-w-4xl px-4 py-16 md:py-20">
+    <section className="container mx-auto max-w-4xl px-4 py-16 md:py-24">
       <ScrollReveal>
         <div className="mb-12 text-center">
           <h2 className="text-3xl font-bold md:text-4xl">Частые вопросы</h2>
@@ -38,14 +38,17 @@ export function LandingFaq() {
         </div>
       </ScrollReveal>
       <div className="space-y-4">
-        {faqs.map((f, i) => (
-          <ScrollReveal key={f.q} delay={i * 60}>
-            <details className="group rounded-2xl border bg-card p-6">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-left font-semibold [&::-webkit-details-marker]:hidden">
-                {f.q}
-                <ChevronDown className="size-5 shrink-0 transition-transform duration-300 group-open:rotate-180" />
+        {faqs.map((item, index) => (
+          <ScrollReveal key={item.q} delay={index * 60}>
+            <details className="group rounded-2xl border bg-card p-6 transition-colors duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-primary/40">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-md text-left font-semibold transition-colors duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background [&::-webkit-details-marker]:hidden">
+                {item.q}
+                <ChevronDown
+                  className="size-5 shrink-0 transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-open:rotate-180"
+                  aria-hidden="true"
+                />
               </summary>
-              <p className="mt-4 text-muted-foreground">{f.a}</p>
+              <p className="mt-4 text-muted-foreground">{item.a}</p>
             </details>
           </ScrollReveal>
         ))}

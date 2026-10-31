@@ -11,7 +11,7 @@ const steps: Step[] = [
   {
     icon: BookOpen,
     title: "Выберите модуль",
-    body: "Темы внутри — шаг за шагом: сначала простое, потом всё интереснее. Уровень сложности виден заранее.",
+    body: "Темы внутри идут шаг за шагом: сначала простое, потом всё интереснее. Уровень сложности виден заранее.",
   },
   {
     icon: Code2,
@@ -28,7 +28,7 @@ const steps: Step[] = [
 export function LandingHowItWorks() {
   return (
     <section className="border-y bg-muted/30">
-      <div className="container mx-auto max-w-6xl px-4 py-16 md:py-20">
+      <div className="container mx-auto max-w-6xl px-4 py-16 md:py-24">
         <ScrollReveal>
           <div className="mb-12 text-center">
             <h2 className="text-3xl font-bold md:text-4xl">В три шага</h2>
@@ -38,17 +38,19 @@ export function LandingHowItWorks() {
           </div>
         </ScrollReveal>
         <div className="grid gap-6 md:grid-cols-3 md:gap-8">
-          {steps.map((s, i) => (
-            <ScrollReveal key={s.title} delay={i * 100}>
+          {steps.map((step, index) => (
+            <ScrollReveal key={step.title} delay={index * 100}>
               <div className="relative h-full rounded-2xl border bg-card p-6">
                 <div className="mb-4 flex items-center justify-between">
                   <div className="inline-flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-                    <s.icon className="size-6 text-primary" />
+                    <step.icon className="size-6 text-primary" aria-hidden="true" />
                   </div>
-                  <span className="text-sm font-semibold text-muted-foreground">Шаг {i + 1}</span>
+                  <span className="text-sm font-semibold text-muted-foreground">
+                    Шаг {index + 1}
+                  </span>
                 </div>
-                <h3 className="mb-2 text-lg font-semibold">{s.title}</h3>
-                <p className="text-muted-foreground">{s.body}</p>
+                <h3 className="mb-2 text-lg font-semibold">{step.title}</h3>
+                <p className="text-muted-foreground">{step.body}</p>
               </div>
             </ScrollReveal>
           ))}

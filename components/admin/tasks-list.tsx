@@ -4,7 +4,9 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { DifficultyBadge } from "@/components/ui/difficulty-badge";
+import { useToast } from "@/hooks/use-toast";
 import type { Task } from "@/types/db";
 
 interface TasksListProps {
@@ -19,6 +21,9 @@ async function readApiError(response: Response): Promise<string> {
 export function TasksList({ moduleId }: TasksListProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pendingDelete, setPendingDelete] = useState<Task | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const { toast } = useToast();
 
   const loadTasks = useCallback(async () => {
     try {
@@ -43,11 +48,12 @@ export function TasksList({ moduleId }: TasksListProps) {
     loadTasks();
   }, [loadTasks]);
 
-  async function handleDelete(id: string) {
-    if (!confirm("Вы уверены, что хотите удалить это задание?")) return;
+  async function handleDelete() {
+    if (!pendingDelete) return;
+    setDeleting(true);
 
     try {
-      const res = await fetch(`/api/admin/tasks/${id}`, {
+      const res = await fetch(`/api/admin/tasks/${pendingDelete.id}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -57,24 +63,47 @@ export function TasksList({ moduleId }: TasksListProps) {
         throw new Error(await readApiError(res));
       }
 
-      await loadTasks();
+      setTasks((prev) => prev.filter((task) => task.id !== pendingDelete.id));
+      setPendingDelete(null);
+      toast({
+        title: "Задание удалено",
+        description: `«${pendingDelete.title}» больше не входит в модуль`,
+      });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Не удалось удалить задание";
-      alert(`Ошибка: ${message}`);
+      toast({
+        title: "Задание не удалено",
+        description: message,
+        variant: "destructive",
+      });
+    } finally {
+      setDeleting(false);
     }
   }
 
   if (loading) {
-    return <p>Загрузка...</p>;
+    return (
+      <div className="space-y-4">
+        {[0, 1, 2].map((index) => (
+          <div key={index} className="h-32 rounded-lg border bg-muted motion-safe:animate-pulse" />
+        ))}
+      </div>
+    );
   }
 
   if (tasks.length === 0) {
     return (
       <Card>
-        <CardContent className="pt-6">
-          <p className="text-center text-muted-foreground">
-            Задания не найдены. Создайте первое задание!
-          </p>
+        <CardContent className="flex flex-col items-center gap-4 py-12 text-center">
+          <div className="space-y-2">
+            <p className="font-semibold text-foreground">В модуле пока нет заданий</p>
+            <p className="text-sm text-muted-foreground">
+              Добавьте первое задание, чтобы ученики могли начать практику.
+            </p>
+          </div>
+          <Button asChild>
+            <Link href={`/admin/modules/${moduleId}/edit`}>Добавить задание</Link>
+          </Button>
         </CardContent>
       </Card>
     );
@@ -85,10 +114,10 @@ export function TasksList({ moduleId }: TasksListProps) {
       {tasks.map((task) => (
         <Card key={task.id}>
           <CardHeader>
-            <div className="flex items-start justify-between">
+            <div className="flex items-start justify-between gap-4">
               <div>
                 <CardTitle>{task.title}</CardTitle>
-                <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                   <span>Порядок: {task.order_index}</span>
                   <span aria-hidden="true">·</span>
                   <span>XP: {task.xp_reward}</span>
@@ -98,18 +127,30 @@ export function TasksList({ moduleId }: TasksListProps) {
             </div>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{task.description}</p>
+            <p className="mb-4 line-clamp-2 text-sm text-muted-foreground">{task.description}</p>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" asChild>
                 <Link href={`/admin/tasks/${task.id}/edit`}>Редактировать</Link>
               </Button>
-              <Button variant="destructive" size="sm" onClick={() => handleDelete(task.id)}>
+              <Button variant="destructive" size="sm" onClick={() => setPendingDelete(task)}>
                 Удалить
               </Button>
             </div>
           </CardContent>
         </Card>
       ))}
+
+      <ConfirmDialog
+        open={!!pendingDelete}
+        onOpenChange={(open) => {
+          if (!open) setPendingDelete(null);
+        }}
+        title="Удалить задание?"
+        description={`«${pendingDelete?.title ?? ""}» исчезнет из модуля вместе с прогрессом учеников по нему. Действие нельзя отменить.`}
+        confirmLabel="Удалить задание"
+        onConfirm={handleDelete}
+        pending={deleting}
+      />
     </div>
   );
 }

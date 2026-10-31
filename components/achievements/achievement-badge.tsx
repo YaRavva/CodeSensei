@@ -41,7 +41,7 @@ export function AchievementBadge({
 
   return (
     <div
-      className={`group relative overflow-hidden rounded-2xl border p-4 sm:p-5 transition-colors duration-300 ${
+      className={`group relative overflow-hidden rounded-2xl border p-4 sm:p-6 transition-colors duration-300 ${
         isEarned
           ? "border-emerald-500/50 bg-emerald-500/[0.06] shadow-[0_18px_40px_-24px_rgba(15,23,42,0.7)]"
           : "border-border/70 bg-card/70 shadow-[0_16px_40px_-26px_rgba(15,23,42,0.9)]"
@@ -63,7 +63,7 @@ export function AchievementBadge({
             </div>
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <h3 className={`font-semibold leading-tight ${titleSize}`}>{achievement.title}</h3>
+                <h3 className={`font-semibold ${titleSize}`}>{achievement.title}</h3>
                 {isEarned && (
                   <span className="inline-flex items-center rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
                     Открыто
@@ -89,7 +89,7 @@ export function AchievementBadge({
         </div>
 
         <div className="mt-1 flex items-center justify-between text-xs text-muted-foreground">
-          <span className="flex items-center gap-1.5">
+          <span className="flex items-center gap-2">
             <span
               className={`h-1.5 w-1.5 rounded-full ${isEarned ? "bg-emerald-500" : "bg-muted-foreground/40"}`}
             />

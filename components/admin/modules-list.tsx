@@ -113,16 +113,28 @@ export function ModulesList({ initialModules }: ModulesListProps) {
   }
 
   if (loading) {
-    return <p>Загрузка...</p>;
+    return (
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {[0, 1, 2, 3, 4, 5].map((index) => (
+          <div key={index} className="h-56 rounded-2xl border bg-muted motion-safe:animate-pulse" />
+        ))}
+      </div>
+    );
   }
 
   if (modules.length === 0) {
     return (
       <Card>
-        <CardContent className="pt-6">
-          <p className="text-center text-muted-foreground">
-            Модули не найдены. Создайте первый модуль!
-          </p>
+        <CardContent className="flex flex-col items-center gap-4 py-12 text-center">
+          <div className="space-y-2">
+            <p className="font-semibold text-foreground">Модулей пока нет</p>
+            <p className="text-sm text-muted-foreground">
+              Создайте первый модуль, чтобы добавить в него теорию и задания.
+            </p>
+          </div>
+          <Button asChild>
+            <Link href="/admin/modules/new">Создать модуль</Link>
+          </Button>
         </CardContent>
       </Card>
     );
@@ -133,9 +145,9 @@ export function ModulesList({ initialModules }: ModulesListProps) {
       {modules.map((module) => (
         <Card
           key={module.id}
-          className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-border/60 bg-card/60 backdrop-blur-sm transition-all duration-300 hover:border-primary/50 hover:shadow-lg"
+          className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-border/60 bg-card/60 backdrop-blur-sm transition-[border-color,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-primary/50 hover:shadow-lg"
         >
-          <CardHeader className="p-4 sm:p-5 pb-3">
+          <CardHeader className="p-6 pb-3">
             <div className="flex items-start justify-between gap-2">
               <div className="space-y-1">
                 <CardTitle className="text-lg font-semibold tracking-tight text-foreground transition-colors group-hover:text-primary">
@@ -146,7 +158,7 @@ export function ModulesList({ initialModules }: ModulesListProps) {
                 </CardDescription>
               </div>
               <div
-                className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
                   module.is_published
                     ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
                     : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
@@ -156,7 +168,7 @@ export function ModulesList({ initialModules }: ModulesListProps) {
               </div>
             </div>
           </CardHeader>
-          <CardContent className="flex flex-1 flex-col justify-between space-y-4 p-4 sm:p-5 pt-0">
+          <CardContent className="flex flex-1 flex-col justify-between space-y-4 p-6 pt-0">
             <div className="text-sm text-muted-foreground line-clamp-2 prose prose-sm dark:prose-invert max-w-none">
               {module.description ? (
                 <ReactMarkdown
@@ -165,7 +177,7 @@ export function ModulesList({ initialModules }: ModulesListProps) {
                     p: ({ children }) => <span className="inline">{children}</span>,
                     a: ({ children }) => <span className="text-primary underline">{children}</span>,
                     code: ({ children }) => (
-                      <code className="rounded bg-muted px-1 py-0.5 text-xs font-mono">
+                      <code className="rounded bg-muted px-2 py-1 text-xs font-mono">
                         {children}
                       </code>
                     ),
@@ -188,7 +200,7 @@ export function ModulesList({ initialModules }: ModulesListProps) {
                 "Описание модуля отсутствует."
               )}
             </div>
-            <div className="flex items-center justify-between text-xs text-muted-foreground border-t border-border/40 pt-3">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span>Сложность: Уровень {module.level}</span>
               <span>Порядок: #{module.order_index}</span>
             </div>
@@ -197,7 +209,7 @@ export function ModulesList({ initialModules }: ModulesListProps) {
                 variant="outline"
                 size="sm"
                 asChild
-                className="flex-1 transition-transform duration-200 active:scale-[0.98]"
+                className="flex-1 transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.98]"
               >
                 <Link href={`/admin/modules/${module.id}/edit`}>Редактировать</Link>
               </Button>
@@ -206,7 +218,7 @@ export function ModulesList({ initialModules }: ModulesListProps) {
                 variant="destructive"
                 size="sm"
                 onClick={() => requestDelete(module.id, module.title)}
-                className="transition-transform duration-200 active:scale-[0.98]"
+                className="transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.98]"
               >
                 Удалить
               </Button>
@@ -218,7 +230,7 @@ export function ModulesList({ initialModules }: ModulesListProps) {
         <DialogContent className="sm:max-w-md rounded-2xl border-border/80 bg-card/95 backdrop-blur-xl">
           <DialogHeader>
             <div className="flex items-start gap-3">
-              <div className="mt-0.5 rounded-full bg-destructive/10 p-2.5 text-destructive">
+              <div className="mt-0.5 rounded-full bg-destructive/10 p-2 text-destructive">
                 <AlertTriangle className="h-5 w-5" />
               </div>
               <div className="space-y-1">

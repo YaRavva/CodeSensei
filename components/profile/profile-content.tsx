@@ -96,7 +96,11 @@ export function ProfileContent({ initialProfile }: ProfileContentProps) {
           <CardContent className="space-y-6">
             <div className="flex items-center gap-4 rounded-2xl border bg-muted/30 p-4">
               <Avatar className="h-16 w-16 rounded-full shrink-0 ring-2 ring-primary/20">
-                <AvatarImage src={currentProfile.avatar_url ?? undefined} className="rounded-full object-cover" />
+                <AvatarImage
+                  src={currentProfile.avatar_url ?? undefined}
+                  alt={`Аватар: ${currentProfile.display_name ?? "профиль"}`}
+                  className="rounded-full object-cover"
+                />
                 <AvatarFallback className="rounded-full text-2xl font-semibold bg-primary/10 text-primary">
                   {(() => {
                     if (currentProfile.display_name) {
@@ -123,8 +127,12 @@ export function ProfileContent({ initialProfile }: ProfileContentProps) {
                   {currentProfile.display_name || currentProfile.email}
                 </h2>
                 <div className="flex flex-wrap items-center gap-2 mt-1">
-                  <Badge variant="secondary" className="whitespace-nowrap">Уровень {currentLevel}</Badge>
-                  <span className="text-xs font-semibold text-primary">{currentProfile.total_xp ?? 0} XP</span>
+                  <Badge variant="secondary" className="whitespace-nowrap">
+                    Уровень {currentLevel}
+                  </Badge>
+                  <span className="text-xs font-semibold text-primary">
+                    {currentProfile.total_xp ?? 0} XP
+                  </span>
                 </div>
               </div>
             </div>
@@ -133,7 +141,13 @@ export function ProfileContent({ initialProfile }: ProfileContentProps) {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" value={currentProfile.email ?? ""} disabled className="bg-muted/50" />
+                  <Input
+                    id="email"
+                    type="email"
+                    value={currentProfile.email ?? ""}
+                    disabled
+                    className="bg-muted/50"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Роль</Label>

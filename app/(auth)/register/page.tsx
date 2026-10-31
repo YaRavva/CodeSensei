@@ -12,15 +12,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { getNameValidationError, isValidRussianName } from "@/lib/utils/name-validation";
+import { validateEmail, validatePassword } from "@/lib/utils/validation";
 
 interface ErrorResponse {
   error?: string;
 }
 
+const linkClass =
+  "text-primary font-semibold underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm";
+
 export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
   const [nameError, setNameError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -29,19 +35,20 @@ export default function RegisterPage() {
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
 
+    const nextEmailError = validateEmail(email);
+    const nextPasswordError = validatePassword(password);
     const trimmedName = displayName.trim();
-    if (trimmedName && !isValidRussianName(trimmedName)) {
-      const errorMessage = getNameValidationError(trimmedName);
-      setNameError(errorMessage);
-      toast({
-        title: "Ошибка валидации",
-        description: errorMessage,
-        variant: "destructive",
-      });
+    const nextNameError =
+      trimmedName && !isValidRussianName(trimmedName) ? getNameValidationError(trimmedName) : null;
+
+    setEmailError(nextEmailError);
+    setPasswordError(nextPasswordError);
+    setNameError(nextNameError);
+
+    if (nextEmailError || nextPasswordError || nextNameError) {
       return;
     }
 
-    setNameError(null);
     setLoading(true);
 
     try {
@@ -59,15 +66,15 @@ export default function RegisterPage() {
         const data = (await response.json().catch(() => null)) as ErrorResponse | null;
         toast({
           title: "Ошибка регистрации",
-          description: data?.error || "Не удалось зарегистрироваться",
+          description: data?.error || "Не удалось создать аккаунт",
           variant: "destructive",
         });
         return;
       }
 
       toast({
-        title: "Регистрация успешна",
-        description: "Добро пожаловать в CodeSensei!",
+        title: "Аккаунт создан",
+        description: "Прогресс будет сохраняться автоматически",
       });
 
       router.push("/modules");
@@ -76,7 +83,7 @@ export default function RegisterPage() {
       console.error("Unexpected registration error", error);
       toast({
         title: "Неожиданная ошибка",
-        description: "Не удалось зарегистрироваться. Попробуйте снова чуть позже",
+        description: "Не удалось создать аккаунт. Попробуйте ещё раз через минуту",
         variant: "destructive",
       });
     } finally {
@@ -90,22 +97,22 @@ export default function RegisterPage() {
         <div className="flex flex-col gap-4">
           <Card className="overflow-hidden p-0">
             <CardContent className="grid p-0 md:grid-cols-2">
-              <form className="p-6" onSubmit={handleRegister}>
+              <form className="p-6" onSubmit={handleRegister} noValidate>
                 <div className="flex flex-col gap-4">
-                  <div className="flex flex-col items-center gap-1.5 text-center">
+                  <div className="flex flex-col items-center gap-2 text-center">
                     <h1 className="text-2xl font-bold">Создать аккаунт</h1>
-                    <p className="text-muted-foreground text-balance text-sm">
+                    <p className="text-sm text-muted-foreground">
                       Регистрация нужна только для хранения вашего прогресса
                     </p>
                   </div>
 
                   <div className="space-y-3">
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                       <div className="flex items-center">
                         <Label htmlFor="email">Email</Label>
                         <Link
                           href="/forgot-password"
-                          className="ml-auto text-xs text-muted-foreground underline-offset-2 hover:underline"
+                          className="ml-auto rounded-sm text-xs text-muted-foreground underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
                           Забыли пароль?
                         </Link>
@@ -115,27 +122,51 @@ export default function RegisterPage() {
                         type="email"
                         placeholder="your@email.com"
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e) => {
+                          setEmail(e.target.value);
+                          if (emailError) setEmailError(null);
+                        }}
+                        onBlur={() => setEmailError(validateEmail(email))}
                         required
                         disabled={loading}
+                        aria-invalid={!!emailError}
+                        aria-describedby={emailError ? "email-error" : undefined}
+                        className={emailError ? "border-destructive" : ""}
                       />
+                      {emailError && (
+                        <p id="email-error" role="alert" className="text-xs text-destructive">
+                          {emailError}
+                        </p>
+                      )}
                     </div>
 
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                       <Label htmlFor="password">Пароль</Label>
                       <Input
                         id="password"
                         type="password"
                         placeholder="••••••••"
                         value={password}
-                        onChange={(e) => setPassword(e.target.value)}
+                        onChange={(e) => {
+                          setPassword(e.target.value);
+                          if (passwordError) setPasswordError(null);
+                        }}
+                        onBlur={() => setPasswordError(validatePassword(password))}
                         required
                         minLength={8}
                         disabled={loading}
+                        aria-invalid={!!passwordError}
+                        aria-describedby={passwordError ? "password-error" : undefined}
+                        className={passwordError ? "border-destructive" : ""}
                       />
+                      {passwordError && (
+                        <p id="password-error" role="alert" className="text-xs text-destructive">
+                          {passwordError}
+                        </p>
+                      )}
                     </div>
 
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                       <Label htmlFor="displayName">Полное имя (необязательно)</Label>
                       <Input
                         id="displayName"
@@ -162,7 +193,7 @@ export default function RegisterPage() {
                         aria-describedby={nameError ? "name-error" : undefined}
                       />
                       {nameError && (
-                        <p id="name-error" className="text-xs text-destructive">
+                        <p id="name-error" role="alert" className="text-xs text-destructive">
                           {nameError}
                         </p>
                       )}
@@ -180,7 +211,7 @@ export default function RegisterPage() {
 
                   <p className="text-center text-xs text-muted-foreground">
                     Уже есть аккаунт?{" "}
-                    <Link href="/login" className="text-primary hover:underline font-medium">
+                    <Link href="/login" className={linkClass}>
                       Войти
                     </Link>
                   </p>
@@ -190,9 +221,12 @@ export default function RegisterPage() {
               <div className="relative hidden min-h-0 flex-col items-center overflow-hidden bg-muted p-8 md:flex">
                 <KatanaLogo />
 
-                <div className="mt-4 w-full space-y-5">
+                <div className="mt-4 w-full space-y-4">
                   <div className="flex items-start gap-3">
-                    <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-primary" />
+                    <CheckCircle2
+                      className="mt-0.5 size-5 shrink-0 text-primary"
+                      aria-hidden="true"
+                    />
                     <p className="text-sm text-muted-foreground">
                       <span className="font-semibold text-foreground">
                         Настоящий код с первого урока
@@ -201,21 +235,21 @@ export default function RegisterPage() {
                     </p>
                   </div>
                   <div className="flex items-start gap-3">
-                    <Gauge className="mt-0.5 size-5 shrink-0 text-primary" />
+                    <Gauge className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden="true" />
                     <p className="text-sm text-muted-foreground">
                       <span className="font-semibold text-foreground">Мгновенная проверка</span> —
                       решение запускается прямо в браузере
                     </p>
                   </div>
                   <div className="flex items-start gap-3">
-                    <Clock className="mt-0.5 size-5 shrink-0 text-primary" />
+                    <Clock className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden="true" />
                     <p className="text-sm text-muted-foreground">
                       <span className="font-semibold text-foreground">XP, уровни и достижения</span>{" "}
                       — прогресс виден сразу
                     </p>
                   </div>
                   <div className="flex items-start gap-3">
-                    <Database className="mt-0.5 size-5 shrink-0 text-primary" />
+                    <Database className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden="true" />
                     <p className="text-sm text-muted-foreground">
                       <span className="font-semibold text-foreground">Хранение прогресса</span> —
                       регистрация нужна только для хранения вашего прогресса

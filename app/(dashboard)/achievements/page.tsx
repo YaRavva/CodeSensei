@@ -30,7 +30,7 @@ export default async function AchievementsPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="space-y-6">
-        <div className="rounded-2xl border bg-card/60 px-6 py-5 shadow-sm backdrop-blur">
+        <div className="rounded-2xl border bg-card/60 px-6 py-4">
           <h1 className="text-3xl font-bold">Достижения</h1>
           <p className="text-muted-foreground mt-2 max-w-2xl">
             Здесь собраны все возможные достижения в CodeSensei. Получайте их, решая задания,
@@ -56,8 +56,8 @@ export default async function AchievementsPage() {
                   {earnedCount === 0
                     ? "Начните с первого достижения — попробуйте решить одно задание."
                     : earnedCount < totalCount
-                      ? "Отличное начало! Продолжайте открывать новые достижения."
-                      : "Вы собрали все достижения — впечатляющий результат!"}
+                      ? "Начало положено. Продолжайте открывать новые достижения."
+                      : "Собраны все достижения."}
                 </span>
                 <span>
                   {totalCount > 0 ? `${Math.round((earnedCount / totalCount) * 100)}%` : "0%"}

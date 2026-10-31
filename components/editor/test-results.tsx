@@ -40,18 +40,12 @@ export function TestResults({ testResults, testCases }: TestResultsProps) {
             </CardDescription>
           </div>
           {testResults.allPassed ? (
-            <Badge
-              variant="success"
-              className="shrink-0 gap-1.5 px-3 py-1 text-sm font-semibold"
-            >
+            <Badge variant="success" className="shrink-0 gap-2 px-3 py-1 text-sm font-semibold">
               <CheckCircle2 className="size-4" />
               Все тесты пройдены
             </Badge>
           ) : (
-            <Badge
-              variant="destructive"
-              className="shrink-0 gap-1.5 px-3 py-1 text-sm font-semibold"
-            >
+            <Badge variant="destructive" className="shrink-0 gap-2 px-3 py-1 text-sm font-semibold">
               <XCircle className="size-4" />
               Есть ошибки
             </Badge>
@@ -96,10 +90,7 @@ export function TestResults({ testResults, testCases }: TestResultsProps) {
                       </span>
                     </div>
                     {result.executionTime && (
-                      <Badge
-                        variant="outline"
-                        className="shrink-0 gap-1 text-xs font-medium"
-                      >
+                      <Badge variant="outline" className="shrink-0 gap-1 text-xs font-medium">
                         <Zap className="size-3" />
                         {result.executionTime} мс
                       </Badge>
@@ -107,13 +98,11 @@ export function TestResults({ testResults, testCases }: TestResultsProps) {
                   </div>
 
                   {!result.passed && (
-                    <div className="mt-3 space-y-2 pl-7">
+                    <div className="mt-3 space-y-2 pl-8">
                       {result.error && (
                         <div className="rounded-md border border-destructive/20 bg-destructive/10 p-3">
-                          <p className="text-xs font-semibold text-destructive">
-                            Ошибка
-                          </p>
-                          <pre className="mt-1.5 whitespace-pre-wrap font-mono text-xs leading-relaxed text-destructive/90">
+                          <p className="text-xs font-semibold text-destructive">Ошибка</p>
+                          <pre className="mt-2 whitespace-pre-wrap font-mono text-xs text-destructive/90">
                             {result.error}
                           </pre>
                         </div>
@@ -121,7 +110,7 @@ export function TestResults({ testResults, testCases }: TestResultsProps) {
                       {result.actualOutput !== undefined && (
                         <p className="text-xs text-muted-foreground">
                           Получено:{" "}
-                          <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
+                          <code className="rounded bg-muted px-2 py-1 font-mono text-xs">
                             {String(result.actualOutput)}
                           </code>
                         </p>
@@ -135,17 +124,14 @@ export function TestResults({ testResults, testCases }: TestResultsProps) {
         )}
 
         {testResults.totalCount > visibleTotalCount && (
-          <div className="flex items-center gap-2 border-t pt-3 text-xs text-muted-foreground">
+          <div className="flex items-center gap-2 pt-4 text-xs text-muted-foreground">
             <EyeOff className="size-3.5 shrink-0" />
-            <span>
-              {testResults.totalCount - visibleTotalCount} скрытых тестов не
-              показаны
-            </span>
+            <span>{testResults.totalCount - visibleTotalCount} скрытых тестов не показаны</span>
           </div>
         )}
 
         {testResults.executionTime > 0 && (
-          <div className="flex items-center gap-2 border-t pt-3 text-xs text-muted-foreground">
+          <div className="flex items-center gap-2 pt-4 text-xs text-muted-foreground">
             <Zap className="size-3.5 shrink-0" />
             <span>Общее время выполнения: {testResults.executionTime} мс</span>
           </div>

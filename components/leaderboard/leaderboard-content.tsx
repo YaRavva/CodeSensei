@@ -188,7 +188,10 @@ export function LeaderboardContent({
 
                     {/* Аватар */}
                     <Avatar className="h-10 w-10">
-                      <AvatarImage src={user.avatar_url || undefined} />
+                      <AvatarImage
+                        src={user.avatar_url || undefined}
+                        alt={`Аватар: ${getUserDisplayName(user)}`}
+                      />
                       <AvatarFallback className="text-lg font-semibold">
                         {getUserInitials(user)}
                       </AvatarFallback>

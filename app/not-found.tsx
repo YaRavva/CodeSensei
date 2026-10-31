@@ -6,21 +6,22 @@ export default function NotFound() {
   return (
     <div className="container mx-auto flex min-h-[70vh] max-w-xl flex-col items-center justify-center px-4 py-16 text-center">
       <div className="mb-6 inline-flex h-20 w-20 items-center justify-center rounded-2xl border bg-card">
-        <span className="font-ubuntu-mono text-lg font-semibold text-primary">404</span>
+        <span className="font-mono text-lg font-semibold text-primary">404</span>
       </div>
-      <h1 className="text-balance text-4xl font-bold md:text-5xl">Такой страницы нет</h1>
+      <h1 className="text-4xl font-bold md:text-5xl">Такой страницы нет</h1>
       <p className="mt-4 text-lg text-muted-foreground">
-        Но у нас есть много других! Попробуйте начать с одной из этих:
+        Адрес мог измениться или в ссылке опечатка. Начните с каталога модулей или вернитесь на
+        главную.
       </p>
       <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-        <Button asChild size="lg" className="h-11 px-6 text-base font-semibold">
+        <Button asChild size="lg">
           <Link href="/modules">
-            <Home className="size-5" />К модулям
+            <Home className="size-5" aria-hidden="true" />К модулям
           </Link>
         </Button>
-        <Button asChild variant="ghost" size="lg" className="h-11 px-6 text-base font-medium">
+        <Button asChild variant="ghost" size="lg">
           <Link href="/">
-            <ArrowLeft className="size-5" />
+            <ArrowLeft className="size-5" aria-hidden="true" />
             На главную
           </Link>
         </Button>

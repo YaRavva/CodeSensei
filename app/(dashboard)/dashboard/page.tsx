@@ -13,7 +13,7 @@ export default async function DashboardPage() {
     getUserAchievements(user.$id),
   ]);
 
-  const completedLessons = progress.filter((item) => item.status === "completed").length;
+  const completedModules = progress.filter((item) => item.status === "completed").length;
   const successfulAttempts = attempts.filter((attempt) => attempt.is_successful).length;
   const totalAttempts = attempts.length;
 
@@ -42,7 +42,7 @@ export default async function DashboardPage() {
       stats={{
         totalXp: profile.total_xp,
         currentLevel: profile.current_level,
-        completedLessons,
+        completedModules,
         successfulAttempts,
         totalAttempts,
         avgExecutionTime,

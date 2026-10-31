@@ -226,7 +226,7 @@ export function TaskForm({ moduleId, taskId, onSuccess, onCancel }: TaskFormProp
         }
 
         toast({
-          title: "Успешно!",
+          title: "Задание сгенерировано",
           description: "Задание сгенерировано. Проверьте и при необходимости отредактируйте поля.",
         });
       }
@@ -390,7 +390,7 @@ export function TaskForm({ moduleId, taskId, onSuccess, onCancel }: TaskFormProp
                     id="description"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    className="min-h-[400px] font-ubuntu-mono text-sm"
+                    className="min-h-[400px] font-mono text-sm"
                     required
                     disabled={loading}
                     placeholder="Введите описание задания в формате Markdown..."
@@ -400,8 +400,8 @@ export function TaskForm({ moduleId, taskId, onSuccess, onCancel }: TaskFormProp
               <AccordionItem value="preview" className="border-none">
                 <AccordionTrigger className="py-2 text-sm">Предпросмотр</AccordionTrigger>
                 <AccordionContent>
-                  <div className="border rounded-md p-4 h-[400px] overflow-auto bg-card font-ubuntu-mono">
-                    <div className="prose prose-sm dark:prose-invert max-w-none [&_p]:mb-4 [&_p:last-child]:mb-0 [&_h1]:mb-4 [&_h2]:mb-3 [&_h3]:mb-2 [&_ul]:mb-4 [&_ol]:mb-4 [&_pre]:mb-4 [&_*]:font-ubuntu-mono [&_h1]:font-ubuntu-mono [&_h2]:font-ubuntu-mono [&_h3]:font-ubuntu-mono [&_li]:font-ubuntu-mono [&_strong]:font-ubuntu-mono [&_em]:font-ubuntu-mono">
+                  <div className="border rounded-md p-4 h-[400px] overflow-auto bg-card">
+                    <div className="prose prose-sm dark:prose-invert max-w-none [&_p]:mb-4 [&_p:last-child]:mb-0 [&_h1]:mb-4 [&_h2]:mb-3 [&_h3]:mb-2 [&_ul]:mb-4 [&_ol]:mb-4 [&_pre]:mb-4">
                       <ReactMarkdown
                         remarkPlugins={[remarkGfm, remarkBreaks]}
                         components={{
@@ -426,20 +426,20 @@ export function TaskForm({ moduleId, taskId, onSuccess, onCancel }: TaskFormProp
                                 style={isDark ? oneDark : oneLight}
                                 language={match[1]}
                                 PreTag="div"
-                                className="font-ubuntu-mono rounded-md"
-                                customStyle={{ fontFamily: "Ubuntu Mono, monospace" }}
+                                className="font-mono rounded-md"
+                                customStyle={{ fontFamily: "Geist Mono, monospace" }}
                                 {...(rest as any)}
                               >
                                 {String(children).replace(/\n$/, "")}
                               </SyntaxHighlighter>
                             ) : (
-                              <code className={`font-ubuntu-mono ${className}`} {...(rest as any)}>
+                              <code className={`font-mono ${className}`} {...(rest as any)}>
                                 {children}
                               </code>
                             );
                           },
                           p: ({ children }) => (
-                            <p className="mb-4 last:mb-0 whitespace-pre-line font-ubuntu-mono">
+                            <p className="mb-4 last:mb-0 whitespace-pre-line text-muted-foreground">
                               {children}
                             </p>
                           ),

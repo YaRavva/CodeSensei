@@ -4,6 +4,10 @@ import { Moon, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTheme } from "@/components/theme-provider";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+
+const iconTransition =
+  "absolute inset-0 size-5 transition-[transform,opacity] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]";
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
@@ -24,32 +28,31 @@ export function ThemeToggle() {
   };
 
   const currentTheme = getCurrentTheme();
+  const isDark = currentTheme === "dark";
 
   const toggleTheme = () => {
     const nextTheme = currentTheme === "dark" ? "light" : "dark";
     setTheme(nextTheme);
   };
 
-  if (!mounted) {
-    return (
-      <Button variant="ghost" size="icon" aria-label="Переключить тему">
-        <Sun className="h-[1.2rem] w-[1.2rem]" />
-      </Button>
-    );
-  }
-
   return (
-    <Button
-      variant="ghost"
-      size="icon"
-      onClick={toggleTheme}
-      aria-label="Переключить тему"
-    >
-      {currentTheme === "dark" ? (
-        <Sun className="h-[1.2rem] w-[1.2rem] transition-transform rotate-0 scale-100" />
-      ) : (
-        <Moon className="h-[1.2rem] w-[1.2rem] transition-transform rotate-0 scale-100" />
-      )}
+    <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label="Переключить тему">
+      <span className="relative size-5">
+        <Sun
+          className={cn(
+            iconTransition,
+            isDark ? "rotate-0 scale-100 opacity-100" : "rotate-90 scale-0 opacity-0"
+          )}
+          aria-hidden="true"
+        />
+        <Moon
+          className={cn(
+            iconTransition,
+            isDark ? "-rotate-90 scale-0 opacity-0" : "rotate-0 scale-100 opacity-100"
+          )}
+          aria-hidden="true"
+        />
+      </span>
       <span className="sr-only">Переключить тему</span>
     </Button>
   );

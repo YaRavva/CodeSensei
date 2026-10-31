@@ -3,17 +3,11 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { validateEmail } from "@/lib/utils/validation";
 
 interface ResetResponse {
   success?: boolean;
@@ -21,8 +15,12 @@ interface ResetResponse {
   error?: string;
 }
 
+const linkClass =
+  "text-center text-sm text-muted-foreground underline-offset-2 hover:underline rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
+  const [emailError, setEmailError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [message, setMessage] = useState("");
@@ -30,6 +28,11 @@ export default function ForgotPasswordPage() {
 
   async function handleReset(e: React.FormEvent) {
     e.preventDefault();
+
+    const nextEmailError = validateEmail(email);
+    setEmailError(nextEmailError);
+    if (nextEmailError) return;
+
     setLoading(true);
 
     try {
@@ -47,7 +50,7 @@ export default function ForgotPasswordPage() {
 
       if (!response.ok) {
         toast({
-          title: "Ошибка",
+          title: "Письмо не отправлено",
           description: data?.error || "Не удалось отправить письмо",
           variant: "destructive",
         });
@@ -55,7 +58,7 @@ export default function ForgotPasswordPage() {
       }
 
       const serverMessage =
-        data?.message || "Если такой email зарегистрирован, письмо со ссылкой отправлено.";
+        data?.message || "Если такая почта зарегистрирована, письмо со ссылкой отправлено.";
 
       setMessage(serverMessage);
       setSent(true);
@@ -67,7 +70,7 @@ export default function ForgotPasswordPage() {
       console.error("Unexpected password reset error", error);
       toast({
         title: "Неожиданная ошибка",
-        description: "Не удалось отправить письмо. Попробуйте снова чуть позже",
+        description: "Не удалось отправить письмо. Попробуйте ещё раз через минуту",
         variant: "destructive",
       });
     } finally {
@@ -77,20 +80,18 @@ export default function ForgotPasswordPage() {
 
   if (sent) {
     return (
-      <div className="container mx-auto flex min-h-screen items-center justify-center px-4">
+      <div className="container mx-auto flex min-h-[calc(100dvh-8rem)] items-center justify-center px-4 py-16">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle>Письмо отправлено</CardTitle>
+            <h1 className="text-2xl font-semibold tracking-tight">Письмо отправлено</h1>
             <CardDescription>
-              {message || "Если такой email зарегистрирован, письмо со ссылкой отправлено."}
+              {message || "Если такая почта зарегистрирована, письмо со ссылкой отправлено."}
             </CardDescription>
           </CardHeader>
           <CardFooter>
-            <Link href="/login" className="w-full">
-              <Button variant="outline" className="w-full">
-                Вернуться к входу
-              </Button>
-            </Link>
+            <Button asChild variant="outline" className="w-full">
+              <Link href="/login">Вернуться к входу</Link>
+            </Button>
           </CardFooter>
         </Card>
       </div>
@@ -98,13 +99,13 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="container mx-auto flex min-h-screen items-center justify-center px-4">
+    <div className="container mx-auto flex min-h-[calc(100dvh-8rem)] items-center justify-center px-4 py-16">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Восстановление пароля</CardTitle>
-          <CardDescription>Введите email для получения ссылки восстановления</CardDescription>
+          <h1 className="text-2xl font-semibold tracking-tight">Восстановление пароля</h1>
+          <CardDescription>Введите почту, и мы пришлём ссылку для нового пароля</CardDescription>
         </CardHeader>
-        <form onSubmit={handleReset}>
+        <form onSubmit={handleReset} noValidate>
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -113,20 +114,29 @@ export default function ForgotPasswordPage() {
                 type="email"
                 placeholder="your@email.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (emailError) setEmailError(null);
+                }}
+                onBlur={() => setEmailError(validateEmail(email))}
                 required
                 disabled={loading}
+                aria-invalid={!!emailError}
+                aria-describedby={emailError ? "email-error" : undefined}
+                className={emailError ? "border-destructive" : ""}
               />
+              {emailError && (
+                <p id="email-error" role="alert" className="text-xs text-destructive">
+                  {emailError}
+                </p>
+              )}
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Отправка..." : "Отправить"}
             </Button>
-            <Link
-              href="/login"
-              className="text-center text-sm text-muted-foreground hover:underline"
-            >
+            <Link href="/login" className={linkClass}>
               Вернуться к входу
             </Link>
           </CardFooter>

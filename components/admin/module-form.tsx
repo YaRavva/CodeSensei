@@ -744,7 +744,7 @@ export function ModuleForm({ moduleId, initialData }: ModuleFormProps) {
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                             disabled={loading}
-                            className="min-h-[300px] font-ubuntu-mono text-sm"
+                            className="min-h-[300px] font-mono text-sm"
                             placeholder="Введите описание в формате Markdown..."
                           />
                         </AccordionContent>
@@ -752,7 +752,7 @@ export function ModuleForm({ moduleId, initialData }: ModuleFormProps) {
                       <AccordionItem value="preview" className="border-none">
                         <AccordionTrigger className="py-2 text-sm">Предпросмотр</AccordionTrigger>
                         <AccordionContent>
-                          <div className="border rounded-md p-4 h-[400px] overflow-auto bg-card font-ubuntu-mono">
+                          <div className="border rounded-md p-4 h-[400px] overflow-auto bg-card">
                             <div className="prose prose-sm dark:prose-invert max-w-none">
                               <ReactMarkdown
                                 remarkPlugins={[remarkGfm, remarkBreaks]}
@@ -779,43 +779,50 @@ export function ModuleForm({ moduleId, initialData }: ModuleFormProps) {
                                         style={isDark ? oneDark : oneLight}
                                         language={match[1]}
                                         PreTag="div"
-                                        className="font-ubuntu-mono rounded-md"
-                                        customStyle={{ fontFamily: "Ubuntu Mono, monospace" }}
+                                        className="font-mono rounded-md"
+                                        customStyle={{ fontFamily: "Geist Mono, monospace" }}
                                         {...(rest as any)}
                                       >
                                         {String(children).replace(/\n$/, "")}
                                       </SyntaxHighlighter>
                                     ) : (
-                                      <code
-                                        className={`font-ubuntu-mono ${className}`}
-                                        {...(rest as any)}
-                                      >
+                                      <code className={`font-mono ${className}`} {...(rest as any)}>
                                         {children}
                                       </code>
                                     );
                                   },
                                   p: ({ children }) => (
-                                    <p className="mb-4 last:mb-0 whitespace-pre-line font-ubuntu-mono">
+                                    <p className="mb-4 last:mb-0 whitespace-pre-line text-muted-foreground">
                                       {children}
                                     </p>
                                   ),
                                   h1: ({ children }) => (
-                                    <h1 className="mb-4 font-ubuntu-mono">{children}</h1>
+                                    <h1 className="mb-4 font-semibold text-foreground">
+                                      {children}
+                                    </h1>
                                   ),
                                   h2: ({ children }) => (
-                                    <h2 className="mb-3 font-ubuntu-mono">{children}</h2>
+                                    <h2 className="mb-3 font-semibold text-foreground">
+                                      {children}
+                                    </h2>
                                   ),
                                   h3: ({ children }) => (
-                                    <h3 className="mb-2 font-ubuntu-mono">{children}</h3>
+                                    <h3 className="mb-2 font-semibold text-foreground">
+                                      {children}
+                                    </h3>
                                   ),
                                   li: ({ children }) => (
-                                    <li className="font-ubuntu-mono">{children}</li>
+                                    <li className="text-muted-foreground">{children}</li>
                                   ),
                                   strong: ({ children }) => (
-                                    <strong className="font-ubuntu-mono">{children}</strong>
+                                    <strong className="font-semibold text-foreground">
+                                      {children}
+                                    </strong>
                                   ),
                                   em: ({ children }) => (
-                                    <em className="font-ubuntu-mono">{children}</em>
+                                    <em className="font-semibold not-italic text-foreground">
+                                      {children}
+                                    </em>
                                   ),
                                 }}
                               >
@@ -897,7 +904,7 @@ export function ModuleForm({ moduleId, initialData }: ModuleFormProps) {
                               <Textarea
                                 readOnly
                                 value={generatedTask.description || ""}
-                                className="min-h-[300px] font-ubuntu-mono text-sm"
+                                className="min-h-[300px] font-mono text-sm"
                               />
                             </AccordionContent>
                           </AccordionItem>
@@ -906,7 +913,7 @@ export function ModuleForm({ moduleId, initialData }: ModuleFormProps) {
                               Предпросмотр
                             </AccordionTrigger>
                             <AccordionContent>
-                              <div className="border rounded-md p-4 h-[400px] overflow-auto bg-card font-ubuntu-mono">
+                              <div className="border rounded-md p-4 h-[400px] overflow-auto bg-card">
                                 <div className="prose prose-sm dark:prose-invert max-w-none">
                                   <ReactMarkdown
                                     remarkPlugins={[remarkGfm, remarkBreaks]}
@@ -926,42 +933,49 @@ export function ModuleForm({ moduleId, initialData }: ModuleFormProps) {
                                             style={isDark ? oneDark : oneLight}
                                             language={match[1]}
                                             PreTag="div"
-                                            className="font-ubuntu-mono rounded-md"
-                                            customStyle={{ fontFamily: "Ubuntu Mono, monospace" }}
+                                            className="font-mono rounded-md"
+                                            customStyle={{ fontFamily: "Geist Mono, monospace" }}
                                           >
                                             {String(children).replace(/\n$/, "")}
                                           </SyntaxHighlighter>
                                         ) : (
-                                          <code
-                                            className={`font-ubuntu-mono ${className}`}
-                                            {...props}
-                                          >
+                                          <code className={`font-mono ${className}`} {...props}>
                                             {children}
                                           </code>
                                         );
                                       },
                                       p: ({ children }) => (
-                                        <p className="mb-4 last:mb-0 whitespace-pre-line font-ubuntu-mono">
+                                        <p className="mb-4 last:mb-0 whitespace-pre-line text-muted-foreground">
                                           {children}
                                         </p>
                                       ),
                                       h1: ({ children }) => (
-                                        <h1 className="mb-4 font-ubuntu-mono">{children}</h1>
+                                        <h1 className="mb-4 font-semibold text-foreground">
+                                          {children}
+                                        </h1>
                                       ),
                                       h2: ({ children }) => (
-                                        <h2 className="mb-3 font-ubuntu-mono">{children}</h2>
+                                        <h2 className="mb-3 font-semibold text-foreground">
+                                          {children}
+                                        </h2>
                                       ),
                                       h3: ({ children }) => (
-                                        <h3 className="mb-2 font-ubuntu-mono">{children}</h3>
+                                        <h3 className="mb-2 font-semibold text-foreground">
+                                          {children}
+                                        </h3>
                                       ),
                                       li: ({ children }) => (
-                                        <li className="font-ubuntu-mono">{children}</li>
+                                        <li className="text-muted-foreground">{children}</li>
                                       ),
                                       strong: ({ children }) => (
-                                        <strong className="font-ubuntu-mono">{children}</strong>
+                                        <strong className="font-semibold text-foreground">
+                                          {children}
+                                        </strong>
                                       ),
                                       em: ({ children }) => (
-                                        <em className="font-ubuntu-mono">{children}</em>
+                                        <em className="font-semibold not-italic text-foreground">
+                                          {children}
+                                        </em>
                                       ),
                                     }}
                                   >

@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
 import Link from "next/link";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 
 export default function GlobalError({
@@ -16,19 +16,18 @@ export default function GlobalError({
   }, [error]);
 
   return (
-    <div className="min-h-[70vh] flex flex-col items-center justify-center p-6 text-center">
+    <div className="flex min-h-[70vh] flex-col items-center justify-center p-6 text-center">
       <div className="max-w-md space-y-4">
-        <div className="w-16 h-16 rounded-full bg-destructive/10 text-destructive flex items-center justify-center mx-auto text-2xl font-bold">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10 text-2xl font-bold text-destructive">
           !
         </div>
-        <h2 className="text-2xl font-bold tracking-tight">Что-то пошло не так</h2>
-        <p className="text-muted-foreground text-sm">
-          Произошла непредвиденная ошибка при загрузке страницы. Попробуйте обновить данные или вернуться на главную.
+        <h1 className="text-2xl font-bold tracking-tight">Что-то пошло не так</h1>
+        <p className="text-sm text-muted-foreground">
+          Страница не загрузилась. Попробуйте повторить запрос, а если ошибка останется, вернитесь
+          на главную.
         </p>
         <div className="flex items-center justify-center gap-3 pt-2">
-          <Button onClick={() => reset()} variant="default">
-            Повторить попытку
-          </Button>
+          <Button onClick={() => reset()}>Повторить попытку</Button>
           <Button asChild variant="outline">
             <Link href="/modules">К модулям</Link>
           </Button>

@@ -364,7 +364,7 @@ export function TaskPageContent({
                 // XP был начислен
                 toast({
                   title: "Тесты пройдены",
-                  description: `Все тесты пройдены! Вы заработали ${xpData.xpAwarded} XP${xpData.newLevel !== undefined && xpData.newLevel !== null ? ` (Уровень ${xpData.newLevel})` : ""}`,
+                  description: `Все тесты пройдены. Вы заработали ${xpData.xpAwarded} XP${xpData.newLevel !== undefined && xpData.newLevel !== null ? ` (уровень ${xpData.newLevel})` : ""}`,
                   duration: 5000,
                 });
 
@@ -376,7 +376,7 @@ export function TaskPageContent({
                   for (const achievement of xpData.newlyUnlockedAchievements) {
                     setTimeout(() => {
                       toast({
-                        title: `🏆 Достижение разблокировано!`,
+                        title: `Достижение разблокировано`,
                         description: `${achievement.title}: ${achievement.description} (+${achievement.xp_reward} XP)`,
                         duration: 7000,
                       });
@@ -389,7 +389,7 @@ export function TaskPageContent({
                 // Успех, но XP не начислен (возможно, это не первая попытка)
                 toast({
                   title: "Тесты пройдены",
-                  description: "Задание успешно выполнено",
+                  description: "Задание выполнено",
                   variant: "default",
                   duration: 3000,
                 });
@@ -397,7 +397,7 @@ export function TaskPageContent({
               }
             } else {
               toast({
-                title: "Все тесты пройдены! 🎉",
+                title: "Задание засчитано",
                 description: "Ошибка при начислении XP, но задание засчитано",
                 variant: "default",
               });
@@ -517,7 +517,7 @@ export function TaskPageContent({
                   +{getDifficultyXP(task.difficulty)} XP
                 </Badge>
                 {(lastAttempt?.is_successful || isCompleted) && (
-                  <Badge variant="success" className="gap-1.5">
+                  <Badge variant="success" className="gap-2">
                     <CheckCircle2 className="size-3.5" />
                     Выполнено
                   </Badge>
@@ -559,14 +559,14 @@ export function TaskPageContent({
                               style={(isDark ? oneDark : oneLight) as any}
                               language={match[1]}
                               PreTag="div"
-                              className="font-ubuntu-mono rounded-md"
-                              customStyle={{ fontFamily: "Ubuntu Mono, monospace" }}
+                              className="font-mono rounded-md"
+                              customStyle={{ fontFamily: "Geist Mono, monospace" }}
                               {...rest}
                             >
                               {String(children).replace(/\n$/, "")}
                             </SyntaxHighlighter>
                           ) : (
-                            <code className={`font-ubuntu-mono ${className}`} {...rest}>
+                            <code className={`font-mono ${className}`} {...rest}>
                               {children}
                             </code>
                           );
@@ -607,13 +607,13 @@ export function TaskPageContent({
                             style={(isDark ? oneDark : oneLight) as any}
                             language={match[1]}
                             PreTag="div"
-                            className="font-ubuntu-mono rounded-md"
-                            customStyle={{ fontFamily: "Ubuntu Mono, monospace" }}
+                            className="font-mono rounded-md"
+                            customStyle={{ fontFamily: "Geist Mono, monospace" }}
                           >
                             {String(children).replace(/\n$/, "")}
                           </SyntaxHighlighter>
                         ) : (
-                          <code className={`font-ubuntu-mono ${className}`} {...props}>
+                          <code className={`font-mono ${className}`} {...props}>
                             {children}
                           </code>
                         );
@@ -748,7 +748,7 @@ export function TaskPageContent({
                       <div className="space-y-2">
                         <h4 className="text-sm font-medium">Вывод:</h4>
                         <div className="rounded-md bg-muted p-4">
-                          <pre className="text-sm whitespace-pre-wrap font-mono">
+                          <pre className="whitespace-pre-wrap font-mono text-sm">
                             {executionResult.output || "(нет вывода)"}
                           </pre>
                         </div>
@@ -765,7 +765,7 @@ export function TaskPageContent({
         </div>
 
         {/* Навигация между заданиями */}
-        <div className="flex justify-between gap-4 pt-6 mt-8 border-t">
+        <div className="flex justify-between gap-4 mt-8 pt-6">
           {prevTask ? (
             <Button variant="outline" asChild>
               <Link href={`/modules/${module.id}/tasks/${prevTask.id}`}>
@@ -799,9 +799,9 @@ export function TaskPageContent({
             </DialogTitle>
           </DialogHeader>
           <div className="max-h-[60vh] overflow-y-auto">
-            <Card className="font-ubuntu-mono">
+            <Card>
               <CardContent className="pt-6">
-                <div className="prose prose-sm dark:prose-invert max-w-none [&_*]:font-ubuntu-mono [&_h1]:font-ubuntu-mono [&_h2]:font-ubuntu-mono [&_h3]:font-ubuntu-mono [&_li]:font-ubuntu-mono [&_strong]:font-ubuntu-mono [&_em]:font-ubuntu-mono">
+                <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:text-foreground prose-p:text-muted-foreground">
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm, remarkBreaks]}
                     components={{
@@ -819,19 +819,19 @@ export function TaskPageContent({
                             style={(isDark ? oneDark : oneLight) as any}
                             language={match[1]}
                             PreTag="div"
-                            className="font-ubuntu-mono rounded-md"
-                            customStyle={{ fontFamily: "Ubuntu Mono, monospace" }}
+                            className="font-mono rounded-md"
+                            customStyle={{ fontFamily: "Geist Mono, monospace" }}
                           >
                             {String(children).replace(/\n$/, "")}
                           </SyntaxHighlighter>
                         ) : (
-                          <code className={`font-ubuntu-mono ${className}`} {...props}>
+                          <code className={`font-mono ${className}`} {...props}>
                             {children}
                           </code>
                         );
                       },
                       p: ({ children }) => (
-                        <p className="mb-4 last:mb-0 whitespace-pre-line font-ubuntu-mono">
+                        <p className="mb-4 whitespace-pre-line text-muted-foreground last:mb-0">
                           {children}
                         </p>
                       ),
@@ -859,11 +859,11 @@ export function TaskPageContent({
             </DialogTitle>
           </DialogHeader>
           <div className="max-h-[60vh] overflow-y-auto">
-            <Card className="font-ubuntu-mono">
+            <Card>
               <CardContent className="pt-6">
                 <div
                   id="feedback-description"
-                  className="prose prose-sm dark:prose-invert max-w-none [&_*]:font-ubuntu-mono [&_h1]:font-ubuntu-mono [&_h2]:font-ubuntu-mono [&_h3]:font-ubuntu-mono [&_li]:font-ubuntu-mono [&_strong]:font-ubuntu-mono [&_em]:font-ubuntu-mono"
+                  className="prose prose-sm dark:prose-invert max-w-none prose-headings:text-foreground prose-p:text-muted-foreground"
                 >
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm, remarkBreaks]}
@@ -882,19 +882,19 @@ export function TaskPageContent({
                             style={(isDark ? oneDark : oneLight) as any}
                             language={match[1]}
                             PreTag="div"
-                            className="font-ubuntu-mono rounded-md"
-                            customStyle={{ fontFamily: "Ubuntu Mono, monospace" }}
+                            className="font-mono rounded-md"
+                            customStyle={{ fontFamily: "Geist Mono, monospace" }}
                           >
                             {String(children).replace(/\n$/, "")}
                           </SyntaxHighlighter>
                         ) : (
-                          <code className={`font-ubuntu-mono ${className}`} {...props}>
+                          <code className={`font-mono ${className}`} {...props}>
                             {children}
                           </code>
                         );
                       },
                       p: ({ children }) => (
-                        <p className="mb-4 last:mb-0 whitespace-pre-line font-ubuntu-mono">
+                        <p className="mb-4 whitespace-pre-line text-muted-foreground last:mb-0">
                           {children}
                         </p>
                       ),

@@ -3,10 +3,10 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 const codeLines = [
-  { indent: 0, text: "def greet(name):" },
-  { indent: 4, text: '    return f"Hello, {name}"' },
-  { indent: 0, text: "" },
-  { indent: 0, text: 'print(greet("Python"))' },
+  { indent: false, text: "def greet(name):" },
+  { indent: true, text: '    return f"Hello, {name}"' },
+  { indent: false, text: "" },
+  { indent: false, text: 'print(greet("Python"))' },
 ];
 
 export function LandingHero() {
@@ -17,7 +17,7 @@ export function LandingHero() {
           <span className="h-2 w-2 rounded-full bg-primary" />
           Тренажёр для школьников 7–9 классов
         </div>
-        <h1 className="hero-heading-gradient max-w-[680px] text-balance text-4xl font-bold leading-tight sm:text-5xl lg:text-6xl">
+        <h1 className="hero-heading-gradient max-w-[680px] text-4xl font-bold sm:text-5xl lg:text-6xl">
           Пиши настоящий код с первого урока
         </h1>
         <p className="max-w-[680px] text-lg text-muted-foreground">
@@ -25,14 +25,11 @@ export function LandingHero() {
           решение. Сложность растёт вместе с вами.
         </p>
         <div className="flex flex-wrap items-center gap-4">
-          <Button asChild size="lg" className="h-11 px-6 text-base font-semibold">
+          <Button asChild size="lg">
             <Link href="/register">
               Начать бесплатно
               <ArrowRight className="size-5" />
             </Link>
-          </Button>
-          <Button asChild variant="ghost" size="lg" className="h-11 px-6 text-base font-medium">
-            <Link href="/login">Войти</Link>
           </Button>
         </div>
         <p className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -43,7 +40,7 @@ export function LandingHero() {
 
       {/* Продуктовая иллюстрация: редактор с кодом, как в реальном приложении */}
       <div className="landing-rise [animation-delay:150ms]">
-        <div className="relative overflow-hidden rounded-2xl border bg-card shadow-[0_24px_64px_-24px_rgba(15,23,42,0.45)]">
+        <div className="relative overflow-hidden rounded-2xl border bg-card">
           <div className="flex items-center justify-between border-b px-6 py-4">
             <div className="flex items-center gap-3">
               <div className="flex gap-2">
@@ -58,10 +55,10 @@ export function LandingHero() {
               XP за решение
             </div>
           </div>
-          <div className="space-y-3 bg-card p-8 font-ubuntu-mono text-base leading-relaxed">
-            {codeLines.map((line, i) => (
-              <div key={i} className="flex" style={{ paddingLeft: line.indent > 0 ? "2rem" : "0" }}>
-                <span className="mr-4 select-none text-muted-foreground/40">{i + 1}</span>
+          <div className="space-y-3 bg-card p-8 font-mono text-base">
+            {codeLines.map((line, index) => (
+              <div key={`${index}-${line.text}`} className={line.indent ? "flex pl-8" : "flex"}>
+                <span className="mr-4 select-none text-muted-foreground/40">{index + 1}</span>
                 <span className="text-foreground/90">{line.text}</span>
               </div>
             ))}
@@ -76,7 +73,7 @@ export function LandingHero() {
               </div>
             </div>
             <div className="rounded-lg border bg-card px-4 py-3 text-sm text-muted-foreground">
-              Отлично! Ты разобрался с функциями. 40 XP — следующий уровень через 12 XP.
+              Отлично, вы разобрались с функциями. 40 XP — следующий уровень через 12 XP.
             </div>
           </div>
         </div>

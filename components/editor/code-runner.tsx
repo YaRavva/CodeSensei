@@ -4,7 +4,6 @@ import { AlertCircle, CheckCircle2, Loader2, Play, RefreshCw } from "lucide-reac
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { usePyodide } from "@/hooks/use-pyodide";
 
 interface CodeRunnerProps {
@@ -67,16 +66,12 @@ export function CodeRunner({ code, onExecutionComplete }: CodeRunnerProps) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Загрузка Python среды</CardTitle>
-          <CardDescription>
-            Загружается Pyodide... Это может занять несколько секунд
-          </CardDescription>
+          <div className="h-5 w-48 rounded-md bg-muted motion-safe:animate-pulse" />
+          <div className="mt-2 h-4 w-64 rounded-md bg-muted motion-safe:animate-pulse" />
         </CardHeader>
-        <CardContent>
-          <Progress className="w-full" />
-          <p className="text-sm text-muted-foreground mt-4">
-            Загрузка Python интерпретатора в браузер...
-          </p>
+        <CardContent className="space-y-2">
+          <div className="h-24 w-full rounded-md bg-muted motion-safe:animate-pulse" />
+          <p className="text-sm text-muted-foreground">Загружается интерпретатор Python</p>
         </CardContent>
       </Card>
     );

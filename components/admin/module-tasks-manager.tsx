@@ -6,6 +6,7 @@ import { TaskForm } from "@/components/admin/task-form";
 import { Accordion, AccordionContent, AccordionItem } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { DifficultyBadge } from "@/components/ui/difficulty-badge";
 import { useToast } from "@/hooks/use-toast";
 import type { Task } from "@/types/db";
@@ -30,6 +31,8 @@ export function ModuleTasksManager({
   const [reloadTrigger, setReloadTrigger] = useState(0);
   const [pendingTaskId, setPendingTaskId] = useState<string | null>(null);
   const [accordionValue, setAccordionValue] = useState<string | undefined>(undefined);
+  const [pendingDelete, setPendingDelete] = useState<{ id: string; title: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const { toast } = useToast();
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: reloadTrigger/refreshTrigger намеренно перезапускают загрузку
@@ -116,7 +119,7 @@ export function ModuleTasksManager({
   }, [refreshTrigger]);
 
   async function handleDelete(taskId: string, taskTitle: string) {
-    if (!confirm(`Вы уверены, что хотите удалить задание "${taskTitle}"?`)) return;
+    setDeleting(true);
 
     try {
       const res = await fetch(`/api/admin/tasks/${taskId}`, {
@@ -131,15 +134,18 @@ export function ModuleTasksManager({
 
       toast({
         title: "Задание удалено",
-        description: `Задание "${taskTitle}" успешно удалено`,
+        description: `«${taskTitle}» больше не входит в модуль`,
       });
+      setPendingDelete(null);
       setReloadTrigger((prev) => prev + 1);
     } catch (error) {
       toast({
-        title: "Ошибка",
+        title: "Задание не удалено",
         description: error instanceof Error ? error.message : "Не удалось удалить задание",
         variant: "destructive",
       });
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -187,16 +193,16 @@ export function ModuleTasksManager({
         >
           {tasks.map((task, index) => (
             <AccordionItem key={task.id} value={task.id} className="border-none">
-              <Card className="group relative overflow-hidden border border-border/60 bg-card/60 backdrop-blur-sm transition-all duration-300 hover:border-primary/50 hover:shadow-lg rounded-2xl">
+              <Card className="group relative overflow-hidden border border-border/60 bg-card/60 backdrop-blur-sm transition-[border-color,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-primary/50 hover:shadow-lg rounded-2xl">
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">
-                      <div className="flex flex-wrap items-center gap-2.5 mb-2">
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
                         <CardTitle className="text-base font-semibold tracking-tight">
                           {index + 1}. {task.title}
                         </CardTitle>
                         {getDifficultyBadge(task.difficulty)}
-                        <span className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary border border-primary/20">
+                        <span className="inline-flex items-center rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary border border-primary/20">
                           +{task.xp_reward} XP
                         </span>
                       </div>
@@ -210,7 +216,8 @@ export function ModuleTasksManager({
                   </div>
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <div className="flex items-center justify-between border-t border-border/40 pt-3">
+                  <div className="my-3 h-px w-full bg-border/40" />
+                  <div className="flex items-center justify-between pt-3">
                     <div className="flex items-center gap-3 text-xs text-muted-foreground font-medium">
                       <span>Порядок: #{task.order_index}</span>
                       <span>•</span>
@@ -223,7 +230,7 @@ export function ModuleTasksManager({
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="gap-1.5 rounded-xl transition-transform duration-200 active:scale-[0.98]"
+                        className="gap-2 rounded-xl transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.98]"
                         onClick={() =>
                           setAccordionValue(accordionValue === task.id ? undefined : task.id)
                         }
@@ -235,8 +242,8 @@ export function ModuleTasksManager({
                         type="button"
                         variant="destructive"
                         size="sm"
-                        className="gap-1.5 rounded-xl transition-transform duration-200 active:scale-[0.98]"
-                        onClick={() => handleDelete(task.id, task.title)}
+                        className="gap-2 rounded-xl transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] active:scale-[0.98]"
+                        onClick={() => setPendingDelete({ id: task.id, title: task.title })}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                         Удалить
@@ -245,7 +252,8 @@ export function ModuleTasksManager({
                   </div>
                 </CardContent>
                 <AccordionContent className="px-6 pb-6">
-                  <div className="pt-4 border-t border-border/40">
+                  <div className="h-px w-full bg-border/40" />
+                  <div className="pt-4">
                     <TaskForm
                       moduleId={moduleId}
                       taskId={task.id}
@@ -262,6 +270,20 @@ export function ModuleTasksManager({
           ))}
         </Accordion>
       )}
+
+      <ConfirmDialog
+        open={!!pendingDelete}
+        onOpenChange={(open) => {
+          if (!open) setPendingDelete(null);
+        }}
+        title="Удалить задание?"
+        description={`«${pendingDelete?.title ?? ""}» исчезнет из модуля вместе с прогрессом учеников по нему. Действие нельзя отменить.`}
+        confirmLabel="Удалить задание"
+        onConfirm={() => {
+          if (pendingDelete) handleDelete(pendingDelete.id, pendingDelete.title);
+        }}
+        pending={deleting}
+      />
     </div>
   );
 }

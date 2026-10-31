@@ -2,6 +2,7 @@
 
 import {
   AlertCircle,
+  ArrowLeft,
   ArrowRight,
   ArrowUpDown,
   Award,
@@ -19,6 +20,7 @@ import {
   Sparkles,
   TrendingUp,
 } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
@@ -497,7 +499,7 @@ export function ModuleUnifiedPage({
               if (xpData.alreadyCompleted) {
                 // Сервер вернул, что задание уже было выполнено
                 toast({
-                  title: "Все тесты пройдены! ✅",
+                  title: "Все тесты пройдены",
                   description:
                     xpData.message ||
                     "Задание уже было успешно выполнено ранее. XP не начисляется повторно.",
@@ -511,8 +513,8 @@ export function ModuleUnifiedPage({
               } else if (xpData.xpAwarded > 0) {
                 // XP был начислен
                 toast({
-                  title: "Поздравляем! 🎉",
-                  description: `Все тесты пройдены! Вы заработали ${xpData.xpAwarded} XP${xpData.newLevel !== undefined && xpData.newLevel !== null ? ` (Уровень ${xpData.newLevel})` : ""}`,
+                  title: "Задание решено",
+                  description: `Все тесты пройдены. Вы заработали ${xpData.xpAwarded} XP${xpData.newLevel !== undefined && xpData.newLevel !== null ? ` (Уровень ${xpData.newLevel})` : ""}`,
                   duration: 5000,
                 });
 
@@ -523,7 +525,7 @@ export function ModuleUnifiedPage({
                   for (const achievement of xpData.newlyUnlockedAchievements) {
                     setTimeout(() => {
                       toast({
-                        title: `🏆 Достижение разблокировано!`,
+                        title: `Достижение разблокировано`,
                         description: `${achievement.title}: ${achievement.description} (+${achievement.xp_reward} XP)`,
                         duration: 7000,
                       });
@@ -539,8 +541,8 @@ export function ModuleUnifiedPage({
               } else {
                 // Успех, но XP не начислен (возможно, это не первая попытка)
                 toast({
-                  title: "Все тесты пройдены! ✅",
-                  description: "Задание успешно выполнено",
+                  title: "Все тесты пройдены",
+                  description: "Задание выполнено",
                   variant: "default",
                   duration: 3000,
                 });
@@ -553,7 +555,7 @@ export function ModuleUnifiedPage({
           } else {
             // Задание уже было выполнено ранее, не вызываем API начисления XP
             toast({
-              title: "Все тесты пройдены! ✅",
+              title: "Все тесты пройдены",
               description: "Задание уже было успешно выполнено ранее. Попытка сохранена в историю.",
               variant: "default",
               duration: 3000,
@@ -691,10 +693,16 @@ export function ModuleUnifiedPage({
   };
 
   // Функция для прокрутки к заданию
+  const prefersReducedMotion = () =>
+    typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
   const scrollToTask = (taskId: string) => {
     const element = document.getElementById(`task-${taskId}`);
     if (element) {
-      element.scrollIntoView({ behavior: "smooth", block: "start" });
+      element.scrollIntoView({
+        behavior: prefersReducedMotion() ? "auto" : "smooth",
+        block: "start",
+      });
       // Открываем accordion если закрыт
       if (!openItems.includes(taskId)) {
         setOpenItems([...openItems, taskId]);
@@ -720,11 +728,11 @@ export function ModuleUnifiedPage({
                   <button
                     type="button"
                     onClick={() => {
-                      document
-                        .getElementById("theory-section")
-                        ?.scrollIntoView({ behavior: "smooth" });
+                      document.getElementById("theory-section")?.scrollIntoView({
+                        behavior: prefersReducedMotion() ? "auto" : "smooth",
+                      });
                     }}
-                    className="w-full text-left px-3 py-2 text-sm rounded-md hover:bg-accent transition-colors"
+                    className="w-full rounded-md px-3 py-2 text-left text-sm transition-colors duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <BookOpen className="mr-2 inline h-4 w-4" aria-hidden="true" />
                     Теория
@@ -736,7 +744,7 @@ export function ModuleUnifiedPage({
                         type="button"
                         key={task.id}
                         onClick={() => scrollToTask(task.id)}
-                        className={`w-full text-left px-3 py-2 text-sm rounded-md hover:bg-accent transition-colors flex items-center justify-between group ${
+                        className={`group flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm transition-colors duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                           openItems.includes(task.id) ? "bg-accent" : ""
                         }`}
                       >
@@ -760,6 +768,13 @@ export function ModuleUnifiedPage({
           {/* Основной контент */}
           <div>
             {/* Заголовок модуля — hero-версия с единственным главным действием (A4/A5) */}
+            <Link
+              href="/modules"
+              className="mb-4 inline-flex items-center gap-2 rounded-sm text-sm font-semibold text-muted-foreground transition-colors duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <ArrowLeft className="size-4" aria-hidden="true" />
+              Все модули
+            </Link>
             <div className="mb-8" id="theory-section">
               <div className="mb-4 flex items-start justify-between gap-4">
                 <div>
@@ -777,7 +792,7 @@ export function ModuleUnifiedPage({
               {nextTask ? (
                 <Button
                   size="lg"
-                  className="h-11 px-6 text-base font-semibold"
+                  className="h-11 px-3 text-base font-semibold"
                   onClick={() => scrollToTask(nextTask.id)}
                 >
                   {completedTaskIds.length === 0 ? (
@@ -796,7 +811,7 @@ export function ModuleUnifiedPage({
                 <Button
                   size="lg"
                   variant="outline"
-                  className="h-11 px-6 text-base font-medium"
+                  className="h-11 px-3 text-base font-semibold"
                   onClick={() => scrollToTask(sortedTasks[0]?.id ?? tasks[0]?.id ?? "")}
                 >
                   <RotateCcw className="size-5" />
@@ -884,29 +899,27 @@ export function ModuleUnifiedPage({
                           remarkPlugins={[remarkGfm, remarkBreaks]}
                           components={{
                             h1: ({ children }) => (
-                              <h1 className="text-2xl font-bold tracking-tight mb-4 mt-6 text-foreground">
+                              <h1 className="mt-6 mb-4 text-2xl font-bold tracking-tight text-foreground">
                                 {children}
                               </h1>
                             ),
                             h2: ({ children }) => (
-                              <h2 className="text-xl font-bold tracking-tight mb-3 mt-5 text-foreground">
+                              <h2 className="mt-4 mb-3 text-xl font-bold tracking-tight text-foreground">
                                 {children}
                               </h2>
                             ),
                             h3: ({ children }) => (
-                              <h3 className="text-lg font-semibold tracking-tight mb-2 mt-4 text-foreground">
+                              <h3 className="mt-4 mb-2 text-lg font-semibold tracking-tight text-foreground">
                                 {children}
                               </h3>
                             ),
                             h4: ({ children }) => (
-                              <h4 className="text-base font-semibold mb-2 mt-3 text-foreground">
+                              <h4 className="mt-3 mb-2 text-base font-semibold text-foreground">
                                 {children}
                               </h4>
                             ),
                             p: ({ children }) => (
-                              <p className="mb-4 last:mb-0 text-muted-foreground leading-relaxed">
-                                {children}
-                              </p>
+                              <p className="mb-4 text-muted-foreground last:mb-0">{children}</p>
                             ),
                             ul: ({ children }) => (
                               <ul className="list-disc pl-6 mb-4 space-y-1 text-muted-foreground">
@@ -918,7 +931,7 @@ export function ModuleUnifiedPage({
                                 {children}
                               </ol>
                             ),
-                            li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+                            li: ({ children }) => <li>{children}</li>,
                             hr: () => <hr className="my-6 border-border" />,
                             blockquote: ({ children }) => (
                               <blockquote className="border-l-4 border-primary pl-4 my-4 text-muted-foreground">
@@ -943,14 +956,14 @@ export function ModuleUnifiedPage({
                                   style={(isDark ? oneDark : oneLight) as any}
                                   language={match[1]}
                                   PreTag="div"
-                                  className="font-ubuntu-mono rounded-md"
-                                  customStyle={{ fontFamily: "Ubuntu Mono, monospace" }}
+                                  className="font-mono rounded-md"
+                                  customStyle={{ fontFamily: "Geist Mono, monospace" }}
                                   {...rest}
                                 >
                                   {String(children).replace(/\n$/, "")}
                                 </SyntaxHighlighter>
                               ) : (
-                                <code className={`font-ubuntu-mono ${className}`} {...rest}>
+                                <code className={`font-mono ${className}`} {...rest}>
                                   {children}
                                 </code>
                               );
@@ -1090,16 +1103,13 @@ export function ModuleUnifiedPage({
                                           style={(isDark ? oneDark : oneLight) as any}
                                           language={match[1]}
                                           PreTag="div"
-                                          className="font-ubuntu-mono rounded-md"
-                                          customStyle={{ fontFamily: "Ubuntu Mono, monospace" }}
+                                          className="font-mono rounded-md"
+                                          customStyle={{ fontFamily: "Geist Mono, monospace" }}
                                         >
                                           {String(children).replace(/\n$/, "")}
                                         </SyntaxHighlighter>
                                       ) : (
-                                        <code
-                                          className={`font-ubuntu-mono ${className}`}
-                                          {...props}
-                                        >
+                                        <code className={`font-mono ${className}`} {...props}>
                                           {children}
                                         </code>
                                       );
@@ -1294,9 +1304,9 @@ export function ModuleUnifiedPage({
             </DialogTitle>
           </DialogHeader>
           <div className="max-h-[60vh] overflow-y-auto">
-            <Card className="font-ubuntu-mono">
+            <Card className="font-mono">
               <CardContent className="pt-6">
-                <div className="prose prose-sm dark:prose-invert max-w-none [&_*]:font-ubuntu-mono [&_h1]:font-ubuntu-mono [&_h2]:font-ubuntu-mono [&_h3]:font-ubuntu-mono [&_li]:font-ubuntu-mono [&_strong]:font-ubuntu-mono [&_em]:font-ubuntu-mono">
+                <div className="prose prose-sm dark:prose-invert max-w-none [&_*]:font-mono [&_h1]:font-mono [&_h2]:font-mono [&_h3]:font-mono [&_li]:font-mono [&_strong]:font-mono [&_em]:font-mono">
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm, remarkBreaks]}
                     components={{
@@ -1314,21 +1324,19 @@ export function ModuleUnifiedPage({
                             style={(isDark ? oneDark : oneLight) as any}
                             language={match[1]}
                             PreTag="div"
-                            className="font-ubuntu-mono rounded-md"
-                            customStyle={{ fontFamily: "Ubuntu Mono, monospace" }}
+                            className="font-mono rounded-md"
+                            customStyle={{ fontFamily: "Geist Mono, monospace" }}
                           >
                             {String(children).replace(/\n$/, "")}
                           </SyntaxHighlighter>
                         ) : (
-                          <code className={`font-ubuntu-mono ${className}`} {...props}>
+                          <code className={`font-mono ${className}`} {...props}>
                             {children}
                           </code>
                         );
                       },
                       p: ({ children }) => (
-                        <p className="mb-4 last:mb-0 whitespace-pre-line font-ubuntu-mono">
-                          {children}
-                        </p>
+                        <p className="mb-4 last:mb-0 whitespace-pre-line font-mono">{children}</p>
                       ),
                     }}
                   >
@@ -1354,11 +1362,11 @@ export function ModuleUnifiedPage({
             </DialogTitle>
           </DialogHeader>
           <div className="max-h-[60vh] overflow-y-auto">
-            <Card className="font-ubuntu-mono">
+            <Card className="font-mono">
               <CardContent className="pt-6">
                 <div
                   id="feedback-description"
-                  className="prose prose-sm dark:prose-invert max-w-none [&_*]:font-ubuntu-mono [&_h1]:font-ubuntu-mono [&_h2]:font-ubuntu-mono [&_h3]:font-ubuntu-mono [&_li]:font-ubuntu-mono [&_strong]:font-ubuntu-mono [&_em]:font-ubuntu-mono"
+                  className="prose prose-sm dark:prose-invert max-w-none [&_*]:font-mono [&_h1]:font-mono [&_h2]:font-mono [&_h3]:font-mono [&_li]:font-mono [&_strong]:font-mono [&_em]:font-mono"
                 >
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm, remarkBreaks]}
@@ -1377,21 +1385,19 @@ export function ModuleUnifiedPage({
                             style={(isDark ? oneDark : oneLight) as any}
                             language={match[1]}
                             PreTag="div"
-                            className="font-ubuntu-mono rounded-md"
-                            customStyle={{ fontFamily: "Ubuntu Mono, monospace" }}
+                            className="font-mono rounded-md"
+                            customStyle={{ fontFamily: "Geist Mono, monospace" }}
                           >
                             {String(children).replace(/\n$/, "")}
                           </SyntaxHighlighter>
                         ) : (
-                          <code className={`font-ubuntu-mono ${className}`} {...props}>
+                          <code className={`font-mono ${className}`} {...props}>
                             {children}
                           </code>
                         );
                       },
                       p: ({ children }) => (
-                        <p className="mb-4 last:mb-0 whitespace-pre-line font-ubuntu-mono">
-                          {children}
-                        </p>
+                        <p className="mb-4 last:mb-0 whitespace-pre-line font-mono">{children}</p>
                       ),
                     }}
                   >
