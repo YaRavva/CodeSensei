@@ -133,7 +133,7 @@ export function CodeRunner({ code, onExecutionComplete }: CodeRunnerProps) {
                 </>
               ) : (
                 <>
-                  <CheckCircle2 className="h-5 w-5 text-green-600" />
+                  <CheckCircle2 className="h-5 w-5 text-emerald-600" />
                   Код выполнен успешно
                 </>
               )}

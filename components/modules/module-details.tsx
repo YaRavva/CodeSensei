@@ -127,7 +127,7 @@ export function ModuleDetails({
                 in_progress: {
                   label: "В процессе",
                   icon: CircleDot,
-                  iconClassName: "text-primary",
+                  iconClassName: "text-amber-500",
                   variant: "secondary" as const,
                 },
                 completed: {

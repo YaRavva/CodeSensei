@@ -1,9 +1,9 @@
 "use client";
 
-import { CheckCircle2, Eye, EyeOff, XCircle } from "lucide-react";
+import { CheckCircle2, EyeOff, XCircle, Zap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import type { TestResult, TestSuiteResult } from "@/types/test-case";
+import type { TestSuiteResult } from "@/types/test-case";
 
 interface TestResultsProps {
   testResults: TestSuiteResult;
@@ -15,12 +15,10 @@ interface TestResultsProps {
 }
 
 export function TestResults({ testResults, testCases }: TestResultsProps) {
-  // Получаем информацию о тесте для каждого результата
   const getTestCaseInfo = (testCaseId: string) => {
     return testCases.find((tc) => tc.id === testCaseId);
   };
 
-  // Фильтруем результаты - показываем только видимые тесты
   const visibleResults = testResults.results.filter((result) => {
     const testCase = getTestCaseInfo(result.testCaseId);
     return testCase?.is_visible ?? true;
@@ -30,31 +28,39 @@ export function TestResults({ testResults, testCases }: TestResultsProps) {
   const visibleTotalCount = visibleResults.length;
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>Результаты тестов</CardTitle>
-            <CardDescription>
+    <Card className="overflow-hidden">
+      <CardHeader className="pb-4">
+        <div className="flex items-center justify-between gap-4">
+          <div className="min-w-0">
+            <CardTitle className="text-lg font-semibold tracking-tight">
+              Результаты тестов
+            </CardTitle>
+            <CardDescription className="mt-1 text-sm">
               {visiblePassedCount} из {visibleTotalCount} тестов пройдено
             </CardDescription>
           </div>
           {testResults.allPassed ? (
-            <Badge className="bg-primary text-primary-foreground">
-              <CheckCircle2 className="mr-1 h-3 w-3" />
-              Все тесты пройдены!
+            <Badge
+              variant="success"
+              className="shrink-0 gap-1.5 px-3 py-1 text-sm font-semibold"
+            >
+              <CheckCircle2 className="size-4" />
+              Все тесты пройдены
             </Badge>
           ) : (
-            <Badge variant="destructive">
-              <XCircle className="mr-1 h-3 w-3" />
+            <Badge
+              variant="destructive"
+              className="shrink-0 gap-1.5 px-3 py-1 text-sm font-semibold"
+            >
+              <XCircle className="size-4" />
               Есть ошибки
             </Badge>
           )}
         </div>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-3 pt-0">
         {visibleResults.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-4">
+          <p className="py-6 text-center text-sm text-muted-foreground">
             Нет видимых тестов для отображения
           </p>
         ) : (
@@ -64,49 +70,61 @@ export function TestResults({ testResults, testCases }: TestResultsProps) {
               return (
                 <div
                   key={result.testCaseId}
-                  className={`p-4 rounded-lg border ${
+                  className={`rounded-lg border p-4 transition-colors ${
                     result.passed
-                      ? "bg-primary/10 border-primary/30"
-                      : "bg-destructive/10 border-destructive/30"
+                      ? "border-emerald-500/25 bg-emerald-500/[0.06]"
+                      : "border-destructive/25 bg-destructive/[0.06]"
                   }`}
                 >
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      {result.passed ? (
-                        <CheckCircle2 className="h-5 w-5 text-primary" />
-                      ) : (
-                        <XCircle className="h-5 w-5 text-destructive" />
-                      )}
-                      <span className="font-medium">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div
+                        className={`mt-0.5 shrink-0 rounded-full p-1 ${
+                          result.passed
+                            ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                            : "bg-destructive/15 text-destructive"
+                        }`}
+                      >
+                        {result.passed ? (
+                          <CheckCircle2 className="size-4" />
+                        ) : (
+                          <XCircle className="size-4" />
+                        )}
+                      </div>
+                      <span className="text-sm font-medium leading-snug">
                         {testCase?.description || `Тест ${result.testCaseId}`}
                       </span>
                     </div>
                     {result.executionTime && (
-                      <Badge variant="outline" className="text-xs">
+                      <Badge
+                        variant="outline"
+                        className="shrink-0 gap-1 text-xs font-medium"
+                      >
+                        <Zap className="size-3" />
                         {result.executionTime} мс
                       </Badge>
                     )}
                   </div>
 
                   {!result.passed && (
-                    <div className="mt-3 space-y-2 text-sm">
+                    <div className="mt-3 space-y-2 pl-7">
                       {result.error && (
-                        <div className="p-2 bg-destructive/20 rounded">
-                          <p className="font-medium text-destructive">Ошибка:</p>
-                          <pre className="text-xs text-destructive/90 mt-1 whitespace-pre-wrap font-mono">
+                        <div className="rounded-md border border-destructive/20 bg-destructive/10 p-3">
+                          <p className="text-xs font-semibold text-destructive">
+                            Ошибка
+                          </p>
+                          <pre className="mt-1.5 whitespace-pre-wrap font-mono text-xs leading-relaxed text-destructive/90">
                             {result.error}
                           </pre>
                         </div>
                       )}
                       {result.actualOutput !== undefined && (
-                        <div>
-                          <p className="text-muted-foreground">
-                            Получено:{" "}
-                            <code className="bg-muted px-1 rounded">
-                              {String(result.actualOutput)}
-                            </code>
-                          </p>
-                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Получено:{" "}
+                          <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
+                            {String(result.actualOutput)}
+                          </code>
+                        </p>
                       )}
                     </div>
                   )}
@@ -116,22 +134,20 @@ export function TestResults({ testResults, testCases }: TestResultsProps) {
           </div>
         )}
 
-        {/* Информация о скрытых тестах */}
         {testResults.totalCount > visibleTotalCount && (
-          <div className="pt-3 border-t">
-            <p className="text-xs text-muted-foreground flex items-center gap-1">
-              <EyeOff className="h-3 w-3" />
-              {testResults.totalCount - visibleTotalCount} скрытых тестов не показаны
-            </p>
+          <div className="flex items-center gap-2 border-t pt-3 text-xs text-muted-foreground">
+            <EyeOff className="size-3.5 shrink-0" />
+            <span>
+              {testResults.totalCount - visibleTotalCount} скрытых тестов не
+              показаны
+            </span>
           </div>
         )}
 
-        {/* Общее время выполнения */}
         {testResults.executionTime > 0 && (
-          <div className="pt-3 border-t">
-            <p className="text-xs text-muted-foreground">
-              Общее время выполнения: {testResults.executionTime} мс
-            </p>
+          <div className="flex items-center gap-2 border-t pt-3 text-xs text-muted-foreground">
+            <Zap className="size-3.5 shrink-0" />
+            <span>Общее время выполнения: {testResults.executionTime} мс</span>
           </div>
         )}
       </CardContent>
