@@ -54,7 +54,7 @@ export function DashboardContent({ profile, stats, achievements }: DashboardCont
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Уровень</CardTitle>
-            <Badge variant="secondary">Level {stats.currentLevel}</Badge>
+            <Badge variant="secondary">Уровень {stats.currentLevel}</Badge>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.currentLevel}</div>
@@ -77,7 +77,7 @@ export function DashboardContent({ profile, stats, achievements }: DashboardCont
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Решенных задач</CardTitle>
+            <CardTitle className="text-sm font-medium">Решённых задач</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.successfulAttempts}</div>

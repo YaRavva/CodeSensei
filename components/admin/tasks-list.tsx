@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DifficultyBadge } from "@/components/ui/difficulty-badge";
 import type { Task } from "@/types/db";
 
 interface TasksListProps {
@@ -80,20 +80,6 @@ export function TasksList({ moduleId }: TasksListProps) {
     );
   }
 
-  const getDifficultyBadge = (difficulty: string) => {
-    const tone =
-      difficulty === "easy"
-        ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-        : difficulty === "medium"
-          ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400"
-          : "border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-400";
-    return (
-      <Badge variant="outline" className={tone}>
-        {difficulty === "easy" ? "Легкое" : difficulty === "medium" ? "Среднее" : "Сложное"}
-      </Badge>
-    );
-  };
-
   return (
     <div className="space-y-4">
       {tasks.map((task) => (
@@ -102,10 +88,12 @@ export function TasksList({ moduleId }: TasksListProps) {
             <div className="flex items-start justify-between">
               <div>
                 <CardTitle>{task.title}</CardTitle>
-                <CardDescription>
-                  Порядок: {task.order_index} | XP: {task.xp_reward} |{" "}
-                  {getDifficultyBadge(task.difficulty)}
-                </CardDescription>
+                <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                  <span>Порядок: {task.order_index}</span>
+                  <span aria-hidden="true">·</span>
+                  <span>XP: {task.xp_reward}</span>
+                  <DifficultyBadge difficulty={task.difficulty} />
+                </div>
               </div>
             </div>
           </CardHeader>

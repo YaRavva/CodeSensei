@@ -41,24 +41,18 @@ export function AchievementBadge({
 
   return (
     <div
-      className={`group relative overflow-hidden rounded-2xl border p-4 sm:p-5 transition-all duration-300 ${
+      className={`group relative overflow-hidden rounded-2xl border p-4 sm:p-5 transition-colors duration-300 ${
         isEarned
-          ? "border-primary/60 bg-gradient-to-b from-primary/10 via-background/90 to-background shadow-[0_18px_40px_-24px_rgba(15,23,42,0.7)]"
+          ? "border-emerald-500/50 bg-emerald-500/[0.06] shadow-[0_18px_40px_-24px_rgba(15,23,42,0.7)]"
           : "border-border/70 bg-card/70 shadow-[0_16px_40px_-26px_rgba(15,23,42,0.9)]"
       }`}
     >
-      <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-        <div className="absolute -top-10 right-0 h-32 w-32 rounded-full bg-[radial-gradient(circle_at_top,_rgba(148,163,184,0.35),_transparent_60%)]" />
-      </div>
-
       <div className="relative flex flex-col gap-3">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3">
             <div
-              className={`flex items-center justify-center rounded-2xl ${iconWrapperSize} bg-gradient-to-br ${
-                isEarned
-                  ? "from-primary/80 via-primary/70 to-primary/90 text-primary-foreground shadow-lg"
-                  : "from-muted/50 via-muted/20 to-background text-muted-foreground"
+              className={`flex items-center justify-center rounded-2xl ${iconWrapperSize} ${
+                isEarned ? "bg-emerald-500 text-white" : "bg-muted text-muted-foreground"
               }`}
             >
               <AchievementIcon
@@ -71,7 +65,7 @@ export function AchievementBadge({
               <div className="flex items-center gap-2">
                 <h3 className={`font-semibold leading-tight ${titleSize}`}>{achievement.title}</h3>
                 {isEarned && (
-                  <span className="inline-flex items-center rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-400">
+                  <span className="inline-flex items-center rounded-full bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
                     Открыто
                   </span>
                 )}
@@ -87,16 +81,18 @@ export function AchievementBadge({
           {xp > 0 && (
             <Badge
               variant="outline"
-              className="border-primary/50 bg-primary/10 text-[11px] font-medium text-primary"
+              className="border-primary/50 bg-primary/10 text-xs font-medium text-primary"
             >
               +{xp} XP
             </Badge>
           )}
         </div>
 
-        <div className="mt-1 flex items-center justify-between text-[11px] text-muted-foreground">
+        <div className="mt-1 flex items-center justify-between text-xs text-muted-foreground">
           <span className="flex items-center gap-1.5">
-            <span className="h-1.5 w-1.5 rounded-full bg-gradient-to-r from-primary to-primary/60" />
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${isEarned ? "bg-emerald-500" : "bg-muted-foreground/40"}`}
+            />
             {isEarned ? "Достижение получено" : "Ещё не получено"}
           </span>
           {achievement.earned_at && (

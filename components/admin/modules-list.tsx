@@ -2,10 +2,10 @@
 
 import { AlertTriangle } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkBreaks from "remark-breaks";
 import remarkGfm from "remark-gfm";
-import { useEffect, useState } from "react";
 import { badgeVariants } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -131,7 +131,10 @@ export function ModulesList({ initialModules }: ModulesListProps) {
   return (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
       {modules.map((module) => (
-        <Card key={module.id} className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-border/60 bg-card/60 backdrop-blur-sm transition-all duration-300 hover:border-primary/50 hover:shadow-lg">
+        <Card
+          key={module.id}
+          className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-border/60 bg-card/60 backdrop-blur-sm transition-all duration-300 hover:border-primary/50 hover:shadow-lg"
+        >
           <CardHeader className="p-4 sm:p-5 pb-3">
             <div className="flex items-start justify-between gap-2">
               <div className="space-y-1">
@@ -161,7 +164,11 @@ export function ModulesList({ initialModules }: ModulesListProps) {
                   components={{
                     p: ({ children }) => <span className="inline">{children}</span>,
                     a: ({ children }) => <span className="text-primary underline">{children}</span>,
-                    code: ({ children }) => <code className="rounded bg-muted px-1 py-0.5 text-[11px] font-mono">{children}</code>,
+                    code: ({ children }) => (
+                      <code className="rounded bg-muted px-1 py-0.5 text-xs font-mono">
+                        {children}
+                      </code>
+                    ),
                     pre: ({ children }) => <span className="block truncate">{children}</span>,
                     ul: ({ children }) => <span className="inline">{children}</span>,
                     ol: ({ children }) => <span className="inline">{children}</span>,
@@ -169,7 +176,9 @@ export function ModulesList({ initialModules }: ModulesListProps) {
                     h1: ({ children }) => <span className="font-semibold">{children}</span>,
                     h2: ({ children }) => <span className="font-semibold">{children}</span>,
                     h3: ({ children }) => <span className="font-semibold">{children}</span>,
-                    blockquote: ({ children }) => <span className="italic text-muted-foreground">{children}</span>,
+                    blockquote: ({ children }) => (
+                      <span className="text-muted-foreground">{children}</span>
+                    ),
                     hr: () => <span className="mx-1 text-muted-foreground"> | </span>,
                   }}
                 >
@@ -184,7 +193,12 @@ export function ModulesList({ initialModules }: ModulesListProps) {
               <span>Порядок: #{module.order_index}</span>
             </div>
             <div className="flex gap-2 pt-2">
-              <Button variant="outline" size="sm" asChild className="flex-1 transition-transform duration-200 active:scale-[0.98]">
+              <Button
+                variant="outline"
+                size="sm"
+                asChild
+                className="flex-1 transition-transform duration-200 active:scale-[0.98]"
+              >
                 <Link href={`/admin/modules/${module.id}/edit`}>Редактировать</Link>
               </Button>
               <Button
@@ -218,10 +232,20 @@ export function ModulesList({ initialModules }: ModulesListProps) {
             </div>
           </DialogHeader>
           <DialogFooter className="sm:justify-end gap-2 pt-2">
-            <Button type="button" variant="outline" onClick={() => setConfirmOpen(false)} className="rounded-xl">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setConfirmOpen(false)}
+              className="rounded-xl"
+            >
               Отмена
             </Button>
-            <Button type="button" variant="destructive" onClick={handleDeleteConfirmed} className="rounded-xl">
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleDeleteConfirmed}
+              className="rounded-xl"
+            >
               Удалить
             </Button>
           </DialogFooter>

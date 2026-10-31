@@ -30,7 +30,7 @@ export default async function AchievementsPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="space-y-6">
-        <div className="rounded-2xl border bg-gradient-to-r from-primary/10 via-primary/5 to-accent/10 px-6 py-5 shadow-sm backdrop-blur">
+        <div className="rounded-2xl border bg-card/60 px-6 py-5 shadow-sm backdrop-blur">
           <h1 className="text-3xl font-bold">Достижения</h1>
           <p className="text-muted-foreground mt-2 max-w-2xl">
             Здесь собраны все возможные достижения в CodeSensei. Получайте их, решая задания,

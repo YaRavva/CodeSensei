@@ -166,7 +166,7 @@ export default function RegisterPage() {
                           {nameError}
                         </p>
                       )}
-                      <p className="text-[11px] text-muted-foreground">
+                      <p className="text-xs text-muted-foreground">
                         Укажите минимум 2 слова (например: Иван Петров)
                       </p>
                     </div>
