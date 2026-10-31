@@ -2,6 +2,9 @@
 
 import { CheckCircle2, Clock, Rocket } from "lucide-react";
 import Link from "next/link";
+import ReactMarkdown from "react-markdown";
+import remarkBreaks from "remark-breaks";
+import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Database } from "@/types/db";
@@ -90,8 +93,26 @@ export function ModuleCard({ module, status, tasksCount }: ModuleCardProps) {
 
       <CardContent className="relative flex flex-1 flex-col space-y-4 p-4 sm:p-5 pt-0">
         {module.description && (
-          <div className="line-clamp-3 text-xs text-muted-foreground/90 sm:text-sm">
-            {module.description}
+          <div className="line-clamp-3 text-xs text-muted-foreground/90 sm:text-sm prose prose-sm dark:prose-invert max-w-none">
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm, remarkBreaks]}
+              components={{
+                p: ({ children }) => <span className="inline">{children}</span>,
+                a: ({ children }) => <span className="text-primary underline">{children}</span>,
+                code: ({ children }) => <code className="rounded bg-muted px-1 py-0.5 text-[11px] font-mono">{children}</code>,
+                pre: ({ children }) => <span className="block truncate">{children}</span>,
+                ul: ({ children }) => <span className="inline">{children}</span>,
+                ol: ({ children }) => <span className="inline">{children}</span>,
+                li: ({ children }) => <span className="inline mr-2">• {children}</span>,
+                h1: ({ children }) => <span className="font-semibold">{children}</span>,
+                h2: ({ children }) => <span className="font-semibold">{children}</span>,
+                h3: ({ children }) => <span className="font-semibold">{children}</span>,
+                blockquote: ({ children }) => <span className="italic text-muted-foreground">{children}</span>,
+                hr: () => <span className="mx-1 text-muted-foreground"> | </span>,
+              }}
+            >
+              {module.description}
+            </ReactMarkdown>
           </div>
         )}
         <div className="mt-auto pt-1">

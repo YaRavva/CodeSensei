@@ -2,6 +2,9 @@
 
 import { AlertTriangle } from "lucide-react";
 import Link from "next/link";
+import ReactMarkdown from "react-markdown";
+import remarkBreaks from "remark-breaks";
+import remarkGfm from "remark-gfm";
 import { useEffect, useState } from "react";
 import { badgeVariants } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -151,9 +154,31 @@ export function ModulesList({ initialModules }: ModulesListProps) {
             </div>
           </CardHeader>
           <CardContent className="flex flex-1 flex-col justify-between space-y-4 p-4 sm:p-5 pt-0">
-            <p className="text-sm text-muted-foreground line-clamp-2">
-              {module.description || "Описание модуля отсутствует."}
-            </p>
+            <div className="text-sm text-muted-foreground line-clamp-2 prose prose-sm dark:prose-invert max-w-none">
+              {module.description ? (
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm, remarkBreaks]}
+                  components={{
+                    p: ({ children }) => <span className="inline">{children}</span>,
+                    a: ({ children }) => <span className="text-primary underline">{children}</span>,
+                    code: ({ children }) => <code className="rounded bg-muted px-1 py-0.5 text-[11px] font-mono">{children}</code>,
+                    pre: ({ children }) => <span className="block truncate">{children}</span>,
+                    ul: ({ children }) => <span className="inline">{children}</span>,
+                    ol: ({ children }) => <span className="inline">{children}</span>,
+                    li: ({ children }) => <span className="inline mr-2">• {children}</span>,
+                    h1: ({ children }) => <span className="font-semibold">{children}</span>,
+                    h2: ({ children }) => <span className="font-semibold">{children}</span>,
+                    h3: ({ children }) => <span className="font-semibold">{children}</span>,
+                    blockquote: ({ children }) => <span className="italic text-muted-foreground">{children}</span>,
+                    hr: () => <span className="mx-1 text-muted-foreground"> | </span>,
+                  }}
+                >
+                  {module.description}
+                </ReactMarkdown>
+              ) : (
+                "Описание модуля отсутствует."
+              )}
+            </div>
             <div className="flex items-center justify-between text-xs text-muted-foreground border-t border-border/40 pt-3">
               <span>Сложность: Уровень {module.level}</span>
               <span>Порядок: #{module.order_index}</span>
