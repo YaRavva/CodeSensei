@@ -128,8 +128,8 @@ export function ModulesList({ initialModules }: ModulesListProps) {
   return (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
       {modules.map((module) => (
-        <Card key={module.id} className="group relative flex h-full flex-col overflow-hidden border border-border/60 bg-card/60 backdrop-blur-sm transition-all duration-300 hover:border-primary/50 hover:shadow-lg">
-          <CardHeader className="pb-3">
+        <Card key={module.id} className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-border/60 bg-card/60 backdrop-blur-sm transition-all duration-300 hover:border-primary/50 hover:shadow-lg">
+          <CardHeader className="p-4 sm:p-5 pb-3">
             <div className="flex items-start justify-between gap-2">
               <div className="space-y-1">
                 <CardTitle className="text-lg font-semibold tracking-tight text-foreground transition-colors group-hover:text-primary">
@@ -150,7 +150,7 @@ export function ModulesList({ initialModules }: ModulesListProps) {
               </div>
             </div>
           </CardHeader>
-          <CardContent className="flex flex-1 flex-col justify-between space-y-4 pt-0">
+          <CardContent className="flex flex-1 flex-col justify-between space-y-4 p-4 sm:p-5 pt-0">
             <p className="text-sm text-muted-foreground line-clamp-2">
               {module.description || "Описание модуля отсутствует."}
             </p>

@@ -1,0 +1,134 @@
+[
+  {
+    "id": "557224c5-90af-4bec-9a94-75825e382212",
+    "title": "Инициалы школьного дневника",
+    "difficulty": "easy",
+    "starter_code": "def get_initials(full_name):\n    # Напишите здесь ваше решение\n    pass",
+    "solution_code": "def get_initials(full_name):\n    words = full_name.split()\n    return words[0][0] + \". \" + words[1]",
+    "test_cases": [
+      {
+        "id": "test_1",
+        "description": "Базовое имя и фамилия",
+        "input": {
+          "full_name": "Иван Иванов"
+        },
+        "expected_output": "И. Иванов",
+        "category": "basic",
+        "is_visible": true
+      },
+      {
+        "id": "test_2",
+        "description": "Имя с буквой в нижнем регистре",
+        "input": {
+          "full_name": "петр смирнов"
+        },
+        "expected_output": "п. смирнов",
+        "category": "edge",
+        "is_visible": false
+      },
+      {
+        "id": "test_3",
+        "description": "Длинные имя и фамилия",
+        "input": {
+          "full_name": "Святополк Окаянный"
+        },
+        "expected_output": "С. Окаянный",
+        "category": "edge",
+        "is_visible": false
+      }
+    ],
+    "hints": [
+      "Подсказка 1: Подумай, как разделить текст на отдельные слова (имя и фамилию). В Python для этого есть удобный метод строк.",
+      "Подсказка 2: После разделения строки у тебя получится список. Первый элемент — это имя, второй — фамилия.",
+      "Подсказка 3: Чтобы получить только первую букву имени, используй обращение по индексу [0] или срез для первого слова, а затем добавь к нему '. ' и саму фамилию."
+    ]
+  },
+  {
+    "id": "35750884-a884-43d3-9b7d-c1bb9050d1d2",
+    "title": "Школьный дневник успеваемости",
+    "difficulty": "medium",
+    "starter_code": "def format_student_record(record):\n    # Напишите здесь ваше решение\n    pass",
+    "solution_code": "def format_student_record(record):\n    parts = record.split(':')\n    surname = parts[0].upper()\n    name = parts[1].capitalize()\n    grade = parts[2]\n    name_len = len(name)\n    return f\"Ученик: {surname} {name} (букв в имени: {name_len}), оценка: {grade}\"",
+    "test_cases": [
+      {
+        "id": "test_1",
+        "description": "Базовый случай с учеником в нижнем регистре",
+        "input": {
+          "record": "петров:андрей:4"
+        },
+        "expected_output": "Ученик: ПЕТРОВ Андрей (букв в имени: 6), оценка: 4",
+        "category": "basic",
+        "is_visible": true
+      },
+      {
+        "id": "test_2",
+        "description": "Случай с разным регистром букв в исходной строке",
+        "input": {
+          "record": "ИВАНОВА:мария:5"
+        },
+        "expected_output": "Ученик: ИВАНОВА Мария (букв в имени: 5), оценка: 5",
+        "category": "edge",
+        "is_visible": false
+      },
+      {
+        "id": "test_3",
+        "description": "Случай с двойным именем или необычным регистром",
+        "input": {
+          "record": "смирнов:анна-мария:3"
+        },
+        "expected_output": "Ученик: СМИРНОВ Анна-мария (букв в имени: 10), оценка: 3",
+        "category": "edge",
+        "is_visible": false
+      }
+    ],
+    "hints": [
+      "Подсказка 1: Попробуй разделить входящую строку на части с помощью метода split(':'). Что у тебя получится?",
+      "Подсказка 2: Чтобы сделать фамилию заглавными буквами, используй метод .upper(), а для имени отлично подойдет .capitalize().",
+      "Подсказка 3: Не забудь посчитать количество букв в имени через len() и аккуратно собрать всю итоговую строчку с помощью f-строки или сложения строк."
+    ]
+  },
+  {
+    "id": "2e515011-682b-4c0f-a454-370873142082",
+    "title": "Сборка школьной стенгазеты",
+    "difficulty": "hard",
+    "starter_code": "def format_headline(text):\n    # Напишите здесь ваше решение\n    pass",
+    "solution_code": "def format_headline(text):\n    clean_text = text.strip().lower()\n    if not clean_text:\n        return ''\n    formatted = clean_text[0].upper() + clean_text[1:]\n    vowels = 'аеёиоуыэюя'\n    if formatted[0].lower() in vowels:\n        return formatted + '!'\n    else:\n        return formatted + '.'",
+    "test_cases": [
+      {
+        "id": "test_1",
+        "description": "Базовый случай с пробелами и гласной буквой в начале",
+        "input": {
+          "text": "   урок информатики   "
+        },
+        "expected_output": "Урок информатики!",
+        "category": "basic",
+        "is_visible": true
+      },
+      {
+        "id": "test_2",
+        "description": "Граничный случай с заглавными буквами и согласной на конце",
+        "input": {
+          "text": "ШКОЛЬНЫЙ КУБОК ПО ФУТБОЛУ"
+        },
+        "expected_output": "Школьный кубок по футболу.",
+        "category": "edge",
+        "is_visible": false
+      },
+      {
+        "id": "test_3",
+        "description": "Граничный случай с пустой строкой или только пробелами",
+        "input": {
+          "text": "   "
+        },
+        "expected_output": "",
+        "category": "edge",
+        "is_visible": false
+      }
+    ],
+    "hints": [
+      "Подсказка 1: Начни с очистки строки от лишних пробелов по краям с помощью метода strip(), а также приведению к нижнему регистру с помощью lower().",
+      "Подсказка 2: Чтобы сделать первую букву заглавной, используй срез первой буквы [0].upper() и соедини её со срезом оставшейся части строки [1:].",
+      "Подсказка 3: Создай строку с гласными буквами и проверь, входит ли первая буква отформатированного текста в эту строку, чтобы решить, какой знак препинания добавить в конце."
+    ]
+  }
+]
