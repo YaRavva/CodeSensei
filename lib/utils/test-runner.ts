@@ -61,9 +61,14 @@ export async function runTestCase(
     
     let testCode = "";
 
+    const inputAssignment = testCase.input 
+      ? Object.entries(testCase.input).map(([k, v]) => `${k} = ${valueToPython(v)}`).join("\n") + "\n"
+      : "";
+
     if (functionMatch) {
       const functionName = functionMatch[1];
       testCode = `
+${inputAssignment}
 ${userCode}
 
 import json
@@ -96,6 +101,7 @@ except Exception as e:
     } else {
       const expectedOutputPy = valueToPython(testCase.expected_output);
       testCode = `
+${inputAssignment}
 ${userCode}
 
 import json
