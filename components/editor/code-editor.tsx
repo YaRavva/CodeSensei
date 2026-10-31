@@ -13,14 +13,8 @@ interface CodeEditorProps {
   className?: string;
 }
 
-// Настраиваем loader для Monaco Editor с правильными путями
+// Настраиваем перехват require.js для Monaco Editor, чтобы игнорировать загрузку проблемных модулей
 if (typeof window !== "undefined") {
-  loader.config({
-    paths: {
-      vs: "https://cdn.jsdelivr.net/npm/monaco-editor@0.57.0/min/vs",
-    },
-  });
-
   // Перехватываем require.js для Monaco Editor, чтобы игнорировать загрузку проблемных модулей
   const originalRequire = (window as any).require;
   if (originalRequire && originalRequire.config) {
