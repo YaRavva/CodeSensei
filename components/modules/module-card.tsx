@@ -41,13 +41,13 @@ export function ModuleCard({ module, status, tasksCount }: ModuleCardProps) {
 
   return (
     <Card
-      className={`group relative flex h-full flex-col overflow-hidden rounded-2xl border p-4 sm:p-6 transition-[border-color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-primary/40 ${
+      className={`group relative flex h-full flex-col overflow-hidden rounded-2xl border transition-[border-color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-primary/40 ${
         isCompleted
           ? "border-primary/60 bg-card/70 shadow-[0_18px_40px_-24px_rgba(15,23,42,0.7)]"
           : "border-border/70 bg-card/70 shadow-[0_16px_40px_-26px_rgba(15,23,42,0.9)]"
       }`}
     >
-      <CardHeader className="relative space-y-4 pb-4">
+      <CardHeader className="relative space-y-4 p-4 sm:p-5 pb-3">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-2 pr-2">
             <CardTitle className="text-base font-semibold leading-tight sm:text-lg">
@@ -88,7 +88,7 @@ export function ModuleCard({ module, status, tasksCount }: ModuleCardProps) {
         </div>
       </CardHeader>
 
-      <CardContent className="relative flex flex-1 flex-col space-y-4 pt-0">
+      <CardContent className="relative flex flex-1 flex-col space-y-4 p-4 sm:p-5 pt-0">
         {module.description && (
           <div className="line-clamp-3 text-xs text-muted-foreground/90 sm:text-sm">
             {module.description}
