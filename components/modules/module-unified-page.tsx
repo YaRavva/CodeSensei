@@ -674,7 +674,7 @@ export function ModuleUnifiedPage({
         return {
           label: "В процессе",
           icon: CircleDot,
-          iconClassName: "text-primary",
+          iconClassName: "text-amber-500",
           variant: "secondary" as const,
           className: "", // Используем стандартный стиль secondary, как у бейджа XP
         };
@@ -1036,13 +1036,13 @@ export function ModuleUnifiedPage({
                                   <span className="text-lg font-bold">{task.title}</span>
                                 </div>
                                 <Badge
-                                  variant={task.difficulty === "hard" ? "destructive" : "default"}
+                                  variant="outline"
                                   className={
                                     task.difficulty === "easy"
-                                      ? "bg-green-500 hover:bg-green-600 text-white border-transparent"
+                                      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
                                       : task.difficulty === "medium"
-                                        ? "bg-yellow-500 hover:bg-yellow-600 text-white border-transparent"
-                                        : undefined
+                                        ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                                        : "border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-400"
                                   }
                                 >
                                   {task.difficulty === "easy"
@@ -1051,14 +1051,8 @@ export function ModuleUnifiedPage({
                                       ? "Среднее"
                                       : "Сложное"}
                                 </Badge>
-                                <Badge variant="secondary">
-                                  +
-                                  {task.difficulty === "easy"
-                                    ? 10
-                                    : task.difficulty === "medium"
-                                      ? 20
-                                      : 30}{" "}
-                                  XP
+                                <Badge variant="outline" className="border-primary/30 bg-primary/10 text-primary">
+                                  +{task.difficulty === "easy" ? 10 : task.difficulty === "medium" ? 20 : 30} XP
                                 </Badge>
                               </div>
                               <Badge

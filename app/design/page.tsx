@@ -75,11 +75,11 @@ export default function DesignSystemPage() {
           </div>
 
           <div className="flex flex-wrap gap-4 items-center rounded-2xl border bg-card p-6">
-            <div className="inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-semibold bg-primary/10 text-primary border-primary/40 whitespace-nowrap shrink-0">
+            <div className="inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/40 whitespace-nowrap shrink-0">
               <Rocket className="size-3.5" />
               <span>В процессе</span>
             </div>
-            <div className="inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-semibold bg-emerald-500/10 text-emerald-400 border-emerald-500/40 whitespace-nowrap shrink-0">
+            <div className="inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-semibold bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 whitespace-nowrap shrink-0">
               <CheckCircle2 className="size-3.5" />
               <span>Завершен</span>
             </div>
@@ -140,7 +140,7 @@ export default function DesignSystemPage() {
                 </div>
 
                 <div className="flex items-center justify-between gap-4 pt-3 border-t text-xs text-muted-foreground/90">
-                  <span className="inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-medium whitespace-nowrap shrink-0 border-primary/60 bg-primary/10 text-primary">
+                  <span className="inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-medium whitespace-nowrap shrink-0 border-amber-500/60 bg-amber-500/10 text-amber-700 dark:text-amber-400">
                     <Rocket className="size-3.5 shrink-0" />
                     <span>В процессе</span>
                   </span>
@@ -183,7 +183,7 @@ export default function DesignSystemPage() {
                 </div>
 
                 <div className="flex items-center justify-between gap-4 pt-3 border-t text-xs text-muted-foreground/90">
-                  <span className="inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-medium whitespace-nowrap shrink-0 border-emerald-500/60 bg-emerald-500/10 text-emerald-400">
+                  <span className="inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-xs font-medium whitespace-nowrap shrink-0 border-emerald-500/60 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
                     <CheckCircle2 className="size-3.5 shrink-0" />
                     <span>Завершен</span>
                   </span>

@@ -512,13 +512,13 @@ export function TaskPageContent({
               <h1 className="text-3xl font-bold mb-2">{task.title}</h1>
               <div className="flex items-center gap-4 flex-wrap">
                 <Badge
-                  variant={task.difficulty === "hard" ? "destructive" : "default"}
+                  variant="outline"
                   className={
                     task.difficulty === "easy"
-                      ? "bg-green-500 hover:bg-green-600 text-white border-transparent"
+                      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
                       : task.difficulty === "medium"
-                        ? "bg-yellow-500 hover:bg-yellow-600 text-white border-transparent"
-                        : undefined
+                        ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                        : "border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-400"
                   }
                 >
                   {task.difficulty === "easy"
@@ -531,8 +531,8 @@ export function TaskPageContent({
                   +{task.difficulty === "easy" ? 10 : task.difficulty === "medium" ? 20 : 30} XP
                 </Badge>
                 {(lastAttempt?.is_successful || isCompleted) && (
-                  <Badge className="bg-green-600 text-white">
-                    <CheckCircle2 className="mr-1 h-3 w-3" />
+                  <Badge variant="success" className="gap-1.5">
+                    <CheckCircle2 className="size-3.5" />
                     Выполнено
                   </Badge>
                 )}
@@ -749,7 +749,7 @@ export function TaskPageContent({
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">
-                        <CheckCircle2 className="h-5 w-5 text-green-600" />
+                        <CheckCircle2 className="h-5 w-5 text-emerald-600" />
                         Код выполнен успешно
                       </CardTitle>
                       {executionResult.executionTime > 0 && (

@@ -144,22 +144,14 @@ export function ModuleTasksManager({
   }
 
   function getDifficultyBadge(difficulty: string) {
-    const variants = {
-      easy: {
-        variant: "default" as const,
-        label: "Легкое",
-        className: "bg-green-500 hover:bg-green-600 text-white border-transparent",
-      },
-      medium: {
-        variant: "default" as const,
-        label: "Среднее",
-        className: "bg-yellow-500 hover:bg-yellow-600 text-white border-transparent",
-      },
-      hard: { variant: "destructive" as const, label: "Сложное", className: undefined },
-    };
-    const config = variants[difficulty as keyof typeof variants] || variants.easy;
+    const config =
+      difficulty === "easy"
+        ? { label: "Легкое", tone: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" }
+        : difficulty === "medium"
+          ? { label: "Среднее", tone: "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400" }
+          : { label: "Сложное", tone: "border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-400" };
     return (
-      <Badge variant={config.variant} className={config.className}>
+      <Badge variant="outline" className={config.tone}>
         {config.label}
       </Badge>
     );

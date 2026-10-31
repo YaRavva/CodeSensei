@@ -25,7 +25,7 @@ const statusConfig: Record<ModuleStatus, { label: string; icon: typeof Clock; to
   in_progress: {
     label: "В процессе",
     icon: Rocket,
-    tone: "border-primary/60 bg-primary/10 text-primary",
+    tone: "border-amber-500/60 bg-amber-500/10 text-amber-700 dark:text-amber-400",
   },
   completed: {
     label: "Завершен",
@@ -43,7 +43,7 @@ export function ModuleCard({ module, status, tasksCount }: ModuleCardProps) {
     <Card
       className={`group relative flex h-full flex-col overflow-hidden rounded-2xl border transition-[border-color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:border-primary/40 ${
         isCompleted
-          ? "border-primary/60 bg-card/70 shadow-[0_18px_40px_-24px_rgba(15,23,42,0.7)]"
+          ? "border-emerald-500/60 bg-card/70 shadow-[0_18px_40px_-24px_rgba(15,23,42,0.7)]"
           : "border-border/70 bg-card/70 shadow-[0_16px_40px_-26px_rgba(15,23,42,0.9)]"
       }`}
     >
