@@ -87,7 +87,7 @@ export function ModuleCard({ module, status, tasksCount }: ModuleCardProps) {
               : status === "in_progress"
                 ? "Продолжайте — до завершения осталось немного."
                 : "Модуль успешно завершён."}
-            </span>
+          </span>
         </div>
       </CardHeader>
 
@@ -99,7 +99,9 @@ export function ModuleCard({ module, status, tasksCount }: ModuleCardProps) {
               components={{
                 p: ({ children }) => <span className="inline">{children}</span>,
                 a: ({ children }) => <span className="text-primary underline">{children}</span>,
-                code: ({ children }) => <code className="rounded bg-muted px-1 py-0.5 text-[11px] font-mono">{children}</code>,
+                code: ({ children }) => (
+                  <code className="rounded bg-muted px-1 py-0.5 text-xs font-mono">{children}</code>
+                ),
                 pre: ({ children }) => <span className="block truncate">{children}</span>,
                 ul: ({ children }) => <span className="inline">{children}</span>,
                 ol: ({ children }) => <span className="inline">{children}</span>,
@@ -107,7 +109,9 @@ export function ModuleCard({ module, status, tasksCount }: ModuleCardProps) {
                 h1: ({ children }) => <span className="font-semibold">{children}</span>,
                 h2: ({ children }) => <span className="font-semibold">{children}</span>,
                 h3: ({ children }) => <span className="font-semibold">{children}</span>,
-                blockquote: ({ children }) => <span className="italic text-muted-foreground">{children}</span>,
+                blockquote: ({ children }) => (
+                  <span className="text-muted-foreground">{children}</span>
+                ),
                 hr: () => <span className="mx-1 text-muted-foreground"> | </span>,
               }}
             >

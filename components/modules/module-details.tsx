@@ -8,6 +8,7 @@ import remarkGfm from "remark-gfm";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { DifficultyBadge } from "@/components/ui/difficulty-badge";
 import { Progress } from "@/components/ui/progress";
 import type { Database } from "@/types/db";
 
@@ -121,20 +122,17 @@ export function ModuleDetails({
                 not_started: {
                   label: "Не начато",
                   icon: Circle,
-                  iconClassName: "text-muted-foreground",
-                  variant: "secondary" as const,
+                  tone: "border-border bg-muted/40 text-muted-foreground",
                 },
                 in_progress: {
                   label: "В процессе",
                   icon: CircleDot,
-                  iconClassName: "text-amber-500",
-                  variant: "secondary" as const,
+                  tone: "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400",
                 },
                 completed: {
                   label: "Завершено",
                   icon: CheckCircle2,
-                  iconClassName: "text-emerald-500",
-                  variant: "secondary" as const,
+                  tone: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
                 },
               } as const;
               const statusInfo = statusConfig[status];
@@ -142,21 +140,18 @@ export function ModuleDetails({
               return (
                 <Card key={task.id} className="hover:shadow-lg transition-shadow">
                   <CardHeader>
-                    <div className="flex items-start justify-between">
+                    <div className="flex items-start justify-between gap-3">
                       <div className="flex-1">
                         <CardTitle className="mb-2">
                           Задание {index + 1}: {task.title}
                         </CardTitle>
-                        <CardDescription>
-                          Сложность: {task.difficulty}
-                          {task.xp_reward ? ` · Награда: +${task.xp_reward} XP` : ""}
-                        </CardDescription>
+                        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                          <DifficultyBadge difficulty={task.difficulty} />
+                          {task.xp_reward ? <span>Награда: +{task.xp_reward} XP</span> : null}
+                        </div>
                       </div>
-                      <Badge variant={statusInfo.variant}>
-                        <statusInfo.icon
-                          className={`mr-1 h-4 w-4 ${statusInfo.iconClassName}`}
-                          aria-hidden="true"
-                        />
+                      <Badge variant="outline" className={statusInfo.tone}>
+                        <statusInfo.icon className="mr-1 h-4 w-4" aria-hidden="true" />
                         {statusInfo.label}
                       </Badge>
                     </div>

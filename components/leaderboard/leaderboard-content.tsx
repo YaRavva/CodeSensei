@@ -232,7 +232,7 @@ export function LeaderboardContent({
                           {userAchievements.slice(0, 5).map((achievement) => (
                             <div
                               key={achievement.id}
-                              className="group relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary/80 via-primary/70 to-primary/90 text-primary-foreground shadow-sm cursor-default"
+                              className="group relative flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-sm cursor-default"
                               title={`${achievement.title} — ${achievement.description}`}
                             >
                               <AchievementIcon

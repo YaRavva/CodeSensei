@@ -32,6 +32,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { DifficultyBadge, getDifficultyXP } from "@/components/ui/difficulty-badge";
 import { ToastAction } from "@/components/ui/toast";
 import { usePyodide } from "@/hooks/use-pyodide";
 import { useToast } from "@/hooks/use-toast";
@@ -510,25 +511,10 @@ export function TaskPageContent({
           <div className="flex items-start justify-between mb-4">
             <div>
               <h1 className="text-3xl font-bold mb-2">{task.title}</h1>
-              <div className="flex items-center gap-4 flex-wrap">
-                <Badge
-                  variant="outline"
-                  className={
-                    task.difficulty === "easy"
-                      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                      : task.difficulty === "medium"
-                        ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400"
-                        : "border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-400"
-                  }
-                >
-                  {task.difficulty === "easy"
-                    ? "Легкое"
-                    : task.difficulty === "medium"
-                      ? "Среднее"
-                      : "Сложное"}
-                </Badge>
-                <Badge variant="secondary">
-                  +{task.difficulty === "easy" ? 10 : task.difficulty === "medium" ? 20 : 30} XP
+              <div className="flex items-center gap-3 flex-wrap">
+                <DifficultyBadge difficulty={task.difficulty} />
+                <Badge variant="outline" className="border-primary/30 bg-primary/10 text-primary">
+                  +{getDifficultyXP(task.difficulty)} XP
                 </Badge>
                 {(lastAttempt?.is_successful || isCompleted) && (
                   <Badge variant="success" className="gap-1.5">
@@ -868,7 +854,7 @@ export function TaskPageContent({
         <DialogContent aria-describedby="feedback-description" className="max-w-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-primary" />
+              <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
               {feedbackTitle}
             </DialogTitle>
           </DialogHeader>

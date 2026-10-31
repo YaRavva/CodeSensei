@@ -4,9 +4,9 @@ import { Pencil, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { TaskForm } from "@/components/admin/task-form";
 import { Accordion, AccordionContent, AccordionItem } from "@/components/ui/accordion";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DifficultyBadge } from "@/components/ui/difficulty-badge";
 import { useToast } from "@/hooks/use-toast";
 import type { Task } from "@/types/db";
 
@@ -144,17 +144,7 @@ export function ModuleTasksManager({
   }
 
   function getDifficultyBadge(difficulty: string) {
-    const config =
-      difficulty === "easy"
-        ? { label: "Легкое", tone: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" }
-        : difficulty === "medium"
-          ? { label: "Среднее", tone: "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400" }
-          : { label: "Сложное", tone: "border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-400" };
-    return (
-      <Badge variant="outline" className={config.tone}>
-        {config.label}
-      </Badge>
-    );
+    return <DifficultyBadge difficulty={difficulty} />;
   }
 
   if (!moduleId || typeof moduleId !== "string" || moduleId.trim() === "") {
@@ -181,7 +171,8 @@ export function ModuleTasksManager({
           <CardContent className="pt-6">
             <div className="text-center py-12">
               <p className="text-muted-foreground text-sm max-w-sm mx-auto">
-                В этом модуле пока нет заданий. Создайте первое задание вручную или сгенерируйте с помощью ИИ.
+                В этом модуле пока нет заданий. Создайте первое задание вручную или сгенерируйте с
+                помощью ИИ.
               </p>
             </div>
           </CardContent>

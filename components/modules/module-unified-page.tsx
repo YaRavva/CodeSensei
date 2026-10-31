@@ -13,11 +13,11 @@ import {
   Filter,
   List,
   Loader2,
+  type LucideIcon,
   Play,
   RotateCcw,
   Sparkles,
   TrendingUp,
-  type LucideIcon,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
@@ -39,6 +39,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DifficultyBadge, getDifficultyXP } from "@/components/ui/difficulty-badge";
 import { Progress } from "@/components/ui/progress";
 import {
   Select,
@@ -883,34 +884,46 @@ export function ModuleUnifiedPage({
                           remarkPlugins={[remarkGfm, remarkBreaks]}
                           components={{
                             h1: ({ children }) => (
-                              <h1 className="text-2xl font-bold tracking-tight mb-4 mt-6 text-foreground">{children}</h1>
+                              <h1 className="text-2xl font-bold tracking-tight mb-4 mt-6 text-foreground">
+                                {children}
+                              </h1>
                             ),
                             h2: ({ children }) => (
-                              <h2 className="text-xl font-bold tracking-tight mb-3 mt-5 text-foreground">{children}</h2>
+                              <h2 className="text-xl font-bold tracking-tight mb-3 mt-5 text-foreground">
+                                {children}
+                              </h2>
                             ),
                             h3: ({ children }) => (
-                              <h3 className="text-lg font-semibold tracking-tight mb-2 mt-4 text-foreground">{children}</h3>
+                              <h3 className="text-lg font-semibold tracking-tight mb-2 mt-4 text-foreground">
+                                {children}
+                              </h3>
                             ),
                             h4: ({ children }) => (
-                              <h4 className="text-base font-semibold mb-2 mt-3 text-foreground">{children}</h4>
+                              <h4 className="text-base font-semibold mb-2 mt-3 text-foreground">
+                                {children}
+                              </h4>
                             ),
                             p: ({ children }) => (
-                              <p className="mb-4 last:mb-0 text-muted-foreground leading-relaxed">{children}</p>
+                              <p className="mb-4 last:mb-0 text-muted-foreground leading-relaxed">
+                                {children}
+                              </p>
                             ),
                             ul: ({ children }) => (
-                              <ul className="list-disc pl-6 mb-4 space-y-1 text-muted-foreground">{children}</ul>
+                              <ul className="list-disc pl-6 mb-4 space-y-1 text-muted-foreground">
+                                {children}
+                              </ul>
                             ),
                             ol: ({ children }) => (
-                              <ol className="list-decimal pl-6 mb-4 space-y-1 text-muted-foreground">{children}</ol>
+                              <ol className="list-decimal pl-6 mb-4 space-y-1 text-muted-foreground">
+                                {children}
+                              </ol>
                             ),
-                            li: ({ children }) => (
-                              <li className="leading-relaxed">{children}</li>
-                            ),
-                            hr: () => (
-                              <hr className="my-6 border-border" />
-                            ),
+                            li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+                            hr: () => <hr className="my-6 border-border" />,
                             blockquote: ({ children }) => (
-                              <blockquote className="border-l-4 border-primary pl-4 italic my-4 text-muted-foreground">{children}</blockquote>
+                              <blockquote className="border-l-4 border-primary pl-4 my-4 text-muted-foreground">
+                                {children}
+                              </blockquote>
                             ),
                             strong: ({ children }) => (
                               <strong className="font-semibold text-foreground">{children}</strong>
@@ -1035,24 +1048,12 @@ export function ModuleUnifiedPage({
                                   <span className="font-semibold text-lg">Задание {index + 1}</span>
                                   <span className="text-lg font-bold">{task.title}</span>
                                 </div>
+                                <DifficultyBadge difficulty={task.difficulty} />
                                 <Badge
                                   variant="outline"
-                                  className={
-                                    task.difficulty === "easy"
-                                      ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
-                                      : task.difficulty === "medium"
-                                        ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400"
-                                        : "border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-400"
-                                  }
+                                  className="border-primary/30 bg-primary/10 text-primary"
                                 >
-                                  {task.difficulty === "easy"
-                                    ? "Легкое"
-                                    : task.difficulty === "medium"
-                                      ? "Среднее"
-                                      : "Сложное"}
-                                </Badge>
-                                <Badge variant="outline" className="border-primary/30 bg-primary/10 text-primary">
-                                  +{task.difficulty === "easy" ? 10 : task.difficulty === "medium" ? 20 : 30} XP
+                                  +{getDifficultyXP(task.difficulty)} XP
                                 </Badge>
                               </div>
                               <Badge
@@ -1348,7 +1349,7 @@ export function ModuleUnifiedPage({
         <DialogContent aria-describedby="feedback-description" className="max-w-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-primary" />
+              <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
               {feedbackTitle}
             </DialogTitle>
           </DialogHeader>
