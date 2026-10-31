@@ -17,7 +17,7 @@ interface CodeEditorProps {
 if (typeof window !== "undefined") {
   loader.config({
     paths: {
-      vs: "https://cdn.jsdelivr.net/npm/monaco-editor@0.54.0/min/vs",
+      vs: "https://cdn.jsdelivr.net/npm/monaco-editor@0.57.0/min/vs",
     },
   });
 
