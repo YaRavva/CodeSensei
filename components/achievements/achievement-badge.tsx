@@ -43,7 +43,7 @@ export function AchievementBadge({
     <div
       className={`group relative overflow-hidden rounded-2xl border p-4 sm:p-6 transition-colors duration-300 ${
         isEarned
-          ? "border-emerald-500/50 bg-emerald-500/[0.06] shadow-[0_18px_40px_-24px_rgba(15,23,42,0.7)]"
+          ? "border-primary/60 bg-gradient-to-b from-primary/10 via-background/90 to-background shadow-[0_18px_40px_-24px_rgba(15,23,42,0.7)]"
           : "border-border/70 bg-card/70 shadow-[0_16px_40px_-26px_rgba(15,23,42,0.9)]"
       }`}
     >
@@ -51,8 +51,10 @@ export function AchievementBadge({
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3">
             <div
-              className={`flex items-center justify-center rounded-2xl ${iconWrapperSize} ${
-                isEarned ? "bg-emerald-500 text-white" : "bg-muted text-muted-foreground"
+              className={`flex items-center justify-center rounded-2xl ${iconWrapperSize} bg-gradient-to-br ${
+                isEarned
+                  ? "from-primary/80 via-primary/70 to-primary/90 text-primary-foreground shadow-lg"
+                  : "from-muted/50 via-muted/20 to-background text-muted-foreground"
               }`}
             >
               <AchievementIcon
@@ -90,9 +92,7 @@ export function AchievementBadge({
 
         <div className="mt-1 flex items-center justify-between text-xs text-muted-foreground">
           <span className="flex items-center gap-2">
-            <span
-              className={`h-1.5 w-1.5 rounded-full ${isEarned ? "bg-emerald-500" : "bg-muted-foreground/40"}`}
-            />
+            <span className="h-1.5 w-1.5 rounded-full bg-gradient-to-r from-primary to-primary/60" />
             {isEarned ? "Достижение получено" : "Ещё не получено"}
           </span>
           {achievement.earned_at && (
