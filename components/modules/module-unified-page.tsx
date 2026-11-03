@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark, oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
@@ -85,8 +86,9 @@ export function ModuleUnifiedPage({
   userProgress,
 }: ModuleUnifiedPageProps) {
   const { theme } = useTheme();
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
 
   useEffect(() => {
     setMounted(true);
@@ -538,6 +540,10 @@ export function ModuleUnifiedPage({
                   ...prev,
                   [taskId]: { ...prev[taskId], isCompleted: true },
                 }));
+
+                // Обновляем XP в шапке/профиле и обновляем серверные данные страницы
+                refreshProfile?.().catch(() => {});
+                router.refresh();
               } else {
                 // Успех, но XP не начислен (возможно, это не первая попытка)
                 toast({

@@ -28,9 +28,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Server-side protection: do not award XP twice for the same task.
+    // If the attempt was just recorded as the first success, isFirstAttempt is true.
     const alreadySuccessful = await hasSuccessfulAttempt(userId, task.id);
 
-    if (alreadySuccessful && !isFirstAttempt) {
+    if (alreadySuccessful && isFirstAttempt === false) {
       return NextResponse.json({
         success: true,
         xpAwarded: 0,

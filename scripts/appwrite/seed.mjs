@@ -143,12 +143,21 @@ const achievements = [
 
 const modules = [
   {
+    id: "module_lists",
+    title: "Списки",
+    description: "Знакомство со списками в Python: хранение данных, доступ по индексу и обход элементов.",
+    topic: "Списки в Python, индексация и операции без встроенной функции sum.",
+    level: 1,
+    order_index: 1,
+    is_published: true,
+  },
+  {
     id: "module_basics",
     title: "Основы Python: Переменные и функции",
     description: "Первый шаг в Python: переменные, простые функции и возврат значений.",
     topic: "Первое знакомство с синтаксисом Python, создание простых функций и возврат результатов.",
     level: 1,
-    order_index: 1,
+    order_index: 2,
     is_published: true,
   },
   {
@@ -158,12 +167,78 @@ const modules = [
       "Учимся повторять действия с помощью циклов и принимать решения с помощью условий. Задания становятся чуть сложнее.",
     topic: "Повторение блоков кода с помощью циклов и ветвление логики для обработки последовательностей.",
     level: 2,
-    order_index: 2,
+    order_index: 3,
     is_published: true,
   },
 ];
 
 const tasks = [
+  {
+    id: "task_list_sum",
+    module_id: "module_lists",
+    title: "Сумма элементов списка",
+    description: `### Нахождение суммы элементов списка
+Напишите функцию \`sum_of_elements(numbers)\`, которая принимает список чисел и возвращает сумму всех его элементов.
+
+> **Важно:** Пожалуйста, решите задачу с помощью цикла \`for\` и накопительной переменной, **не используя** встроенную функцию \`sum()\`.
+
+**Пример:**
+\`\`\`python
+sum_of_elements([1, 2, 3, 4, 5])  # Вернет 15
+\`\`\``,
+    starter_code: `def sum_of_elements(numbers):
+    total = 0
+    # Напишите цикл для подсчета суммы элементов без использования sum()
+    return total
+`,
+    solution_code: `def sum_of_elements(numbers):
+    total = 0
+    for num in numbers:
+        total += num
+    return total
+`,
+    test_cases: [
+      {
+        id: "test_1",
+        description: "Положительные числа",
+        input: { numbers: [1, 2, 3, 4, 5] },
+        expected_output: 15,
+        category: "basic",
+        is_visible: true,
+      },
+      {
+        id: "test_2",
+        description: "Отрицательные и положительные",
+        input: { numbers: [-1, 5, 10] },
+        expected_output: 14,
+        category: "edge",
+        is_visible: true,
+      },
+      {
+        id: "test_3",
+        description: "Пустой список",
+        input: { numbers: [] },
+        expected_output: 0,
+        category: "edge",
+        is_visible: true,
+      },
+      {
+        id: "test_4",
+        description: "Один элемент",
+        input: { numbers: [42] },
+        expected_output: 42,
+        category: "edge",
+        is_visible: false,
+      },
+    ],
+    xp_reward: 10,
+    difficulty: "easy",
+    hints: [
+      { id: "hint_1", text: "Используйте цикл for num in numbers: и прибавляйте каждое число к переменной total.", unlock_after_attempts: 1 },
+    ],
+    order_index: 1,
+    variant_number: null,
+  },
   {
     id: "task_sum",
     module_id: "module_basics",

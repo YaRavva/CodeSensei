@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark, oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
@@ -56,7 +57,8 @@ export function TaskPageContent({
   lastAttempt,
 }: TaskPageContentProps) {
   const { theme } = useTheme();
-  const { user } = useAuth();
+  const router = useRouter();
+  const { user, refreshProfile } = useAuth();
   const { toast } = useToast();
   const { pyodide, loading: pyodideLoading, error: pyodideError, executeCode } = usePyodide();
   const [mounted, setMounted] = useState(false);
@@ -385,6 +387,8 @@ export function TaskPageContent({
                 }
 
                 setIsCompleted(true);
+                refreshProfile?.().catch(() => {});
+                router.refresh();
               } else {
                 // Успех, но XP не начислен (возможно, это не первая попытка)
                 toast({
@@ -394,6 +398,8 @@ export function TaskPageContent({
                   duration: 3000,
                 });
                 setIsCompleted(true);
+                refreshProfile?.().catch(() => {});
+                router.refresh();
               }
             } else {
               toast({
