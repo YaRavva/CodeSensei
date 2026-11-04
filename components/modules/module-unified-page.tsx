@@ -41,7 +41,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DifficultyBadge, getDifficultyXP } from "@/components/ui/difficulty-badge";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -76,6 +75,17 @@ type SortOption = "order" | "status" | "difficulty";
 interface TaskWithStatus extends Task {
   status: TaskStatus;
   lastAttempt: TaskAttempt | null;
+}
+
+interface HintData {
+  type: string;
+  hint: string;
+  steps: string[];
+}
+
+interface FeedbackData {
+  score: number;
+  feedback: string;
 }
 
 export function ModuleUnifiedPage({
@@ -129,22 +139,17 @@ export function ModuleUnifiedPage({
         testing: boolean;
         isCompleted: boolean;
         lastAttempt: TaskAttempt | null;
+        hintVisible: boolean;
+        hintLoading: boolean;
+        hintData: HintData | null;
+        feedbackVisible: boolean;
+        feedbackData: FeedbackData | null;
       }
     >
   >({});
 
   // Дебаунс для кнопок проверки заданий (защита от спама) - Map по taskId
   const testTaskDebounceRefs = useRef<Map<string, NodeJS.Timeout>>(new Map());
-
-  // Состояние AI-подсказки
-  const [hintOpen, setHintOpen] = useState(false);
-  const [hintTitle, setHintTitle] = useState<string>("");
-  const [hintMarkdown, setHintMarkdown] = useState<string>("");
-
-  // Состояние AI-оценки
-  const [feedbackOpen, setFeedbackOpen] = useState(false);
-  const [feedbackTitle, setFeedbackTitle] = useState<string>("");
-  const [feedbackMarkdown, setFeedbackMarkdown] = useState<string>("");
 
   // Загружаем последние попытки для всех заданий
   useEffect(() => {
@@ -187,6 +192,11 @@ export function ModuleUnifiedPage({
             testing: false,
             isCompleted: isCompleted || lastAttempt?.is_successful || false,
             lastAttempt,
+            hintVisible: false,
+            hintLoading: false,
+            hintData: null,
+            feedbackVisible: false,
+            feedbackData: null,
           };
         }
 
@@ -370,6 +380,37 @@ export function ModuleUnifiedPage({
     const task = tasks.find((t) => t.id === taskId);
     if (!task) return;
 
+    // ЗАПРЕТ ФУНКЦИЙ В ЛИНЕЙНЫХ ЗАДАНИЯХ
+    if (task.task_type === "linear" && /\bdef\s+\w+\s*\(/.test(state.code)) {
+      toast({
+        title: "Ошибка",
+        description: "В этом задании нельзя использовать функции (ключевое слово def). Используйте линейный код с input/print.",
+        variant: "destructive",
+      });
+      const testCases: TestCase[] = Array.isArray(task.test_cases)
+        ? (task.test_cases as unknown as TestCase[])
+        : [];
+      setTaskStates((prev) => ({
+        ...prev,
+        [taskId]: {
+          ...prev[taskId],
+          testResults: {
+            results: testCases.map((tc) => ({
+              testCaseId: tc.id,
+              passed: false,
+              error: "В этом задании нельзя использовать функции (ключевое слово def). Используйте линейный код с input/print.",
+              executionTime: 0,
+            })),
+            passedCount: 0,
+            totalCount: testCases.length,
+            allPassed: false,
+            executionTime: 0,
+          },
+        },
+      }));
+      return;
+    }
+
     const testCases: TestCase[] = Array.isArray(task.test_cases)
       ? (task.test_cases as unknown as TestCase[])
       : [];
@@ -380,7 +421,7 @@ export function ModuleUnifiedPage({
     }));
 
     try {
-      const results = await runTestSuite(state.code, testCases, pyodide);
+      const results = await runTestSuite(state.code, testCases, pyodide, task.task_type);
 
       setTaskStates((prev) => ({
         ...prev,
@@ -418,9 +459,17 @@ export function ModuleUnifiedPage({
           }
           const evalJson = await evalRes.json();
           if (evalRes.ok && evalJson.success) {
-            setFeedbackTitle(`AI-оценка: ${(evalJson.score * 100).toFixed(0)}%`);
-            setFeedbackMarkdown(evalJson.feedback);
-            setFeedbackOpen(true);
+            setTaskStates((prev) => ({
+              ...prev,
+              [taskId]: {
+                ...prev[taskId],
+                feedbackData: {
+                  score: evalJson.score,
+                  feedback: evalJson.feedback,
+                },
+                feedbackVisible: true,
+              },
+            }));
           }
         } catch {
           // ignore AI failure
@@ -606,6 +655,21 @@ export function ModuleUnifiedPage({
     const state = taskStates[taskId];
     if (!state) return;
 
+    // Если подсказка уже видна — скрываем
+    if (state.hintVisible) {
+      setTaskStates((prev) => ({
+        ...prev,
+        [taskId]: { ...prev[taskId], hintVisible: false },
+      }));
+      return;
+    }
+
+    // Показываем подсказку с индикатором загрузки
+    setTaskStates((prev) => ({
+      ...prev,
+      [taskId]: { ...prev[taskId], hintVisible: true, hintLoading: true, hintData: null },
+    }));
+
     try {
       const res = await fetch("/api/ai/hint", {
         method: "POST",
@@ -622,16 +686,16 @@ export function ModuleUnifiedPage({
       const data = await res.json();
       const hint = data?.hint;
 
-      let md = ``;
-      if (Array.isArray(hint?.steps) && hint.steps.length) {
-        md += `### Шаги к решению\n\n${hint.steps.map((step: string, i: number) => `${i + 1}. ${step}`).join("\n")}`;
-      } else {
-        md += hint?.hint || "Попробуйте ещё раз";
-      }
+      const hintData: HintData = {
+        type: hint?.type || "hint",
+        hint: hint?.hint || "Попробуйте ещё раз",
+        steps: Array.isArray(hint?.steps) ? hint.steps : [],
+      };
 
-      setHintTitle(`AI-помощник`);
-      setHintMarkdown(md);
-      setHintOpen(true);
+      setTaskStates((prev) => ({
+        ...prev,
+        [taskId]: { ...prev[taskId], hintLoading: false, hintData },
+      }));
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Неизвестная ошибка";
       toast({
@@ -639,6 +703,10 @@ export function ModuleUnifiedPage({
         description: msg,
         variant: "destructive",
       });
+      setTaskStates((prev) => ({
+        ...prev,
+        [taskId]: { ...prev[taskId], hintVisible: false, hintLoading: false },
+      }));
     }
   };
 
@@ -659,6 +727,11 @@ export function ModuleUnifiedPage({
             testing: false,
             isCompleted: false,
             lastAttempt: null,
+            hintVisible: false,
+            hintLoading: false,
+            hintData: null,
+            feedbackVisible: false,
+            feedbackData: null,
           },
         };
       }
@@ -1198,7 +1271,7 @@ export function ModuleUnifiedPage({
                                     </Button>
                                     <Button onClick={() => handleAiHint(task.id)} variant="outline">
                                       <Sparkles className="mr-2 h-4 w-4" />
-                                      AI-подсказка
+                                      {state?.hintVisible ? "Скрыть подсказку" : "AI-подсказка"}
                                     </Button>
                                   </div>
 
@@ -1276,6 +1349,63 @@ export function ModuleUnifiedPage({
                                     </Card>
                                   )}
 
+                                  {/* Inline AI hint */}
+                                  {state?.hintVisible && (
+                                    <Card className="border-primary/30 bg-primary/[0.04] mt-4">
+                                      <CardHeader className="pb-3">
+                                        <CardTitle className="flex items-center gap-2 text-base">
+                                          <Sparkles className="h-4 w-4 text-primary" />
+                                          AI-помощник
+                                        </CardTitle>
+                                      </CardHeader>
+                                      <CardContent className="pt-0">
+                                        {state.hintLoading ? (
+                                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                            Думаю над подсказкой...
+                                          </div>
+                                        ) : state.hintData ? (
+                                          <div className="space-y-3">
+                                            <p className="text-sm leading-relaxed">{state.hintData.hint}</p>
+                                            {state.hintData.steps.length > 0 && (
+                                              <div className="rounded-md bg-muted/60 p-3">
+                                                <p className="text-xs font-medium text-muted-foreground mb-2">Шаги к решению:</p>
+                                                <ol className="space-y-1.5">
+                                                  {state.hintData.steps.map((step, i) => (
+                                                    <li key={i} className="text-sm flex gap-2">
+                                                      <span className="shrink-0 font-medium text-primary">{i + 1}.</span>
+                                                      <span>{step}</span>
+                                                    </li>
+                                                  ))}
+                                                </ol>
+                                              </div>
+                                            )}
+                                          </div>
+                                        ) : null}
+                                      </CardContent>
+                                    </Card>
+                                  )}
+
+                                  {/* Inline AI feedback */}
+                                  {state?.feedbackVisible && state.feedbackData && (
+                                    <Card className="border-emerald-500/30 bg-emerald-500/[0.04] mt-4">
+                                      <CardHeader className="pb-3">
+                                        <div className="flex items-center justify-between">
+                                          <CardTitle className="flex items-center gap-2 text-base">
+                                            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                                            AI-оценка решения
+                                          </CardTitle>
+                                          <Badge variant={state.feedbackData.score >= 0.7 ? "success" : "outline"} className="text-sm">
+                                            {Math.round(state.feedbackData.score * 100)}%
+                                          </Badge>
+                                        </div>
+                                      </CardHeader>
+                                      <CardContent className="pt-0">
+                                        <p className="text-sm leading-relaxed">{state.feedbackData.feedback}</p>
+                                      </CardContent>
+                                    </Card>
+                                  )}
+
                                   {/* Результаты тестов */}
                                   {state?.testResults && (
                                     <div className="mt-4">
@@ -1299,125 +1429,6 @@ export function ModuleUnifiedPage({
           </div>
         </div>
       </div>
-
-      {/* Модальное окно AI подсказки */}
-      <Dialog open={hintOpen} onOpenChange={setHintOpen}>
-        <DialogContent aria-describedby="hint-description" className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
-              {hintTitle}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="max-h-[60vh] overflow-y-auto">
-            <Card className="font-mono">
-              <CardContent className="pt-6">
-                <div className="prose prose-sm dark:prose-invert max-w-none [&_*]:font-mono [&_h1]:font-mono [&_h2]:font-mono [&_h3]:font-mono [&_li]:font-mono [&_strong]:font-mono [&_em]:font-mono">
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm, remarkBreaks]}
-                    components={{
-                      code({ node, inline, className, children, ...props }: any) {
-                        const match = /language-(\w+)/.exec(className || "");
-                        const isDark =
-                          mounted &&
-                          (theme === "dark" ||
-                            (theme === "system" &&
-                              typeof window !== "undefined" &&
-                              window.matchMedia("(prefers-color-scheme: dark)").matches));
-                        const inlineProp = (props as any).inline;
-                        return !inlineProp && match ? (
-                          <SyntaxHighlighter
-                            style={(isDark ? oneDark : oneLight) as any}
-                            language={match[1]}
-                            PreTag="div"
-                            className="font-mono rounded-md"
-                            customStyle={{ fontFamily: "Geist Mono, monospace" }}
-                          >
-                            {String(children).replace(/\n$/, "")}
-                          </SyntaxHighlighter>
-                        ) : (
-                          <code className={`font-mono ${className}`} {...props}>
-                            {children}
-                          </code>
-                        );
-                      },
-                      p: ({ children }) => (
-                        <p className="mb-4 last:mb-0 whitespace-pre-line font-mono">{children}</p>
-                      ),
-                    }}
-                  >
-                    {hintMarkdown}
-                  </ReactMarkdown>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-          <div className="flex justify-center mt-4">
-            <Button onClick={() => setHintOpen(false)}>Ok</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Модальное окно AI оценки */}
-      <Dialog open={feedbackOpen} onOpenChange={setFeedbackOpen}>
-        <DialogContent aria-describedby="feedback-description" className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-              {feedbackTitle}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="max-h-[60vh] overflow-y-auto">
-            <Card className="font-mono">
-              <CardContent className="pt-6">
-                <div
-                  id="feedback-description"
-                  className="prose prose-sm dark:prose-invert max-w-none [&_*]:font-mono [&_h1]:font-mono [&_h2]:font-mono [&_h3]:font-mono [&_li]:font-mono [&_strong]:font-mono [&_em]:font-mono"
-                >
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm, remarkBreaks]}
-                    components={{
-                      code({ node, inline, className, children, ...props }: any) {
-                        const match = /language-(\w+)/.exec(className || "");
-                        const isDark =
-                          mounted &&
-                          (theme === "dark" ||
-                            (theme === "system" &&
-                              typeof window !== "undefined" &&
-                              window.matchMedia("(prefers-color-scheme: dark)").matches));
-                        const inlineProp = (props as any).inline;
-                        return !inlineProp && match ? (
-                          <SyntaxHighlighter
-                            style={(isDark ? oneDark : oneLight) as any}
-                            language={match[1]}
-                            PreTag="div"
-                            className="font-mono rounded-md"
-                            customStyle={{ fontFamily: "Geist Mono, monospace" }}
-                          >
-                            {String(children).replace(/\n$/, "")}
-                          </SyntaxHighlighter>
-                        ) : (
-                          <code className={`font-mono ${className}`} {...props}>
-                            {children}
-                          </code>
-                        );
-                      },
-                      p: ({ children }) => (
-                        <p className="mb-4 last:mb-0 whitespace-pre-line font-mono">{children}</p>
-                      ),
-                    }}
-                  >
-                    {feedbackMarkdown}
-                  </ReactMarkdown>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-          <div className="flex justify-center mt-4">
-            <Button onClick={() => setFeedbackOpen(false)}>Ok</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </>
   );
 }

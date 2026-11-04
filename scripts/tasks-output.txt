@@ -1,0 +1,2180 @@
+﻿total : 66
+ 
+rows (66)
+  [1]
+    module_id     : e3307beb-5b01-467c-a7ef-12af1c4c0857
+    title         : Сложение двух чисел
+    description   : # Задание
+
+В этом упражнении вы научитесь использовать переменные и типы данных в Python. 
+
+**Что нужно сделать**
+Напишите программу `add_numbers(a, b)`, которая использует два числа и записывает в переменную `result` их сумму.
+    starter_code  : # Переменные a и b уже заданы для примера
+
+# Запишите результат в переменную result:
+result = None
+
+    solution_code : result = a + b
+
+    test_cases    : [{"id":"test_1","input":{"a":2,"b":3},"category":"basic","is_visible":true,"description":"Базовый случай","expected_output":5},{"id":"test_2","input":{"a":-5,"b":-7},"category":"edge","is_visible":false,"description":"Граничный случай: отрицательные числа","expected_output":-12},{"id":"test_3","input":{"a":1000000,"b":2000000},"category":"edge","is_visible":false,"description":"Граничный случай: большие числа","expected_output":3000000}]
+    xp_reward     : 10
+    difficulty    : easy
+    order_index   : 0
+    $id           : 6ce2aca8-cf0c-4852-92cd-20130529071a
+    $sequence     : 6
+    $createdAt    : 2026-10-24 15:08:30 UTC (10d ago)
+    $updatedAt    : 2026-10-31 06:17:59 UTC (4d ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [2]
+    module_id     : e3307beb-5b01-467c-a7ef-12af1c4c0857
+    title         : Сумма и тип переменных
+    description   : ## Задание
+
+Напиши программу **process_variables**
+
+- она использует два аргумента `var1` и `var2`;
+- вычисляет их сумму (для чисел — обычную арифметическую сумму, для строк — объединение);
+- записывает в переменную `result` кортеж, где первый элемент – результат сложения, второй элемент – строковое название типа этого результата (`"int"`, `"str"`, `"float"` и т.д.).
+    starter_code  : # Примеры входных переменных для теста:
+
+# Запишите результат в переменную result:
+# Input variables are available as global variables: var1, var2
+# The final answer must be assigned to the variable `result` (or `output`)
+
+# Напишите здесь ваше решение
+
+    solution_code : # Input variables are available as global variables: var1, var2
+# The final answer must be assigned to the variable `result` (or `output`)
+
+sum_result = var1 + var2
+result_type = type(sum_result).__name__
+result = (sum_result, result_type)
+
+    test_cases    : [{"id":"test_1","input":{"var1":10,"var2":20},"category":"basic","is_visible":true,"description":"Базовый случай с числами","expected_output":[30,"int"]},{"id":"test_2","input":{"var1":"Hello","var2":"World"},"category":"edge","is_visible":false,"description":"Граничный случай со строками","expected_output":["HelloWorld","str"]},{"id":"test_3","input":{"var1":0,"var2":0},"category":"edge","is_visible":false,"description":"Граничный случай с нулевыми числами","expected_output":[0,"int"]}]
+    xp_reward     : 10
+    difficulty    : easy
+    order_index   : 0
+    $id           : e9a21bf9-1ed4-4808-88a1-7ee9d1e6e940
+    $sequence     : 7
+    $createdAt    : 2026-10-24 15:08:30 UTC (10d ago)
+    $updatedAt    : 2026-10-31 06:17:59 UTC (4d ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [3]
+    module_id     : a8666f99-1cf9-4121-abf3-110d82957e95
+    title         : Сумма квадратов
+    description   : # Задание: Сумма квадратов
+
+В этом упражнении вы напишете функцию, которая принимает два целых числа и возвращает сумму их квадратов.
+
+## Что нужно сделать
+1. Создайте функцию `sum_of_squares(a, b)`.
+2. Функция должна возвести каждое число в квадрат и сложить результаты.
+3. Верните полученную сумму.
+    starter_code  : def sum_of_squares(a, b):
+    # Напишите здесь ваше решение
+    pass
+    solution_code : def sum_of_squares(a, b):
+    # Правильное решение
+    return a * a + b * b
+    test_cases    : [{"id":"test_1","input":{"a":3,"b":4},"category":"basic","is_visible":true,"description":"Базовый случай","expected_output":25},{"id":"test_2","input":{"a":0,"b":0},"category":"edge","is_visible":false,"description":"Граничный случай: нули","expected_output":0},{"id":"test_3","input":{"a":-5,"b":12},"category":"edge","is_visible":false,"description":"Граничный случай: отрицательные числа","expected_output":169}]
+    xp_reward     : 20
+    difficulty    : medium
+    order_index   : 0
+    $id           : f99a4c1a-b657-46ca-af27-c7903d187ac2
+    $sequence     : 8
+    $createdAt    : 2026-10-24 15:08:30 UTC (10d ago)
+    $updatedAt    : 2026-10-27 11:36:54 UTC (7d ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [4]
+    module_id     : 8c8f076b-9879-47d8-b503-ce38db78f439
+    title         : Приветствие по имени
+    description   : ### Простое приветствие
+
+Вам дана переменная `name`, которая содержит имя пользователя.
+
+Напишите программу, которая формирует приветственную строку вида:
+```text
+Hello, <имя>!
+```
+и сохраняет её в переменную `result`.
+
+> **Важно:**
+> 1. Не объявляйте функции (не используйте `def`).
+> 2. Запишите итоговый ответ в переменную `result`.
+> 3. Обязательно добавьте восклицательный знак в конце строки.
+
+#### Пример:
+Если `name = "Alice"`, то в переменную `result` должна быть записана строка `"Hello, Alice!"`.
+    starter_code  : # Переменная name задаётся автоматически проверяющей системой.
+# Для тестирования в редакторе:
+name = "Alice"
+
+# Сформируйте приветствие и запишите его в result:
+result = ""
+
+    solution_code : result = f"Hello, {name}!"
+
+    test_cases    : [{"id":"test_1","description":"Имя Alice","input":{"name":"Alice"},"expected_output":"Hello, Alice!","category":"basic","is_visible":true},{"id":"test_2","description":"Имя Alex","input":{"name":"Alex"},"expected_output":"Hello, Alex!","category":"basic","is_visible":true},{"id":"test_3","description":"Пустое имя","input":{"name":""},"expected_output":"Hello, !","category":"edge","is_visible":false},{"id":"test_4","description":"Имя из нескольких слов","input":{"name":"John Doe"},"expected_output":"Hello, John Doe!","category":"edge","is_visible":false}]
+    xp_reward     : 10
+    difficulty    : easy
+    hints         : [{"id":"hint_1","text":"Используйте f-строку: `result = f\"Hello, {name}!\"`.","unlock_after_attempts":1}]
+    order_index   : 1
+    $id           : 82206b7e-1ad5-42bf-b905-68ef65d47bf4
+    $sequence     : 9
+    $createdAt    : 2026-10-24 15:08:30 UTC (10d ago)
+    $updatedAt    : 2026-11-03 10:02:16 UTC (21h ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [5]
+    module_id     : 1bb33e2a-0ba6-4d7c-b3cc-e9f03ca11ef8
+    title         : Сумма элементов списка
+    description   : ### Нахождение суммы элементов списка
+
+Вам дана переменная `numbers`, содержащая список чисел.
+
+Напишите программу, которая с помощью цикла `for` проходит по элементам списка `numbers`, вычисляет их сумму и сохраняет итоговое значение в переменную `result`.
+
+> **Важно:**
+> 1. Не объявляйте функции (не используйте `def`).
+> 2. Не используйте встроенную функцию `sum()`.
+> 3. Запишите итоговый ответ в переменную `result`.
+
+#### Пример:
+Если `numbers = [1, 2, 3, 4, 5]`, то в переменную `result` должно быть записано число `15`.
+    starter_code  : # Переменная numbers задаётся автоматически проверяющей системой.
+# Для тестирования в редакторе:
+numbers = [1, 2, 3, 4, 5]
+
+# Накопительная переменная для суммы
+total = 0
+
+# Напишите цикл для подсчёта суммы всех элементов списка numbers:
+
+
+# Обязательно сохраните итоговое значение в result:
+result = total
+
+    solution_code : total = 0
+for num in numbers:
+    total += num
+
+result = total
+
+    test_cases    : [{"id":"test_1","description":"Список положительных чисел","input":{"numbers":[1,2,3,4,5]},"expected_output":15,"category":"basic","is_visible":true},{"id":"test_2","description":"Список с отрицательными числами","input":{"numbers":[-1,5,10]},"expected_output":14,"category":"basic","is_visible":true},{"id":"test_3","description":"Пустой список","input":{"numbers":[]},"expected_output":0,"category":"edge","is_visible":true},{"id":"test_4","description":"Один элемент","input":{"numbers":[42]},"expected_output":42,"category":"edge","is_visible":false}]
+    xp_reward     : 20
+    difficulty    : easy
+    hints         : [{"id":"hint_1","text":"Создайте цикл `for num in numbers:`. В теле цикла прибавляйте каждое число к total: `total += num`. В конце запишите `result = total`.","unlock_after_attempts":1}]
+    order_index   : 1
+    $id           : 9ce1f0f3-f7ea-4ee7-b4ee-5e205c86b11e
+    $sequence     : 10
+    $createdAt    : 2026-10-24 15:08:31 UTC (10d ago)
+    $updatedAt    : 2026-11-03 10:02:41 UTC (21h ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [6]
+    module_id     : e3307beb-5b01-467c-a7ef-12af1c4c0857
+    title         : Сумма и разность
+    description   : # Задание: Сумма и разность
+
+В этом задании вы должны написать программу `calculate(a, b)`, которая использует два числа и записывает в переменную `result` **список**, где первый элемент — сумма, а второй — разность (a - b).\n\n
+    starter_code  : # Примеры входных переменных для теста:
+
+# Запишите результат в переменную result:
+# Входные глобальные переменные: a, b
+# Запишите результат в переменную result
+
+# Напишите здесь ваше решение
+pass
+    solution_code : # Входные глобальные переменные: a, b
+# Запишите результат в переменную result
+
+result = [a + b, a - b]
+    test_cases    : [{"id":"test_1","input":{"a":5,"b":3},"category":"basic","is_visible":true,"description":"Базовый случай","expected_output":[8,2]},{"id":"test_2","input":{"a":-2,"b":5},"category":"edge","is_visible":false,"description":"Граничный случай: отрицательные числа","expected_output":[3,-7]},{"id":"test_3","input":{"a":1000000,"b":500000},"category":"edge","is_visible":false,"description":"Граничный случай: большие числа","expected_output":[1500000,500000]}]
+    xp_reward     : 20
+    difficulty    : medium
+    order_index   : 0
+    $id           : 1c396c75-02d2-4ffb-9969-aed3d5919d15
+    $sequence     : 11
+    $createdAt    : 2026-10-24 15:08:31 UTC (10d ago)
+    $updatedAt    : 2026-10-31 06:17:59 UTC (4d ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [7]
+    module_id     : efb3e0dc-b750-46e9-8e59-7e04958a9be1
+    title         : Сумма чисел от 1 до N
+    description   : ### Сумма чисел от 1 до N
+
+Вам дана переменная `n` (целое число).
+
+Напишите программу, которая с помощью цикла вычисляет сумму всех целых чисел от 1 до `n` включительно и записывает ответ в переменную `result`.
+
+> **Важно:** Не объявляйте функции (не используйте `def`). Запишите ответ в `result`.
+    starter_code  : # Примеры входных переменных для теста:
+
+# Запишите результат в переменную result:
+# Входная переменная: n
+# Запишите результат в переменную result
+
+result = 0
+# Напишите здесь ваше решение
+
+    solution_code : # Входная переменная: n
+# Запишите результат в переменную result
+
+result = 0
+for i in range(1, n + 1):
+    result += i
+
+    test_cases    : [{"id":"test_1","input":{"n":5},"category":"basic","is_visible":true,"description":"Базовый случай","expected_output":15},{"id":"test_2","input":{"n":0},"category":"edge","is_visible":false,"description":"Граничный случай: ноль","expected_output":0},{"id":"test_3","input":{"n":1000},"category":"edge","is_visible":false,"description":"Граничный случай: большое число","expected_output":500500}]
+    xp_reward     : 10
+    difficulty    : easy
+    order_index   : 0
+    $id           : 09d12c7d-8dee-480b-ae84-b04349d587c8
+    $sequence     : 12
+    $createdAt    : 2026-10-24 15:08:31 UTC (10d ago)
+    $updatedAt    : 2026-11-03 10:34:41 UTC (20h ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [8]
+    module_id     : efb3e0dc-b750-46e9-8e59-7e04958a9be1
+    title         : Сумма чисел до N
+    description   : ### Сумма чисел до N
+
+Вам дана переменная `n`. Если `n < 1`, результат должен быть 0. Иначе вычислите сумму чисел от 1 до `n` с помощью цикла и сохраните её в переменную `result`.
+
+> **Важно:** Не используйте `def`. Запишите ответ в `result`.
+    starter_code  : # Примеры входных переменных для теста:
+
+# Запишите результат в переменную result:
+# Входная переменная: n
+# Запишите результат в переменную result
+
+# Напишите здесь ваше решение
+result = 0
+
+    solution_code : # Входная переменная: n
+# Запишите результат в переменную result
+
+if n < 1:
+    result = 0
+else:
+    total = 0
+    for i in range(1, n + 1):
+        total += i
+    result = total
+
+    test_cases    : [{"id":"test_1","input":{"n":5},"category":"basic","is_visible":true,"description":"Базовый случай","expected_output":15},{"id":"test_2","input":{"n":0},"category":"edge","is_visible":false,"description":"Граничный случай – ноль","expected_output":0},{"id":"test_3","input":{"n":-3},"category":"edge","is_visible":false,"description":"Граничный случай – отрицательное число","expected_output":0}]
+    xp_reward     : 20
+    difficulty    : medium
+    order_index   : 0
+    $id           : 6f5c8d5d-3ba8-4843-828c-f170a6503d2e
+    $sequence     : 13
+    $createdAt    : 2026-10-24 15:08:31 UTC (10d ago)
+    $updatedAt    : 2026-11-03 10:34:41 UTC (20h ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [9]
+    module_id     : 8c8f076b-9879-47d8-b503-ce38db78f439
+    title         : Форматированная анкета
+    description   : ### Форматированная анкета с проверкой возраста
+
+Вам даны две переменные: `name` (строка с именем) и `age` (возраст).
+
+Напишите программу, которая формирует строку приветствия:
+- Если `age` больше 0:
+  `"Привет, <name>! Тебе <age> лет."`
+- Если `age` равен 0 или меньше (либо возраст некорректен):
+  `"Привет, <name>! Возраст неизвестен."`
+
+Сохраните итоговую строку в переменную `result`.
+
+> **Важно:**
+> 1. Не объявляйте функции (не используйте `def`).
+> 2. Запишите итоговый ответ в переменную `result`.
+
+#### Примеры:
+- Если `name = "Алексей"`, `age = 14` ➔ `"Привет, Алексей! Тебе 14 лет."`
+- Если `name = "Ирина"`, `age = -5` ➔ `"Привет, Ирина! Возраст неизвестен."`
+    starter_code  : # Переменные name и age задаются проверяющей системой.
+# Для тестирования в редакторе:
+name = "Алексей"
+age = 14
+
+# Запишите результат с проверкой условия в переменную result:
+result = ""
+
+    solution_code : if age and age > 0:
+    result = f"Привет, {name}! Тебе {age} лет."
+else:
+    result = f"Привет, {name}! Возраст неизвестен."
+
+    test_cases    : [{"id":"test_1","description":"Положительный возраст 14 лет","input":{"name":"Алексей","age":14},"expected_output":"Привет, Алексей! Тебе 14 лет.","category":"basic","is_visible":true},{"id":"test_2","description":"Нулевой возраст","input":{"name":"Денис","age":0},"expected_output":"Привет, Денис! Возраст неизвестен.","category":"edge","is_visible":true},{"id":"test_3","description":"Отрицательный возраст","input":{"name":"Ирина","age":-5},"expected_output":"Привет, Ирина! Возраст неизвестен.","category":"edge","is_visible":false},{"id":"test_4","description":"Пустое имя","input":{"name":"","age":10},"expected_output":"Привет, ! Тебе 10 лет.","category":"edge","is_visible":false}]
+    xp_reward     : 30
+    difficulty    : hard
+    hints         : [{"id":"hint_1","text":"Используйте условие `if age > 0:` для формирования обычной строки, а в ветке `else:` сформируйте строку со словами 'Возраст неизвестен.'","unlock_after_attempts":1}]
+    order_index   : 3
+    $id           : fc1b3153-665d-4fba-82b1-8168078d619b
+    $sequence     : 14
+    $createdAt    : 2026-10-24 15:08:31 UTC (10d ago)
+    $updatedAt    : 2026-11-03 10:02:16 UTC (21h ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [10]
+    module_id     : 0d6aa089-39bf-4f64-9038-d866802c4b83
+    title         : Факториал с рекурсией
+    description   : ## Задача
+Найти факториал числа `n` с помощью рекурсивной функции.
+
+**Факториал** – произведение всех натуральных чисел от 1 до `n`.\n
+- `0! = 1` (это базовый случай).\n- `n! = n * (n-1)!` для `n > 0`.
+
+### Что нужно сделать
+1. Написать функцию `factorial(n)`, которая принимает целое число `n`.\n2. Функция должна использовать рекурсию.\n3. Вернуть значение факториала.
+    starter_code  : def factorial(n):
+    # Напишите здесь ваше решение
+    pass
+    solution_code : def factorial(n):
+    """Возвращает факториал числа n."""
+    if n == 0:
+        return 1
+    return n * factorial(n - 1)
+    test_cases    : [{"id":"test_1","input":{"n":5},"category":"basic","is_visible":true,"description":"Базовый случай","expected_output":120},{"id":"test_2","input":{"n":0},"category":"edge","is_visible":false,"description":"Граничный случай: ноль","expected_output":1},{"id":"test_3","input":{"n":1},"category":"edge","is_visible":false,"description":"Граничный случай: единица","expected_output":1}]
+    xp_reward     : 10
+    difficulty    : easy
+    order_index   : 0
+    $id           : 991e2376-e1e5-4583-8b5c-ceec2fe07bf8
+    $sequence     : 15
+    $createdAt    : 2026-10-24 15:08:31 UTC (10d ago)
+    $updatedAt    : 2026-10-27 11:36:55 UTC (7d ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [11]
+    module_id     : 0d6aa089-39bf-4f64-9038-d866802c4b83
+    title         : Факториал рекурсивно
+    description   : ## Задание\n\nНайти факториал числа с помощью рекурсии.\n\n**Факториал** числа n (обозначается n!) — это произведение всех целых чисел от 1 до n.\n\nНапример:\n- 5! = 1·2·3·4·5 = 120\n- 0! = 1\n\n**Ваша задача**: написать функцию `factorial(n)`, которая возвращает факториал числа `n`.\n\n*Указания*:\n- Если `n` равно 0 или 1, факториал равен 1.\n- Для остальных `n` факториал равен `n * factorial(n-1)`.\n\n**Вход**: целое число `n` (может быть 0).\n**Выход**: целое число — факториал `n`.\n\n
+    starter_code  : def factorial(n):
+    # Напишите здесь ваше решение
+    pass
+    solution_code : def factorial(n):
+    if n <= 1:
+        return 1
+    return n * factorial(n - 1)
+    test_cases    : [{"id":"test_1","input":{"n":5},"category":"basic","is_visible":true,"description":"Базовый случай","expected_output":120},{"id":"test_2","input":{"n":0},"category":"edge","is_visible":false,"description":"Граничный случай: ноль","expected_output":1},{"id":"test_3","input":{"n":1},"category":"edge","is_visible":false,"description":"Граничный случай: единица","expected_output":1},{"id":"test_4","input":{"n":10},"category":"edge","is_visible":false,"description":"Большое число","expected_output":3628800}]
+    xp_reward     : 20
+    difficulty    : medium
+    order_index   : 0
+    $id           : f79e7f8c-a5a9-4aa9-a43a-3b21daee4093
+    $sequence     : 16
+    $createdAt    : 2026-10-24 15:08:31 UTC (10d ago)
+    $updatedAt    : 2026-10-30 15:51:16 UTC (4d ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [12]
+    module_id     : 0d6aa089-39bf-4f64-9038-d866802c4b83
+    title         : Рекурсивная Фибоначчи
+    description   : ## Что нужно сделать?
+Нужно написать функцию **fibonacci(n)**, которая возвращает n‑й член последовательности Фибоначчи. Последовательность определяется так:
+- f(0) = 0
+- f(1) = 1
+- f(n) = f(n‑1) + f(n‑2)  для n > 1
+
+Функция должна работать рекурсивно, то есть вызывать саму себя.
+    starter_code  : def fibonacci(n):
+    # Напишите здесь ваше решение
+    pass
+    solution_code : def fibonacci(n):
+    """Возвращает n‑й член последовательности Фибоначчи."""
+    if n < 0:
+        return None
+    if n == 0:
+        return 0
+    if n == 1:
+        return 1
+    return fibonacci(n - 1) + fibonacci(n - 2)
+    test_cases    : [{"id":"test_1","input":{"n":10},"category":"basic","is_visible":true,"description":"Базовый случай","expected_output":55},{"id":"test_2","input":{"n":0},"category":"edge","is_visible":false,"description":"Граничный случай: ноль","expected_output":0},{"id":"test_3","input":{"n":-5},"category":"edge","is_visible":false,"description":"Граничный случай: отрицательное число","expected_output":null}]
+    xp_reward     : 30
+    difficulty    : hard
+    order_index   : 0
+    $id           : edb692eb-8741-4124-bd08-1dadbf093914
+    $sequence     : 17
+    $createdAt    : 2026-10-24 15:08:31 UTC (10d ago)
+    $updatedAt    : 2026-10-27 11:36:56 UTC (7d ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [13]
+    module_id     : cdf35d2e-f323-4a61-9f9a-97184be99290
+    title         : Подсчёт чётных в кортеже
+    description   : ## Задание
+
+Ваша задача – написать программу, которая использует **кортеж** целых чисел и записывает в переменную `result` количество чётных чисел в этом кортеже.
+
+### Как это работает
+- Кортеж – это упорядоченная коллекция, которую нельзя менять.
+- Чтобы проверить, чётное ли число, используйте оператор `x % 2 == 0`.
+- Перебирайте все элементы кортежа и подсчитайте, сколько из них чётных.
+    starter_code  : # Примеры входных переменных для теста:
+
+# Запишите результат в переменную result:
+# Входная переменная: numbers (кортеж целых чисел)
+# Запишите результат в переменную result
+
+result = 0
+# Напишите здесь ваше решение
+
+    solution_code : # Входная переменная: numbers (кортеж целых чисел)
+# Запишите результат в переменную result
+
+result = 0
+for num in numbers:
+    if num % 2 == 0:
+        result += 1
+
+    test_cases    : [{"id":"test_1","input":{"numbers":[1,2,3,4,5]},"category":"basic","is_visible":true,"description":"Базовый случай","expected_output":2},{"id":"test_2","input":{"numbers":[]},"category":"edge","is_visible":false,"description":"Пустой кортеж","expected_output":0},{"id":"test_3","input":{"numbers":[-2,0,3,5]},"category":"edge","is_visible":false,"description":"Числа с отрицательными и нулём","expected_output":2}]
+    xp_reward     : 10
+    difficulty    : easy
+    order_index   : 0
+    $id           : 383bb910-875f-4699-adbc-16906b775e42
+    $sequence     : 18
+    $createdAt    : 2026-10-24 15:08:31 UTC (10d ago)
+    $updatedAt    : 2026-10-31 06:18:00 UTC (4d ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [14]
+    module_id     : cdf35d2e-f323-4a61-9f9a-97184be99290
+    title         : Сортировка кортежа по длине
+    description   : # Задание
+
+Вам дан кортеж строк. Нужно вернуть новый кортеж, где слова отсортированы по возрастанию их длины (самые короткие – в начале). Кортеж неизменяем, поэтому вы не можете менять исходный кортеж, а только создать новый.
+
+## Что нужно сделать
+
+1. Написать программу `sort_by_length(words)`.
+2. Функция использует один аргумент – кортеж строк.
+3. записывает в переменную `result` новый кортеж строк, отсортированный по длине.
+    starter_code  : # Примеры входных переменных для теста:
+
+# Запишите результат в переменную result:
+# Входные данные: words (кортеж строк)
+# Напишите здесь ваше решение
+result = None
+    solution_code : # Сортируем кортеж по длине и записываем в result
+result = tuple(sorted(words, key=len))
+    test_cases    : [{"id":"test_1","input":{"words":["apple","pie","banana"]},"category":"basic","is_visible":true,"description":"Базовый случай","expected_output":["pie","apple","banana"]},{"id":"test_2","input":{"words":[]},"category":"edge","is_visible":false,"description":"Граничный случай – пустой кортеж","expected_output":[]},{"id":"test_3","input":{"words":["cat","dog","bat"]},"category":"edge","is_visible":false,"description":"Граничный случай – одинаковая длина","expected_output":["cat","dog","bat"]}]
+    xp_reward     : 20
+    difficulty    : medium
+    order_index   : 0
+    $id           : eb6b426d-3ceb-496f-b498-9025bae2f8d7
+    $sequence     : 19
+    $createdAt    : 2026-10-24 15:08:31 UTC (10d ago)
+    $updatedAt    : 2026-10-31 06:18:00 UTC (4d ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [15]
+    module_id     : cdf35d2e-f323-4a61-9f9a-97184be99290
+    title         : Кортежи: Сортировка и Фильтр
+    description   : # Задание
+
+В этом задании вам нужно написать программу, которая использует кортеж пар `(имя, оценка)` и записывает в переменную `result` кортеж имен, отсортированных по убыванию оценок. Если оценки одинаковы, сохраняется порядок появления в исходном кортеже.
+
+## Что нужно сделать
+1. Принимать кортеж, где каждый элемент – кортеж из строки и целого числа.
+2. Сортировать элементы по второму элементу (оценке) в порядке убывания.
+3. Возвращать кортеж только из имён в отсортированном порядке.
+    starter_code  : # Примеры входных переменных для теста:
+
+# Запишите результат в переменную result:
+# Входные данные доступны в переменной data
+# Результат нужно записать в переменную result
+
+# Напишите здесь ваше решение
+pass
+    solution_code : # Сортируем по оценке в порядке убывания, сохраняя порядок при равных оценках
+sorted_pairs = sorted(data, key=lambda x: x[1], reverse=True)
+# Извлекаем только имена и сохраняем результат в переменную result
+result = tuple(name for name, _ in sorted_pairs)
+    test_cases    : [{"id":"test_1","input":{"data":[["Аня",88],["Борис",91],["Виктор",78]]},"category":"basic","is_visible":true,"description":"Базовый случай","expected_output":["Борис","Аня","Виктор"]},{"id":"test_2","input":{"data":[]},"category":"edge","is_visible":false,"description":"Пустой кортеж","expected_output":[]},{"id":"test_3","input":{"data":[["Дима",90],["Елена",90],["Федор",80]]},"category":"edge","is_visible":false,"description":"Тот же балл","expected_output":["Дима","Елена","Федор"]}]
+    xp_reward     : 30
+    difficulty    : hard
+    order_index   : 0
+    $id           : 140fe0a1-a2c2-4623-b70e-09f496024536
+    $sequence     : 20
+    $createdAt    : 2026-10-24 15:08:31 UTC (10d ago)
+    $updatedAt    : 2026-10-31 06:18:01 UTC (4d ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [16]
+    module_id     : 1bb33e2a-0ba6-4d7c-b3cc-e9f03ca11ef8
+    title         : Сумма и длина списка
+    description   : ### Сумма и количество элементов в списке
+
+Вам дана переменная `numbers`, содержащая список целых чисел.
+
+Напишите программу, которая вычисляет:
+1. Сумму всех элементов списка (накопите в переменную `total` с помощью цикла `for`).
+2. Количество элементов в списке (длину `length` с помощью функции `len()` или счётчика).
+
+Сохраните в переменную `result` список из двух значений: `[total, length]`.
+
+> **Важно:**
+> 1. Не объявляйте функции (не используйте `def`).
+> 2. Не используйте встроенную функцию `sum()`.
+> 3. Запишите итоговый ответ в переменную `result` в виде списка `[total, length]`.
+
+#### Пример:
+Если `numbers = [10, 20, 30]`, то `result` должен быть равен `[60, 3]`.
+    starter_code  : # Переменная numbers задаётся автоматически проверяющей системой.
+# Для тестирования в редакторе:
+numbers = [10, 20, 30]
+
+total = 0
+length = 0
+
+# Подсчитайте сумму и количество элементов в списке:
+
+
+# Сохраните результат в виде списка [total, length]:
+result = [total, length]
+
+    solution_code : total = 0
+for num in numbers:
+    total += num
+
+length = len(numbers)
+result = [total, length]
+
+    test_cases    : [{"id":"test_1","description":"Список из 3 чисел","input":{"numbers":[10,20,30]},"expected_output":[60,3],"category":"basic","is_visible":true},{"id":"test_2","description":"Список из 5 чисел с отрицательными","input":{"numbers":[1,-1,2,-2,5]},"expected_output":[5,5],"category":"basic","is_visible":true},{"id":"test_3","description":"Пустой список","input":{"numbers":[]},"expected_output":[0,0],"category":"edge","is_visible":true},{"id":"test_4","description":"Один элемент","input":{"numbers":[100]},"expected_output":[100,1],"category":"edge","is_visible":false}]
+    xp_reward     : 10
+    difficulty    : medium
+    hints         : [{"id":"hint_1","text":"Посчитайте сумму в цикле `for num in numbers: total += num`, длину найдите через `len(numbers)`, затем запишите `result = [total, length]`.","unlock_after_attempts":1}]
+    order_index   : 2
+    $id           : b780519a-ef28-4db8-a050-e216b0002b48
+    $sequence     : 21
+    $createdAt    : 2026-10-24 15:08:31 UTC (10d ago)
+    $updatedAt    : 2026-11-03 10:02:41 UTC (21h ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [17]
+    module_id     : 1bb33e2a-0ba6-4d7c-b3cc-e9f03ca11ef8
+    title         : Удаление дубликатов
+    description   : ### Удаление дубликатов с сохранением порядка
+
+Вам дана переменная `items`, содержащая список элементов (числа или строки), в котором могут встречаться повторяющиеся значения.
+
+Напишите программу, которая формирует новый список, содержащий только уникальные элементы из `items`, сохраняя их исходный порядок первого появления.
+
+Сохраните полученный список в переменную `result`.
+
+> **Важно:**
+> 1. Не объявляйте функции (не используйте `def`).
+> 2. Запишите итоговый ответ в переменную `result`.
+> 3. Исходный порядок элементов должен сохраниться.
+
+#### Пример:
+Если `items = [1, 2, 2, 3, 1, 4]`, то `result` должен быть равен `[1, 2, 3, 4]`.
+    starter_code  : # Переменная items задаётся автоматически проверяющей системой.
+# Для тестирования в редакторе:
+items = [1, 2, 2, 3, 1, 4]
+
+# Создайте пустой список для уникальных элементов:
+unique_items = []
+
+# Пройдите по items циклом for и добавляйте элемент, если его ещё нет в unique_items:
+
+
+# Сохраните итоговый список в result:
+result = unique_items
+
+    solution_code : unique_items = []
+for item in items:
+    if item not in unique_items:
+        unique_items.append(item)
+
+result = unique_items
+
+    test_cases    : [{"id":"test_1","description":"Числа с дубликатами","input":{"items":[1,2,2,3,1,4]},"expected_output":[1,2,3,4],"category":"basic","is_visible":true},{"id":"test_2","description":"Строки с дубликатами","input":{"items":["яблоко","банан","яблоко","груша"]},"expected_output":["яблоко","банан","груша"],"category":"basic","is_visible":true},{"id":"test_3","description":"Список без дубликатов","input":{"items":[5,4,3,2,1]},"expected_output":[5,4,3,2,1],"category":"edge","is_visible":true},{"id":"test_4","description":"Пустой список","input":{"items":[]},"expected_output":[],"category":"edge","is_visible":false}]
+    xp_reward     : 30
+    difficulty    : hard
+    hints         : [{"id":"hint_1","text":"Заведите пустой список `unique_items = []`. В цикле `for x in items:` проверяйте `if x not in unique_items: unique_items.append(x)`. В конце присвойте `result = unique_items`.","unlock_after_attempts":1}]
+    order_index   : 3
+    $id           : 57c76d8d-e2fc-4fc8-ba9d-e2624a85dcf4
+    $sequence     : 22
+    $createdAt    : 2026-10-24 15:08:31 UTC (10d ago)
+    $updatedAt    : 2026-11-03 10:02:41 UTC (21h ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [18]
+    module_id     : a8666f99-1cf9-4121-abf3-110d82957e95
+    title         : Сумма двух чисел
+    description   : ## Задача
+Напиши функцию **sum_two_numbers(a, b)**, которая принимает два целых числа и возвращает их сумму.
+
+### Что нужно сделать
+1. Создай функцию с именем `sum_two_numbers`.
+2. Функция должна принимать два параметра: `a` и `b`.
+3. Возвращай результат сложения этих параметров.
+    starter_code  : def sum_two_numbers(a, b):
+    # Напишите здесь ваше решение
+    pass
+    solution_code : def sum_two_numbers(a, b):
+    # Правильное решение
+    return a + b
+    test_cases    : [{"id":"test_1","input":{"a":10,"b":15},"category":"basic","is_visible":true,"description":"Базовый случай","expected_output":25},{"id":"test_2","input":{"a":-5,"b":5},"category":"edge","is_visible":false,"description":"Граничный случай: отрицательное число","expected_output":0},{"id":"test_3","input":{"a":123456789,"b":987654321},"category":"edge","is_visible":false,"description":"Граничный случай: большие числа","expected_output":1111111110}]
+    xp_reward     : 10
+    difficulty    : easy
+    order_index   : 0
+    $id           : 96b232f8-8e0b-4e89-87b3-5dd0df2c8e9c
+    $sequence     : 23
+    $createdAt    : 2026-10-24 15:08:31 UTC (10d ago)
+    $updatedAt    : 2026-10-27 11:36:58 UTC (7d ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [19]
+    module_id     : a8666f99-1cf9-4121-abf3-110d82957e95
+    title         : k‑й максимальный элемент
+    description   : # Задание: k‑й максимальный элемент
+
+В этой задаче нужно написать функцию, которая возвращает **k‑й по величине** элемент из списка чисел.\n
+**Как это работает?**\n- Сначала список сортируется по убыванию (от большего к меньшему).\n- Затем берётся элемент с индексом `k-1` (поскольку индексы в Python начинаются с 0).\n- Если `k` выходит за пределы длины списка, функция должна вернуть `None`.\n
+    starter_code  : def kth_largest(nums, k):
+    # Напишите здесь ваше решение
+    pass
+    solution_code : def kth_largest(nums, k):
+    """Возвращает k‑й по величине элемент списка.
+    Если k выходит за пределы, возвращает None."""
+    if not isinstance(k, int) or k < 1:
+        return None
+    sorted_nums = sorted(nums, reverse=True)
+    return sorted_nums[k-1] if k <= len(sorted_nums) else None
+    test_cases    : [{"id":"test_1","input":{"k":3,"nums":[3,1,4,1,5,9,2,6,5]},"category":"basic","is_visible":true,"description":"Базовый случай","expected_output":5},{"id":"test_2","input":{"k":1,"nums":[3,1,4,1,5,9,2,6,5]},"category":"edge","is_visible":false,"description":"Граничный случай – k = 1","expected_output":9},{"id":"test_3","input":{"k":10,"nums":[3,1,4,1,5,9,2,6,5]},"category":"edge","is_visible":false,"description":"Граничный случай – k слишком велико","expected_output":null}]
+    xp_reward     : 20
+    difficulty    : hard
+    order_index   : 0
+    $id           : 16e34823-3669-4415-bbd2-da5eb79e9ec8
+    $sequence     : 24
+    $createdAt    : 2026-10-24 15:08:32 UTC (10d ago)
+    $updatedAt    : 2026-10-27 11:36:58 UTC (7d ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [20]
+    module_id     : 341df28c-ddb6-4021-8a66-fb9e31a1ba0b
+    title         : Определить знак числа
+    description   : ## Задание
+
+Вам нужно написать программу `get_sign`, которая использует одно целое число и записывает в переменную `result`
+строку, указывающую его знак:
+
+- **"positive"** – если число больше нуля;
+- **"negative"** – если число меньше нуля;
+- **"zero"** – если число равно нулю.
+    starter_code  : # Примеры входных переменных для теста:
+
+# Запишите результат в переменную result:
+# Input parameter is available as a global variable: num
+# Assign the final answer to the variable: result
+
+# Напишите здесь ваше решение
+
+    solution_code : if num > 0:
+    result = "positive"
+elif num < 0:
+    result = "negative"
+else:
+    result = "zero"
+    test_cases    : [{"id":"test_1","input":{"num":7},"category":"basic","is_visible":true,"description":"Базовый случай","expected_output":"positive"},{"id":"test_2","input":{"num":-42},"category":"edge","is_visible":false,"description":"Граничный случай – отрицательное число","expected_output":"negative"},{"id":"test_3","input":{"num":0},"category":"edge","is_visible":false,"description":"Граничный случай – ноль","expected_output":"zero"}]
+    xp_reward     : 10
+    difficulty    : easy
+    order_index   : 0
+    $id           : 2537b081-5fde-4060-883b-6ac04920291f
+    $sequence     : 25
+    $createdAt    : 2026-10-24 15:08:32 UTC (10d ago)
+    $updatedAt    : 2026-10-31 06:18:01 UTC (4d ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [21]
+    module_id     : 341df28c-ddb6-4021-8a66-fb9e31a1ba0b
+    title         : Определяем температуру
+    description   : ## Задача
+
+Напишите программу, которая использует переменную `temp` (температура в градусах Цельсия) и записывает в переменную `result` строку:
+
+- **"тепло"**, если температура выше 20° (`temp > 20`);
+- **"прохладно"**, если температура от 10° до 20° включительно (`10 <= temp <= 20`);
+- **"холодно"**, если температура ниже 10° (`temp < 10`).
+    starter_code  : # Переменная temp уже задана автоматически (например, temp = 20)
+# Запишите результат в переменную result:
+# "тепло", если temp > 20
+# "прохладно", если 10 <= temp <= 20
+# "холодно", если temp < 10
+
+# Напишите ваше решение здесь:
+
+    solution_code : if temp > 20:
+    result = "тепло"
+elif temp >= 10:
+    result = "прохладно"
+else:
+    result = "холодно"
+
+    test_cases    : [{"id":"test_1","input":{"temp":25},"category":"basic","is_visible":true,"description":"Базовый случай (тепло)","expected_output":"тепло"},{"id":"test_2","input":{"temp":20},"category":"edge","is_visible":false,"description":"Граничный случай 20° (прохладно)","expected_output":"прохладно"},{"id":"test_3","input":{"temp":5},"category":"edge","is_visible":false,"description":"Граничный случай 5° (холодно)","expected_output":"холодно"}]
+    xp_reward     : 20
+    difficulty    : medium
+    order_index   : 0
+    $id           : d5e11adb-5276-4b6f-aee6-b71e41db2558
+    $sequence     : 26
+    $createdAt    : 2026-10-24 15:08:32 UTC (10d ago)
+    $updatedAt    : 2026-10-31 06:20:00 UTC (4d ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [22]
+    module_id     : 341df28c-ddb6-4021-8a66-fb9e31a1ba0b
+    title         : Классификация оценок
+    description   : ## Задание
+
+Вам нужно написать программу `grade_to_letter`, которая использует целое число `score` (оценка от 0 до 100) и записывает в переменную `result` букву‑оценку по следующей схеме:
+
+- **A** – если 90 ≤ score ≤ 100
+- **B** – если 80 ≤ score ≤ 89
+- **C** – если 70 ≤ score ≤ 79
+- **D** – если 60 ≤ score ≤ 69
+- **F** – если 0 ≤ score < 60
+- **Invalid** – если score находится за пределами диапазона 0‑100
+    starter_code  : # Примеры входных переменных для теста:
+
+# Запишите результат в переменную result:
+# Input variable: score (int)
+# Assign your answer to the variable `result`
+
+# Напишите здесь решение
+
+    solution_code : if 90 <= score <= 100:
+    result = 'A'
+elif 80 <= score <= 89:
+    result = 'B'
+elif 70 <= score <= 79:
+    result = 'C'
+elif 60 <= score <= 69:
+    result = 'D'
+elif 0 <= score < 60:
+    result = 'F'
+else:
+    result = 'Invalid'
+
+    test_cases    : [{"id":"test_1","input":{"score":85},"category":"basic","is_visible":true,"description":"Базовый случай","expected_output":"B"},{"id":"test_2","input":{"score":100},"category":"edge","is_visible":false,"description":"Граничный случай: максимум","expected_output":"A"},{"id":"test_3","input":{"score":-10},"category":"error","is_visible":false,"description":"Граничный случай: отрицательная оценка","expected_output":"Invalid"}]
+    xp_reward     : 30
+    difficulty    : hard
+    order_index   : 0
+    $id           : d2fb739a-dd42-4a4d-9c66-737e96edbdf4
+    $sequence     : 27
+    $createdAt    : 2026-10-24 15:08:32 UTC (10d ago)
+    $updatedAt    : 2026-10-31 06:18:01 UTC (4d ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [23]
+    module_id     : 8c8f076b-9879-47d8-b503-ce38db78f439
+    title         : Эхо и длина сообщения
+    description   : ### Эхо и подсчёт символов
+
+Вам дана переменная `message`, содержащая текстовое сообщение.
+
+Напишите программу, которая формирует строку вида:
+```text
+Получено: '<сообщение>' (длина: <число>)
+```
+и сохраняет её в переменную `result`.
+
+> **Важно:**
+> 1. Не объявляйте функции (не используйте `def`).
+> 2. Запишите итоговый ответ в переменную `result`.
+> 3. Длину строки можно узнать с помощью стандартной функции `len(message)`.
+
+#### Пример:
+Если `message = "Привет"`, то значение `result` должно быть:
+`"Получено: 'Привет' (длина: 6)"`.
+    starter_code  : # Переменная message задаётся проверяющей системой.
+# Для тестирования в редакторе:
+message = "Привет"
+
+# Сформируйте строку с сообщением и его длиной:
+result = ""
+
+    solution_code : result = f"Получено: '{message}' (длина: {len(message)})"
+
+    test_cases    : [{"id":"test_1","description":"Слово 'Привет'","input":{"message":"Привет"},"expected_output":"Получено: 'Привет' (длина: 6)","category":"basic","is_visible":true},{"id":"test_2","description":"Фраза 'Python 3'","input":{"message":"Python 3"},"expected_output":"Получено: 'Python 3' (длина: 8)","category":"basic","is_visible":true},{"id":"test_3","description":"Пустая строка","input":{"message":""},"expected_output":"Получено: '' (длина: 0)","category":"edge","is_visible":false}]
+    xp_reward     : 20
+    difficulty    : medium
+    hints         : [{"id":"hint_1","text":"Используйте функцию len(message) прямо внутри f-строки: `result = f\"Получено: '{message}' (длина: {len(message)})\"`.","unlock_after_attempts":1}]
+    order_index   : 2
+    $id           : f6a9f408-db31-47da-8f68-86843b8f751e
+    $sequence     : 28
+    $createdAt    : 2026-10-24 15:08:32 UTC (10d ago)
+    $updatedAt    : 2026-11-03 10:02:16 UTC (21h ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [24]
+    module_id     : 219e9052-2f10-4b14-919e-2ced851821b4
+    title         : Приветствие с классом
+    description   : ### Создание класса и приветствие
+
+Вам дана переменная `names`, содержащая список имён.
+
+1. Объявите класс `Greeter`, метод `__init__(self, name)` которого сохраняет имя, а метод `greet(self)` возвращает строку вида `"Привет, <name>!"`.
+2. Создайте объекты класса `Greeter` для каждого имени из списка `names` и сохраните полученные приветствия в виде списка в переменную `result`.
+
+> **Важно:**
+> 1. Не объявляйте отдельную пользовательскую функцию для решения (не используйте внешние `def func(...)`).
+> 2. Создайте класс и запишите итоговый список в переменную `result`.
+
+#### Пример:
+Если `names = ["Аня", "Борис"]`, то `result` равен `["Привет, Аня!", "Привет, Борис!"]`.
+    starter_code  : # Переменная names задаётся проверяющей системой.
+# Для тестирования в редакторе:
+names = ["Аня", "Борис"]
+
+# 1. Объявите класс Greeter:
+class Greeter:
+    def __init__(self, name):
+        self.name = name
+
+    def greet(self):
+        return f"Привет, {self.name}!"
+
+# 2. Создайте объекты для каждого имени и сохраните приветствия в result:
+result = []
+for name in names:
+    g = Greeter(name)
+    result.append(g.greet())
+
+    solution_code : class Greeter:
+    def __init__(self, name):
+        self.name = name
+
+    def greet(self):
+        return f"Привет, {self.name}!"
+
+result = []
+for name in names:
+    result.append(Greeter(name).greet())
+
+    test_cases    : [{"id":"test_1","input":{"names":["Аня","Борис"]},"category":"basic","is_visible":true,"description":"Базовый случай","expected_output":["Привет, Аня!","Привет, Борис!"]},{"id":"test_2","input":{"names":[]},"category":"edge","is_visible":false,"description":"Пустой список","expected_output":[]},{"id":"test_3","input":{"names":["Иван"]},"category":"edge","is_visible":false,"description":"Один элемент","expected_output":["Привет, Иван!"]}]
+    xp_reward     : 10
+    difficulty    : easy
+    order_index   : 0
+    $id           : ce89af5c-bf1a-4316-9e08-76f00788f13d
+    $sequence     : 29
+    $createdAt    : 2026-10-24 15:08:32 UTC (10d ago)
+    $updatedAt    : 2026-11-03 10:34:12 UTC (20h ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [25]
+    module_id     : 219e9052-2f10-4b14-919e-2ced851821b4
+    title         : Описание автомобиля
+    description   : ### Класс Car и форматированное описание
+
+Вам даны переменные `make` (марка) и `model` (модель автомобиля).
+
+1. Создайте класс `Car` с конструктором `__init__(self, make, model)` и методом `get_description(self)`, возвращающим строку `"Make: <make>, Model: <model>"`.
+2. Создайте экземпляр класса `Car` с переданными значениями и сохраните результат вызова `get_description()` в переменную `result`.
+
+> **Важно:**
+> 1. Не используйте внешние пользовательские функции.
+> 2. Сохраните строку с описанием в переменную `result`.
+
+#### Пример:
+Если `make = "Toyota"`, `model = "Corolla"`, то `result` равен `"Make: Toyota, Model: Corolla"`.
+    starter_code  : # Переменные make и model задаются проверяющей системой.
+# Для тестирования в редакторе:
+make = "Toyota"
+model = "Corolla"
+
+# Объявите класс Car:
+class Car:
+    def __init__(self, make, model):
+        self.make = make
+        self.model = model
+
+    def get_description(self):
+        return f"Make: {self.make}, Model: {self.model}"
+
+# Создайте объект и сохраните описание в result:
+result = Car(make, model).get_description()
+
+    solution_code : class Car:
+    def __init__(self, make, model):
+        self.make = make
+        self.model = model
+
+    def get_description(self):
+        return f"Make: {self.make}, Model: {self.model}"
+
+result = Car(make, model).get_description()
+
+    test_cases    : [{"id":"test_1","input":{"make":"Toyota","model":"Corolla"},"category":"basic","is_visible":true,"description":"Базовый случай","expected_output":"Make: Toyota, Model: Corolla"},{"id":"test_2","input":{"make":"","model":"Civic"},"category":"edge","is_visible":false,"description":"Пустая марка","expected_output":"Make: , Model: Civic"},{"id":"test_3","input":{"make":"Ford","model":""},"category":"edge","is_visible":false,"description":"Пустая модель","expected_output":"Make: Ford, Model: "}]
+    xp_reward     : 20
+    difficulty    : medium
+    order_index   : 0
+    $id           : 12c6b8ed-de6b-4c26-8065-b4539317e95d
+    $sequence     : 30
+    $createdAt    : 2026-10-24 15:08:32 UTC (10d ago)
+    $updatedAt    : 2026-11-03 10:34:12 UTC (20h ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [26]
+    module_id     : 219e9052-2f10-4b14-919e-2ced851821b4
+    title         : Класс Банковского счёта
+    description   : ### Моделирование банковского счёта
+
+Вам дана переменная `operations`, содержащая список операций вида `[действие, сумма]`, например `[["deposit", 200], ["withdraw", 50]]`.
+
+1. Создайте класс `BankAccount` с начальным балансом `balance = 0`, методами `deposit(amount)` (пополнение) и `withdraw(amount)` (снятие при наличии достаточных средств).
+2. Выполните все операции из списка `operations` и сохраните итоговый баланс счёта в переменную `result`.
+
+> **Важно:**
+> 1. Не создавайте внешние функции решения.
+> 2. Запишите итоговый баланс в переменную `result`.
+    starter_code  : # Переменная operations задаётся проверяющей системой.
+# Для тестирования в редакторе:
+operations = [["deposit", 200], ["withdraw", 50]]
+
+class BankAccount:
+    def __init__(self):
+        self.balance = 0
+
+    def deposit(self, amount):
+        self.balance += amount
+
+    def withdraw(self, amount):
+        if amount <= self.balance:
+            self.balance -= amount
+
+account = BankAccount()
+for op, amount in operations:
+    if op == "deposit":
+        account.deposit(amount)
+    elif op == "withdraw":
+        account.withdraw(amount)
+
+result = account.balance
+
+    solution_code : class BankAccount:
+    def __init__(self):
+        self.balance = 0
+
+    def deposit(self, amount):
+        self.balance += amount
+
+    def withdraw(self, amount):
+        if amount <= self.balance:
+            self.balance -= amount
+
+account = BankAccount()
+for op, amount in operations:
+    if op == "deposit":
+        account.deposit(amount)
+    elif op == "withdraw":
+        account.withdraw(amount)
+
+result = account.balance
+
+    test_cases    : [{"id":"test_1","input":{"operations":[["deposit",200],["withdraw",50]]},"category":"basic","is_visible":true,"description":"Базовый случай","expected_output":150},{"id":"test_2","input":{"operations":[]},"category":"edge","is_visible":false,"description":"Граничный случай – пустой список операций","expected_output":0},{"id":"test_3","input":{"operations":[["deposit",1000000000000],["withdraw",1000000000000]]},"category":"edge","is_visible":false,"description":"Граничный случай – большие числа","expected_output":0}]
+    xp_reward     : 30
+    difficulty    : hard
+    order_index   : 0
+    $id           : 653f83f4-3a74-416d-be07-35dff8ff754c
+    $sequence     : 31
+    $createdAt    : 2026-10-24 15:08:32 UTC (10d ago)
+    $updatedAt    : 2026-11-03 10:34:12 UTC (20h ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [27]
+    module_id     : efb3e0dc-b750-46e9-8e59-7e04958a9be1
+    title         : Подсчёт простых чисел
+    description   : ### Подсчёт простых чисел
+
+Вам дана переменная `n`. Напишите программу, которая подсчитывает количество простых чисел в диапазоне от 2 до `n` включительно. Сохраните количество в переменную `result`.
+
+> **Важно:** Не используйте `def`. Запишите ответ в `result`.
+    starter_code  : # Input variables
+# n: int
+
+# Write your linear code here:
+
+    solution_code : if n < 2:
+    result = 0
+else:
+    count = 0
+    for num in range(2, n + 1):
+        is_prime = True
+        for i in range(2, int(num ** 0.5) + 1):
+            if num % i == 0:
+                is_prime = False
+                break
+        if is_prime:
+            count += 1
+    result = count
+    test_cases    : [{"id":"test_1","input":{"n":10},"category":"basic","is_visible":true,"description":"Базовый случай","expected_output":4},{"id":"test_2","input":{"n":1},"category":"edge","is_visible":false,"description":"Граничный случай: меньше 2","expected_output":0},{"id":"test_3","input":{"n":100},"category":"edge","is_visible":false,"description":"Граничный случай: более 100","expected_output":25}]
+    xp_reward     : 30
+    difficulty    : hard
+    order_index   : 0
+    $id           : 914131d9-6ecc-4245-91ad-3903465f6114
+    $sequence     : 32
+    $createdAt    : 2026-10-24 15:08:32 UTC (10d ago)
+    $updatedAt    : 2026-11-03 10:34:41 UTC (20h ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [28]
+    module_id     : bf116e03-63c6-4975-8879-09e7e129e45f
+    title         : Умножение вещественных чисел
+    description   : ## Умножение вещественных чисел
+
+В этой задаче тебе нужно написать программу, которая использует два числа с плавающей запятой (вещественных) и записывает в переменную `result` их произведение.
+
+### Что нужно сделать
+1. Создай программу `multiply_floats(a, b)`.
+2. Функция должна вернуть результат умножения `a` и `b`.
+
+### Пример
+```python
+multiply_floats(3.5, 2.0)   # → 7.0
+multiply_floats(-1.2, 4)    # → -4.8
+```
+
+### Входные данные
+Функция получает два аргумента: `a` и `b`, оба типа `float`.
+
+### Выходные данные
+записывает в переменную `result`ся число типа `float`, равное произведению `a` и `b`.
+
+### Что проверяется
+- Корректность умножения.
+- Обработка отрицательных чисел, нулей и больших значений.
+- Чистый и понятный код.
+    starter_code  : # Входные данные: a, b (глобальные переменные)
+# Результат запишите в переменную result
+
+# Напишите здесь ваше решение
+
+    solution_code : # Входные данные: a, b (глобальные переменные)
+# Результат запишите в переменную result
+
+result = a * b
+
+    test_cases    : [{"id":"test_1","input":{"a":3.5,"b":2},"category":"basic","is_visible":true,"description":"Базовый случай","expected_output":7},{"id":"test_2","input":{"a":-1.2,"b":4},"category":"edge","is_visible":false,"description":"Отрицательные числа","expected_output":-4.8},{"id":"test_3","input":{"a":0,"b":123456.789},"category":"edge","is_visible":false,"description":"Нуль и большое число","expected_output":0}]
+    xp_reward     : 20
+    difficulty    : medium
+    order_index   : 0
+    $id           : e9e65493-df51-42d5-a154-02cc44e89171
+    $sequence     : 33
+    $createdAt    : 2026-10-24 15:08:32 UTC (10d ago)
+    $updatedAt    : 2026-10-30 09:57:01 UTC (4d ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [29]
+    module_id     : bf116e03-63c6-4975-8879-09e7e129e45f
+    title         : Сложение вещественных чисел
+    description   : В этом задании вы научитесь складывать вещественные числа. Функция должна принимать два числа типа **float** и возвращать их сумму. 
+
+**Пример**:
+```
+result = add_floats(3.14, 2.72)
+print(result)  # 5.86
+```
+
+Нужно написать программу `add_floats`, которая использует два аргумента `a` и `b` и записывает в переменную `result` их сумму.
+    starter_code  : # Input parameters: a, b
+# Напишите здесь ваше решение
+result = None
+    solution_code : # Input parameters: a, b
+result = float(a + b)
+    test_cases    : [{"id":"test_1","input":{"a":3.5,"b":2.1},"category":"basic","is_visible":true,"description":"Базовый случай","expected_output":5.6},{"id":"test_2","input":{"a":-1.2,"b":-3.8},"category":"edge","is_visible":false,"description":"Граничный случай: отрицательные числа","expected_output":-5},{"id":"test_3","input":{"a":10000000000,"b":2500000000},"category":"edge","is_visible":false,"description":"Граничный случай: большие значения","expected_output":12500000000}]
+    xp_reward     : 10
+    difficulty    : easy
+    order_index   : 0
+    $id           : 560f88cb-ef02-4061-b26c-af0db5b58974
+    $sequence     : 34
+    $createdAt    : 2026-10-24 15:08:32 UTC (10d ago)
+    $updatedAt    : 2026-10-30 09:57:01 UTC (4d ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [30]
+    module_id     : bf116e03-63c6-4975-8879-09e7e129e45f
+    title         : Среднее арифметическое
+    description   : ## Задание
+
+Найти среднее арифметическое двух вещественных чисел.
+
+**Функция** `average(a, b)` должна принимать два аргумента `a` и `b` (числа с плавающей точкой) и возвращать их среднее значение.
+
+### Пример
+
+```python
+average(3.5, 4.5)  # → 4.0
+```
+
+### Входные данные
+- `a` – вещественное число
+- `b` – вещественное число
+
+### Выходные данные
+- Среднее арифметическое `a` и `b` (тип `float`).
+    starter_code  : # Входные данные a и b уже доступны как глобальные переменные
+# Напишите ваше решение здесь
+
+    solution_code : # Входные данные a и b уже доступны как глобальные переменные
+result = (a + b) / 2.0
+
+    test_cases    : [{"id":"test_1","input":{"a":3.5,"b":4.5},"category":"basic","is_visible":true,"description":"Базовый случай","expected_output":4},{"id":"test_2","input":{"a":1e-308,"b":1e-308},"category":"edge","is_visible":false,"description":"Граничный случай: маленькие числа","expected_output":1e-308},{"id":"test_3","input":{"a":-10,"b":5},"category":"edge","is_visible":false,"description":"Граничный случай: отрицательное и положительное число","expected_output":-2.5}]
+    xp_reward     : 30
+    difficulty    : hard
+    order_index   : 0
+    $id           : d31e4998-cfad-4620-b2a3-56478538c1e0
+    $sequence     : 35
+    $createdAt    : 2026-10-24 15:08:32 UTC (10d ago)
+    $updatedAt    : 2026-10-30 09:42:41 UTC (4d ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [31]
+    module_id     : 9264df56-05de-4f10-8a23-8d3160f7ca8f
+    title         : Инициалы школьного дневника
+    description   : Привет! В школьной библиотеке решили завести электронные читательские билеты. Для этого нужно по полному имени ученика автоматически создавать короткую карточку.
+
+Напишите программу `get_initials(full_name)`, которая использует строку с полными именем и фамилией (например, `"Иван Иванов"`), а записывает в переменную `result` строку с инициалами и фамилией в формате: первая буква имени с точкой и фамилия (например, `"И. Иванов"`).
+
+### Пример:
+```python
+print(get_initials("Анна Петрова"))
+# Вывод:
+# А. Петрова
+```
+
+### Подсказка:
+Используйте метод `.split()`, чтобы разделить строку на слова, а затем возьмите нужные срезы или символы.
+    starter_code  : # Input variable: full_name (e.g. "Иван Иванов")
+# Assign the final answer to the variable: result
+
+# Напишите здесь ваше решение
+
+    solution_code : words = full_name.split()
+result = words[0][0] + ". " + words[1]
+    test_cases    : [{"id":"test_1","description":"Базовое имя и фамилия","input":{"full_name":"Иван Иванов"},"expected_output":"И. Иванов","category":"basic","is_visible":true},{"id":"test_2","description":"Имя с буквой в нижнем регистре","input":{"full_name":"петр смирнов"},"expected_output":"п. смирнов","category":"edge","is_visible":false},{"id":"test_3","description":"Длинные имя и фамилия","input":{"full_name":"Святополк Окаянный"},"expected_output":"С. Окаянный","category":"edge","is_visible":false}]
+    xp_reward     : 10
+    difficulty    : easy
+    hints         : ["Подсказка 1: Подумай, как разделить текст на отдельные слова (имя и фамилию). В Python для этого есть удобный метод строк.","Подсказка 2: После разделения строки у тебя получится список. Первый элемент — это имя, второй — фамилия.","Подсказка 3: Чтобы получить только первую букву имени, используй обращение по индексу [0] или срез для первого слова, а затем добавь к нему '. ' и саму фамилию."]
+    order_index   : 0
+    $id           : 557224c5-90af-4bec-9a94-75825e382212
+    $sequence     : 66
+    $createdAt    : 2026-10-25 13:41:50 UTC (9d ago)
+    $updatedAt    : 2026-10-30 09:57:01 UTC (4d ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [32]
+    module_id     : 9264df56-05de-4f10-8a23-8d3160f7ca8f
+    title         : Школьный дневник успеваемости
+    description   : Привет! Представь, что ты помогаешь разработать цифровую систему для школьного дневника. Тебе нужно написать программу `format_student_record(record)`, которая использует строку с данными ученика в формате **"Фамилия:Имя:Оценка"** (например, `"Иванов:Алексей:5"`), а записывает в переменную `result` красивую и аккуратную строчку-отчет для учителя.
+
+### Что нужно сделать:
+1. Извлечь фамилию и имя ученика.
+2. Сделать так, чтобы фамилия была написана **только заглавными буквами** (используй методы строк), а имя начиналось с большой буквы, остальные — маленькие.
+3. Посчитать, сколько всего букв в имени ученика (включая все символы).
+4. Собрать и вернуть итоговую строку по шаблону: `"Ученик: ФАМИЛИЯ Имя (букв в имени: N), оценка: Оценка"`.
+
+### Пример:
+- **Входные данные:** `record = "петров:андрей:4"`
+- **Выходные данные:** `"Ученик: ПЕТРОВ Андрей (букв в имени: 6), оценка: 4"`
+
+### Подсказки, которые пригодятся:
+- Метод `.split(':')` поможет разрезать одну большую строку на части по двоеточию.
+- Методы `.upper()` и `.capitalize()` изменят регистр букв.
+- Функция `len()` поможет узнать длину имени.
+    starter_code  : # Входные данные доступны в переменной record
+# Итоговый результат нужно записать в переменную result
+
+# Напишите здесь ваше решение
+
+    solution_code : parts = record.split(':')
+surname = parts[0].upper()
+name = parts[1].capitalize()
+grade = parts[2]
+name_len = len(name)
+result = f"Ученик: {surname} {name} (букв в имени: {name_len}), оценка: {grade}"
+    test_cases    : [{"id":"test_1","description":"Базовый случай с учеником в нижнем регистре","input":{"record":"петров:андрей:4"},"expected_output":"Ученик: ПЕТРОВ Андрей (букв в имени: 6), оценка: 4","category":"basic","is_visible":true},{"id":"test_2","description":"Случай с разным регистром букв в исходной строке","input":{"record":"ИВАНОВА:мария:5"},"expected_output":"Ученик: ИВАНОВА Мария (букв в имени: 5), оценка: 5","category":"edge","is_visible":false},{"id":"test_3","description":"Случай с двойным именем или необычным регистром","input":{"record":"смирнов:анна-мария:3"},"expected_output":"Ученик: СМИРНОВ Анна-мария (букв в имени: 10), оценка: 3","category":"edge","is_visible":false}]
+    xp_reward     : 20
+    difficulty    : medium
+    hints         : ["Подсказка 1: Попробуй разделить входящую строку на части с помощью метода split(':'). Что у тебя получится?","Подсказка 2: Чтобы сделать фамилию заглавными буквами, используй метод .upper(), а для имени отлично подойдет .capitalize().","Подсказка 3: Не забудь посчитать количество букв в имени через len() и аккуратно собрать всю итоговую строчку с помощью f-строки или сложения строк."]
+    order_index   : 1
+    $id           : 35750884-a884-43d3-9b7d-c1bb9050d1d2
+    $sequence     : 67
+    $createdAt    : 2026-10-25 13:41:50 UTC (9d ago)
+    $updatedAt    : 2026-10-30 09:57:02 UTC (4d ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [33]
+    module_id     : 9264df56-05de-4f10-8a23-8d3160f7ca8f
+    title         : Сборка школьной стенгазеты
+    description   : Привет! Ты помогаешь редактору школьной газеты исправить заголовки статей. Тебе нужно написать программу `format_headline(text)`, которая использует строку с заголовком и приводит её к правильному виду:
+
+1. Удаляет лишние пробелы в начале и в конце строки (используй метод `strip()`).
+2. Делает первую букву заглавной, а все остальные — строчными (используй методы `capitalize()` или комбинацию срезов и `lower()`).
+3. Если заглавная буква заголовка — гласная ('А', 'Е', 'Ё', 'И', 'О', 'У', 'Ы', 'Э', 'Ю', 'Я'), то в конец строки добавляется восклицательный знак `!`, а если согласная — точка `.`.
+
+### Примеры:
+- `format_headline('   урок информатики   ')` вернет `'Урок информатики!'`
+- `format_headline('ШКОЛЬНЫЙ КУБОК ПО ФУТБОЛУ')` вернет `'Школьный кубок по футболу.'`
+    starter_code  : # Input variable: text
+# Assign your final answer to the variable: result
+
+# Напишите здесь ваше решение
+
+    solution_code : clean_text = text.strip().lower()
+if not clean_text:
+    result = ''
+else:
+    formatted = clean_text[0].upper() + clean_text[1:]
+    vowels = 'аеёиоуыэюя'
+    if formatted[0].lower() in vowels:
+        result = formatted + '!'
+    else:
+        result = formatted + '.'
+
+    test_cases    : [{"id":"test_1","description":"Базовый случай с пробелами и гласной буквой в начале","input":{"text":"   урок информатики   "},"expected_output":"Урок информатики!","category":"basic","is_visible":true},{"id":"test_2","description":"Граничный случай с заглавными буквами и согласной на конце","input":{"text":"ШКОЛЬНЫЙ КУБОК ПО ФУТБОЛУ"},"expected_output":"Школьный кубок по футболу.","category":"edge","is_visible":false},{"id":"test_3","description":"Граничный случай с пустой строкой или только пробелами","input":{"text":"   "},"expected_output":"","category":"edge","is_visible":false}]
+    xp_reward     : 30
+    difficulty    : hard
+    hints         : ["Подсказка 1: Начни с очистки строки от лишних пробелов по краям с помощью метода strip(), а также приведению к нижнему регистру с помощью lower().","Подсказка 2: Чтобы сделать первую букву заглавной, используй срез первой буквы [0].upper() и соедини её со срезом оставшейся части строки [1:].","Подсказка 3: Создай строку с гласными буквами и проверь, входит ли первая буква отформатированного текста в эту строку, чтобы решить, какой знак препинания добавить в конце."]
+    order_index   : 2
+    $id           : 2e515011-682b-4c0f-a454-370873142082
+    $sequence     : 68
+    $createdAt    : 2026-10-25 13:41:50 UTC (9d ago)
+    $updatedAt    : 2026-10-30 09:57:02 UTC (4d ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [34]
+    module_id     : module_basics
+    title         : Сложение двух чисел
+    description   : ### Простое сложение
+
+Вам даны две переменные: `a` и `b`.
+
+Напишите программу, которая находит их сумму и записывает итоговое значение в переменную `result`.
+
+> **Важно:**
+> 1. Не объявляйте функции (не используйте `def`).
+> 2. Запишите итоговый ответ в переменную `result`.
+
+#### Пример:
+Если `a = 5`, `b = 3`, то `result` должен быть равен `8`.
+    starter_code  : # Переменные a и b задаются проверяющей системой.
+# Для тестирования в редакторе:
+a = 5
+b = 3
+
+# Вычислите сумму и сохраните в result:
+result = 0
+
+    solution_code : result = a + b
+
+    test_cases    : [{"id":"test_1","description":"Положительные числа","input":{"a":5,"b":3},"expected_output":8,"category":"basic","is_visible":true},{"id":"test_2","description":"Отрицательные числа","input":{"a":-5,"b":-3},"expected_output":-8,"category":"edge","is_visible":true},{"id":"test_3","description":"С нулем","input":{"a":0,"b":5},"expected_output":5,"category":"edge","is_visible":false}]
+    xp_reward     : 10
+    difficulty    : easy
+    hints         : [{"id":"hint_1","text":"Сложите переменные и сохраните в result: `result = a + b`","unlock_after_attempts":1}]
+    order_index   : 1
+    $id           : task_sum
+    $sequence     : 69
+    $createdAt    : 2026-10-25 14:44:53 UTC (9d ago)
+    $updatedAt    : 2026-11-03 10:33:16 UTC (20h ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [35]
+    module_id     : module_basics
+    title         : Приветствие
+    description   : ### Формирование строки приветствия
+
+Вам дана переменная `name`, содержащая имя.
+
+Напишите программу, которая формирует строку `Привет, <name>!` и сохраняет её в переменную `result`.
+
+> **Важно:**
+> 1. Не объявляйте функции (не используйте `def`).
+> 2. Запишите итоговый ответ в переменную `result`.
+
+#### Пример:
+Если `name = "Аня"`, то `result` должен быть равен `"Привет, Аня!"`.
+    starter_code  : # Переменная name задаётся проверяющей системой.
+# Для тестирования в редакторе:
+name = "Аня"
+
+# Сформируйте приветствие и сохраните в result:
+result = ""
+
+    solution_code : result = f"Привет, {name}!"
+
+    test_cases    : [{"id":"test_1","description":"Имя Аня","input":{"name":"Аня"},"expected_output":"Привет, Аня!","category":"basic","is_visible":true},{"id":"test_2","description":"Имя Миша","input":{"name":"Миша"},"expected_output":"Привет, Миша!","category":"basic","is_visible":true}]
+    xp_reward     : 10
+    difficulty    : easy
+    hints         : [{"id":"hint_1","text":"Используйте f-строку: `result = f\"Привет, {name}!\"`","unlock_after_attempts":1}]
+    order_index   : 2
+    $id           : task_greet
+    $sequence     : 70
+    $createdAt    : 2026-10-25 14:44:53 UTC (9d ago)
+    $updatedAt    : 2026-11-03 10:33:16 UTC (20h ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [36]
+    module_id     : module_loops
+    title         : Сумма от 1 до N
+    description   : Напишите программу `sum_to_n(n)`, которая записывает в переменную `result` сумму всех целых чисел от 1 до `n` включительно.
+
+**Пример:**
+```python
+sum_to_n(4)  # 10
+```
+    starter_code  : total = 0
+# Добавьте цикл
+result = total
+    solution_code : total = 0
+for number in range(1, n + 1):
+    total += number
+result = total
+    test_cases    : [{"id":"test_1","description":"Небольшое число","input":{"n":4},"expected_output":10,"category":"basic","is_visible":true},{"id":"test_2","description":"Единица","input":{"n":1},"expected_output":1,"category":"edge","is_visible":true},{"id":"test_3","description":"Ноль","input":{"n":0},"expected_output":0,"category":"edge","is_visible":false}]
+    xp_reward     : 15
+    difficulty    : medium
+    hints         : [{"id":"hint_1","text":"range(1, n + 1) даёт числа от 1 до n.","unlock_after_attempts":1}]
+    order_index   : 1
+    $id           : task_sum_to_n
+    $sequence     : 71
+    $createdAt    : 2026-10-25 14:44:54 UTC (9d ago)
+    $updatedAt    : 2026-10-30 09:57:03 UTC (4d ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [37]
+    module_id     : module_loops
+    title         : Только чётные
+    description   : Напишите программу `evens(numbers)`, которая записывает в переменную `result` список только чётных чисел из входного списка, сохраняя порядок.
+
+**Пример:**
+```python
+evens([1, 2, 3, 4])  # [2, 4]
+```
+    starter_code  : # Входная переменная доступна глобально
+# numbers = [1, 2, 3, 4]
+
+result = []
+# Пройдите по списку и оставьте чётные числа
+
+    solution_code : result = [number for number in numbers if number % 2 == 0]
+    test_cases    : [{"id":"test_1","description":"Смешанный список","input":{"numbers":[1,2,3,4]},"expected_output":[2,4],"category":"basic","is_visible":true},{"id":"test_2","description":"Все нечётные","input":{"numbers":[1,3,5]},"expected_output":[],"category":"edge","is_visible":true},{"id":"test_3","description":"Отрицательные числа","input":{"numbers":[-2,-1,0]},"expected_output":[-2,0],"category":"edge","is_visible":false}]
+    xp_reward     : 15
+    difficulty    : medium
+    hints         : [{"id":"hint_1","text":"Число чётное, если number % 2 == 0.","unlock_after_attempts":1}]
+    order_index   : 2
+    $id           : task_evens
+    $sequence     : 72
+    $createdAt    : 2026-10-25 14:44:54 UTC (9d ago)
+    $updatedAt    : 2026-10-30 09:57:03 UTC (4d ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [38]
+    module_id     : module_basics
+    title         : 1. Переменные и простые вычисления
+    description   : У вас есть две переменные: `a = 7` и `b = 5`. Вычислите их сумму и запишите результат в переменную с именем `result`.
+    starter_code  : a = 7
+b = 5
+# Запишите сумму в переменную result
+result = 0
+
+    solution_code : a = 7
+b = 5
+result = a + b
+
+    test_cases    : [{"id":"test_1","description":"Проверка переменной result","input":{},"expected_output":{"result":12},"category":"basic","is_visible":true}]
+    xp_reward     : 10
+    difficulty    : easy
+    hints         : [{"id":"hint_1","text":"Сложите a и b с помощью оператора + и запишите в result: result = a + b","unlock_after_attempts":1}]
+    order_index   : 1
+    $id           : task_vars
+    $sequence     : 82
+    $createdAt    : 2026-10-27 10:52:21 UTC (7d ago)
+    $updatedAt    : 2026-10-27 10:52:21 UTC (7d ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [39]
+    module_id     : module_basics
+    title         : 2. Строки и форматирование
+    description   : Дана переменная `name = "Мария"`. Создайте переменную `message`, которая будет содержать строку: `"Привет, Мария!"` (используйте f-строку).
+    starter_code  : name = "Мария"
+# Создайте переменную message
+message = ""
+
+    solution_code : name = "Мария"
+message = f"Привет, {name}!"
+
+    test_cases    : [{"id":"test_1","description":"Проверка формата приветствия","input":{},"expected_output":{"message":"Привет, Мария!"},"category":"basic","is_visible":true}]
+    xp_reward     : 10
+    difficulty    : easy
+    hints         : [{"id":"hint_1","text":"Напишите: message = f\"Привет, {name}!\"","unlock_after_attempts":1}]
+    order_index   : 2
+    $id           : task_greet_line
+    $sequence     : 83
+    $createdAt    : 2026-10-27 10:52:22 UTC (7d ago)
+    $updatedAt    : 2026-10-27 10:52:22 UTC (7d ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [40]
+    module_id     : module_basics
+    title         : Умножение чисел
+    description   : ### Вычисление произведения
+
+Вам даны две переменные: `a` и `b`.
+
+Напишите программу, которая вычисляет их произведение (умножение) и записывает ответ в переменную `result`.
+
+> **Важно:**
+> 1. Не объявляйте функции (не используйте `def`).
+> 2. Запишите итоговый ответ в переменную `result`.
+
+#### Пример:
+Если `a = 4`, `b = 5`, то `result` должен быть равен `20`.
+    starter_code  : # Переменные a и b задаются проверяющей системой.
+# Для тестирования в редакторе:
+a = 4
+b = 5
+
+# Вычислите произведение и запишите в result:
+result = 0
+
+    solution_code : result = a * b
+
+    test_cases    : [{"id":"test_1","description":"Положительные числа 4 и 5","input":{"a":4,"b":5},"expected_output":20,"category":"basic","is_visible":true},{"id":"test_2","description":"Умножение на ноль","input":{"a":0,"b":7},"expected_output":0,"category":"edge","is_visible":false},{"id":"test_3","description":"Отрицательное число","input":{"a":-3,"b":6},"expected_output":-18,"category":"edge","is_visible":false}]
+    xp_reward     : 15
+    difficulty    : medium
+    hints         : [{"id":"hint_1","text":"Используйте оператор умножения `*`: `result = a * b`","unlock_after_attempts":1}]
+    order_index   : 3
+    $id           : task_sum_func
+    $sequence     : 84
+    $createdAt    : 2026-10-27 10:52:22 UTC (7d ago)
+    $updatedAt    : 2026-11-03 10:33:16 UTC (20h ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [41]
+    module_id     : mod_floats
+    title         : Площадь круга
+    description   : Напишите программу `circle_area(radius)`, которая использует радиус круга и записывает в переменную `result` его площадь. Используйте число Пи (`3.14159`). Формула: `π * radius**2`.
+    starter_code  : # Input variable available globally: radius
+# Assign the final answer to the variable: result
+
+result = None
+
+    solution_code : result = 3.14159 * (radius ** 2)
+
+    test_cases    : [{"id":"t1","description":"Площадь","input":{"radius":5},"expected_output":78.53975,"category":"basic","is_visible":true}]
+    xp_reward     : 15
+    difficulty    : medium
+    hints         : [{"id":"h1","text":"Возведение в степень в Python записывается как **2","unlock_after_attempts":1}]
+    order_index   : 3
+    $id           : task_float_area
+    $sequence     : 87
+    $createdAt    : 2026-10-27 11:40:11 UTC (7d ago)
+    $updatedAt    : 2026-10-30 09:57:03 UTC (4d ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [42]
+    module_id     : mod_strings
+    title         : Длина строки без пробелов
+    description   : Напишите программу `clean_length(text)`, которая использует строку, удаляет из неё пробелы по краям и записывает в переменную `result` длину полученной строки.
+    starter_code  : # Input variable: text
+# Assign the final answer to the variable: result
+
+
+    solution_code : # Input variable: text
+# Assign the final answer to the variable: result
+
+result = len(text.strip())
+    test_cases    : [{"id":"t1","description":"Длина без пробелов","input":{"text":"  hello  "},"expected_output":5,"category":"basic","is_visible":true}]
+    xp_reward     : 10
+    difficulty    : easy
+    hints         : [{"id":"h1","text":"Используйте .strip() и встроенную функцию len()","unlock_after_attempts":1}]
+    order_index   : 2
+    $id           : task_str_len
+    $sequence     : 89
+    $createdAt    : 2026-10-27 11:40:13 UTC (7d ago)
+    $updatedAt    : 2026-10-30 09:57:03 UTC (4d ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [43]
+    module_id     : mod_strings
+    title         : Переворот строки
+    description   : Напишите программу `reverse_string(text)`, которая использует строку и записывает в переменную `result` её задом наперед (с помощью срезов).
+    starter_code  : # Input variable: text
+# Assign the final answer to the variable `result`
+
+    solution_code : result = text[::-1]
+
+    test_cases    : [{"id":"t1","description":"Реверс","input":{"text":"abc"},"expected_output":"cba","category":"basic","is_visible":true}]
+    xp_reward     : 15
+    difficulty    : medium
+    hints         : [{"id":"h1","text":"Используйте срез [::-1]","unlock_after_attempts":1}]
+    order_index   : 3
+    $id           : task_str_reverse
+    $sequence     : 90
+    $createdAt    : 2026-10-27 11:40:13 UTC (7d ago)
+    $updatedAt    : 2026-10-30 09:57:04 UTC (4d ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [44]
+    module_id     : mod_conditions
+    title         : Максимум из двух
+    description   : Напишите программу `max_of_two(a, b)`, которая записывает в переменную `result` наибольшее из двух чисел.
+    starter_code  : # Input variables: a, b
+# Assign the final answer to the variable `result`
+
+result = None
+
+    solution_code : # Input variables: a, b
+# Assign the final answer to the variable `result`
+
+result = a if a > b else b
+
+    test_cases    : [{"id":"t1","description":"Максимум","input":{"a":10,"b":20},"expected_output":20,"category":"basic","is_visible":true}]
+    xp_reward     : 10
+    difficulty    : easy
+    hints         : [{"id":"h1","text":"Используйте стандартный if/else или встроенную функцию max(a, b)","unlock_after_attempts":1}]
+    order_index   : 2
+    $id           : task_cond_max
+    $sequence     : 92
+    $createdAt    : 2026-10-27 11:40:15 UTC (7d ago)
+    $updatedAt    : 2026-10-30 09:57:04 UTC (4d ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [45]
+    module_id     : mod_floats
+    title         : 1. Деление с остатком
+    description   : Даны две переменные `a = 15` и `b = 4`. Вычислите результат обычного деления `a` на `b` и запишите его в переменную `result`.
+    starter_code  : a = 15
+b = 4
+result = 0
+
+    solution_code : a = 15
+b = 4
+result = a / b
+
+    test_cases    : [{"id":"t1","description":"Деление","input":{},"expected_output":{"result":3.75},"category":"basic","is_visible":true}]
+    xp_reward     : 10
+    difficulty    : easy
+    hints         : [{"id":"h1","text":"Используйте оператор деления /","unlock_after_attempts":1}]
+    order_index   : 1
+    $id           : task_float_div
+    $sequence     : 94
+    $createdAt    : 2026-10-27 11:41:50 UTC (7d ago)
+    $updatedAt    : 2026-10-27 11:41:50 UTC (7d ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [46]
+    module_id     : mod_floats
+    title         : 2. Округление и среднее
+    description   : Напишите программу `avg_rounded(a, b, c)`, которая использует три вещественных числа, вычисляет их среднее арифметическое и записывает в переменную `result` результат, округленный до 2 знаков с помощью `round`.
+    starter_code  : # Input variables: a, b, c
+# Assign the final answer to the variable `result`
+
+    solution_code : result = round((a + b + c) / 3, 2)
+
+    test_cases    : [{"id":"t1","description":"Среднее","input":{"a":5.1,"b":6.2,"c":7.3},"expected_output":6.2,"category":"basic","is_visible":true}]
+    xp_reward     : 15
+    difficulty    : medium
+    hints         : [{"id":"h1","text":"Сумму трех чисел разделите на 3 и оберните в round(..., 2)","unlock_after_attempts":1}]
+    order_index   : 2
+    $id           : task_float_round
+    $sequence     : 95
+    $createdAt    : 2026-10-27 11:41:50 UTC (7d ago)
+    $updatedAt    : 2026-10-30 09:57:04 UTC (4d ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [47]
+    module_id     : mod_floats
+    title         : 3. Сложные проценты
+    description   : Напишите программу `compound_interest(principal, rate, years)`, которая рассчитывает сумму вклада с начислением сложных процентов по формуле `A = P * (1 + r/100)**t`, где `P` — начальная сумма, `r` — годовая ставка в процентах, `t` — количество лет. Верните результат, округленный до 2 знаков.
+    starter_code  : principal = 1000
+rate = 5
+years = 3
+
+# Напишите код здесь
+
+    solution_code : result = round(principal * (1 + rate / 100) ** years, 2)
+    test_cases    : [{"id":"t1","description":"Сложные проценты","input":{"principal":1000,"rate":5,"years":2},"expected_output":1102.5,"category":"basic","is_visible":true}]
+    xp_reward     : 25
+    difficulty    : hard
+    hints         : [{"id":"h1","text":"Используйте оператор возведения в степень ** years","unlock_after_attempts":1}]
+    order_index   : 3
+    $id           : task_float_compound
+    $sequence     : 96
+    $createdAt    : 2026-10-27 11:41:51 UTC (7d ago)
+    $updatedAt    : 2026-10-30 09:57:05 UTC (4d ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [48]
+    module_id     : mod_strings
+    title         : 1. В верхний регистр
+    description   : Напишите программу `to_upper(text)`, которая использует строку и записывает в переменную `result` её же, но написанную полностью заглавными буквами.
+    starter_code  : # Input variable is available as global variable `text`
+# Assign the final answer to the variable `result`
+
+result = ""
+    solution_code : # Input variable is available as global variable `text`
+# Assign the final answer to the variable `result`
+
+result = text.upper()
+    test_cases    : [{"id":"t1","description":"Верхний регистр","input":{"text":"python"},"expected_output":"PYTHON","category":"basic","is_visible":true}]
+    xp_reward     : 10
+    difficulty    : easy
+    hints         : [{"id":"h1","text":"Используйте метод .upper()","unlock_after_attempts":1}]
+    order_index   : 1
+    $id           : task_str_upper
+    $sequence     : 97
+    $createdAt    : 2026-10-27 11:41:51 UTC (7d ago)
+    $updatedAt    : 2026-10-30 09:57:05 UTC (4d ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [49]
+    module_id     : mod_strings
+    title         : 2. Проверка на палиндром
+    description   : Напишите программу `is_palindrome(text)`, которая проверяет, читается ли строка одинаково слева направо и справа налево (без учета регистра и пробелов). записывает в переменную `result` `True` или `False`.
+    starter_code  : # Input variable: text
+# Assign the final boolean to result
+
+result = None
+
+    solution_code : # Input variable: text
+cleaned = text.replace(" ", "").lower()
+result = cleaned == cleaned[::-1]
+
+    test_cases    : [{"id":"t1","description":"Палиндром","input":{"text":"А роза упала на лапу Азора"},"expected_output":true,"category":"basic","is_visible":true}]
+    xp_reward     : 15
+    difficulty    : medium
+    hints         : [{"id":"h1","text":"Уберите пробелы через .replace() и приведите к нижнему регистру .lower()","unlock_after_attempts":1}]
+    order_index   : 2
+    $id           : task_str_palindrome
+    $sequence     : 98
+    $createdAt    : 2026-10-27 11:41:52 UTC (7d ago)
+    $updatedAt    : 2026-10-30 09:57:05 UTC (4d ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [50]
+    module_id     : mod_strings
+    title         : 3. Статистика слов
+    description   : Напишите программу `longest_word(sentence)`, которая использует строку с текстом (предложение из слов, разделенных пробелами) и записывает в переменную `result` самое длинное слово в этом тексте. Если слов несколько одинаковой длины, вернуть первое.
+    starter_code  : sentence = "..."
+# Write your code below, assign final answer to `result`
+
+    solution_code : words = sentence.split()
+if not words:
+    result = ""
+else:
+    longest = words[0]
+    for w in words:
+        if len(w) > len(longest):
+            longest = w
+    result = longest
+
+    test_cases    : [{"id":"t1","description":"Самое длинное слово","input":{"sentence":"Компьютерные технологии развиваются очень быстро"},"expected_output":"Компьютерные","category":"basic","is_visible":true}]
+    xp_reward     : 25
+    difficulty    : hard
+    hints         : [{"id":"h1","text":"Разбейте строку на список слов через .split() и найдите максимальное по len()","unlock_after_attempts":1}]
+    order_index   : 3
+    $id           : task_str_words_stat
+    $sequence     : 99
+    $createdAt    : 2026-10-27 11:41:53 UTC (7d ago)
+    $updatedAt    : 2026-10-30 09:57:06 UTC (4d ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [51]
+    module_id     : mod_conditions
+    title         : 1. Чётное или нечётное
+    description   : Напишите программу `is_even(num)`, которая записывает в переменную `result` `True`, если число четное, и `False`, если нечетное.
+    starter_code  : # Input variable is available as global variable: num
+# Assign your final answer to the variable `result` (or `output`)
+
+
+    solution_code : # Input variable is available as global variable: num
+# Assign your final answer to the variable `result` (or `output`)
+
+result = num % 2 == 0
+
+    test_cases    : [{"id":"t1","description":"Четное","input":{"num":4},"expected_output":true,"category":"basic","is_visible":true}]
+    xp_reward     : 10
+    difficulty    : easy
+    hints         : [{"id":"h1","text":"Проверьте остаток от деления на 2: num % 2 == 0","unlock_after_attempts":1}]
+    order_index   : 1
+    $id           : task_cond_even
+    $sequence     : 100
+    $createdAt    : 2026-10-27 11:41:54 UTC (7d ago)
+    $updatedAt    : 2026-10-30 09:57:06 UTC (4d ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [52]
+    module_id     : mod_conditions
+    title         : 2. Категория возраста
+    description   : Напишите программу `age_category(age)`, которая записывает в переменную `result` `"ребенок"`, если возраст меньше 18, `"взрослый"`, если от 18 до 65 включительно, и `"пожилой"`, если больше 65.
+    starter_code  : # Input variable: age
+# Assign the final answer to the variable `result`
+
+
+    solution_code : # Input variable: age
+# Assign the final answer to the variable `result`
+
+if age < 18:
+    result = "ребенок"
+elif age <= 65:
+    result = "взрослый"
+else:
+    result = "пожилой"
+    test_cases    : [{"id":"t1","description":"Взрослый","input":{"age":25},"expected_output":"взрослый","category":"basic","is_visible":true}]
+    xp_reward     : 15
+    difficulty    : medium
+    hints         : [{"id":"h1","text":"Используйте цепочку if-elif-else","unlock_after_attempts":1}]
+    order_index   : 2
+    $id           : task_cond_age
+    $sequence     : 101
+    $createdAt    : 2026-10-27 11:41:54 UTC (7d ago)
+    $updatedAt    : 2026-10-30 09:57:06 UTC (4d ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [53]
+    module_id     : mod_conditions
+    title         : 3. Високосный год
+    description   : Напишите программу `is_leap_year(year)`, которая определяет, является ли год високосным. Год високосный, если он кратен 4, но при этом не кратен 100, либо кратен 400. записывает в переменную `result` `True` или `False`.
+    starter_code  : year = 2024
+# Write your linear code here
+
+    solution_code : if (year % 4 == 0 and year % 100 != 0) or (year % 400 == 0):
+    result = True
+else:
+    result = False
+
+    test_cases    : [{"id":"t1","description":"Високосный 2000","input":{"year":2000},"expected_output":true,"category":"basic","is_visible":true},{"id":"t2","description":"Не високосный 1900","input":{"year":1900},"expected_output":false,"category":"edge","is_visible":false}]
+    xp_reward     : 25
+    difficulty    : hard
+    hints         : [{"id":"h1","text":"Используйте логические операторы and, or и остаток от деления %","unlock_after_attempts":1}]
+    order_index   : 3
+    $id           : task_cond_leap
+    $sequence     : 102
+    $createdAt    : 2026-10-27 11:41:55 UTC (7d ago)
+    $updatedAt    : 2026-10-30 09:57:06 UTC (4d ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [54]
+    module_id     : e244629c-2ad1-452c-b757-c3273440ae63
+    title         : 2. Конвертер в число
+    description   : ### Безопасное преобразование в число
+
+Вам дана переменная `value`. Попробуйте преобразовать её в целое число с помощью `int(value)` внутри блока `try-except`. Если возникает ошибка `ValueError`, запишите в `result` значение `-1`.
+
+> **Важно:** Не объявляйте функции. Запишите итог в переменную `result`.
+    starter_code  : try:
+    result = int(value)
+except ValueError:
+    result = -1
+    solution_code : try:
+    result = int(value)
+except ValueError:
+    result = -1
+    test_cases    : [{"id":"t1","description":"Успешная конвертация","input":{"value":"123"},"expected_output":123,"category":"basic","is_visible":true},{"id":"t2","description":"Ошибка конвертации","input":{"value":"abc"},"expected_output":-1,"category":"edge","is_visible":false}]
+    xp_reward     : 15
+    difficulty    : medium
+    hints         : [{"id":"h1","text":"Используйте конструкцию try: ... except ValueError:","unlock_after_attempts":1}]
+    order_index   : 2
+    $id           : task_except_to_int
+    $sequence     : 103
+    $createdAt    : 2026-10-27 11:49:43 UTC (7d ago)
+    $updatedAt    : 2026-11-03 10:34:41 UTC (20h ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [55]
+    module_id     : e244629c-2ad1-452c-b757-c3273440ae63
+    title         : 3. Валидатор возраста
+    description   : ### Проверка корректности возраста
+
+Вам дана строка `input_str`. Попробуйте преобразовать её в число:
+- Если число в диапазоне от 0 до 120, запишите это число в `result`.
+- Если преобразование вызвало ошибку или возраст вне диапазона, запишите в `result` строку `"Некорректный возраст"`.
+
+> **Важно:** Не объявляйте функции. Запишите итог в переменную `result`.
+    starter_code  : # input_str is available as a global variable
+# Assign the final answer to `result`
+
+    solution_code : try:
+    age = int(input_str)
+    if 0 <= age <= 120:
+        result = age
+    else:
+        result = "Некорректный возраст"
+except (ValueError, TypeError):
+    result = "Некорректный возраст"
+
+    test_cases    : [{"id":"t1","description":"Валидный возраст","input":{"input_str":"25"},"expected_output":25,"category":"basic","is_visible":true},{"id":"t2","description":"Невалидный диапазон","input":{"input_str":"150"},"expected_output":"Некорректный возраст","category":"edge","is_visible":false}]
+    xp_reward     : 25
+    difficulty    : hard
+    hints         : [{"id":"h1","text":"Перехватывайте ValueError и проверяйте условие 0 <= age <= 120","unlock_after_attempts":1}]
+    order_index   : 3
+    $id           : task_except_validate
+    $sequence     : 104
+    $createdAt    : 2026-10-27 11:49:43 UTC (7d ago)
+    $updatedAt    : 2026-11-03 10:34:41 UTC (20h ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [56]
+    module_id     : mod_files
+    title         : 1. Чтение первой строки
+    description   : Напишите программу `read_first_line(filename)`, которая использует имя текстового файла, открывает его для чтения, считывает и записывает в переменную `result` первую строку (без символа переноса строки `\n`).
+    starter_code  : filename = "input.txt"
+# Write your code below, assign the final answer to the variable 'result'
+
+    solution_code : with open(filename, 'r', encoding='utf-8') as f:
+    result = f.readline().strip()
+
+    test_cases    : [{"id":"t1","description":"Чтение файла","input":{"filename":"test.txt"},"expected_output":"Hello","category":"basic","is_visible":true}]
+    xp_reward     : 10
+    difficulty    : easy
+    hints         : [{"id":"h1","text":"Используйте with open(filename, 'r') as f: и метод f.readline().strip()","unlock_after_attempts":1}]
+    order_index   : 1
+    $id           : task_file_read
+    $sequence     : 105
+    $createdAt    : 2026-10-27 11:49:44 UTC (7d ago)
+    $updatedAt    : 2026-10-30 09:57:07 UTC (4d ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [57]
+    module_id     : mod_files
+    title         : 2. Подсчет строк в файле
+    description   : Напишите программу `count_lines(filename)`, которая открывает текстовый файл и записывает в переменную `result` общее количество строк в нем.
+    starter_code  : # Input parameter is available as a global variable: filename
+# The final answer must be assigned to the variable `result`
+
+
+    solution_code : with open(filename, 'r', encoding='utf-8') as f:
+    result = len(f.readlines())
+    test_cases    : [{"id":"t1","description":"Подсчет строк","input":{"filename":"test.txt"},"expected_output":3,"category":"basic","is_visible":true}]
+    xp_reward     : 15
+    difficulty    : medium
+    hints         : [{"id":"h1","text":"Используйте f.readlines() и функцию len()","unlock_after_attempts":1}]
+    order_index   : 2
+    $id           : task_file_count
+    $sequence     : 106
+    $createdAt    : 2026-10-27 11:49:44 UTC (7d ago)
+    $updatedAt    : 2026-10-30 09:57:08 UTC (4d ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [58]
+    module_id     : mod_files
+    title         : 3. Фильтрация логов
+    description   : ### Фильтрация логов
+
+Вам даны имена файлов `input_filename` и `output_filename`.
+Прочитайте файл `input_filename`, запишите все строки, содержащие слово `"ERROR"`, в файл `output_filename` и сохраните количество таких строк в переменную `result`.
+
+> **Важно:** Не объявляйте функции. Запишите количество в `result`.
+    starter_code  : input_filename = "input.log"
+output_filename = "output.log"
+
+# Your code here
+# result = ...
+    solution_code : result = 0
+with open(input_filename, 'r', encoding='utf-8') as fin, open(output_filename, 'w', encoding='utf-8') as fout:
+    for line in fin:
+        if "ERROR" in line:
+            fout.write(line)
+            result += 1
+    test_cases    : [{"id":"t1","description":"Фильтрация ошибок","input":{"input_filename":"logs.txt","output_filename":"errors.txt"},"expected_output":2,"category":"basic","is_visible":true}]
+    xp_reward     : 25
+    difficulty    : hard
+    hints         : [{"id":"h1","text":"Откройте два файла одновременно с помощью with и проверяйте 'ERROR' in line","unlock_after_attempts":1}]
+    order_index   : 3
+    $id           : task_file_filter
+    $sequence     : 107
+    $createdAt    : 2026-10-27 11:49:45 UTC (7d ago)
+    $updatedAt    : 2026-11-03 10:34:41 UTC (20h ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [59]
+    module_id     : mod_strings_advanced
+    title         : Карточка пользователя (F-строки)
+    description   : Даны переменные `name` (строка), `age` (число) и `score` (число). Сформируйте приветственную строку с использованием F-строки в формате: `Имя: [name], Возраст: [age], Баллы: [score]`. Запишите результат в переменную `result`.
+    starter_code  : name = "Алексей"
+age = 14
+score = 95
+# Напишите код с использованием f-строки
+result = ""
+    solution_code : name = "Алексей"
+age = 14
+score = 95
+result = f"Имя: {name}, Возраст: {age}, Баллы: {score}"
+    test_cases    : [{"id":"test_1","description":"Базовый тест с данными Алексея","input":{"name":"Алексей","age":14,"score":95},"expected_output":"Имя: Алексей, Возраст: 14, Баллы: 95","category":"basic","is_visible":true},{"id":"test_2","description":"Тест с другими данными","input":{"name":"Мария","age":16,"score":100},"expected_output":"Имя: Мария, Возраст: 16, Баллы: 100","category":"edge","is_visible":false}]
+    xp_reward     : 15
+    difficulty    : easy
+    hints         : ["Используйте префикс f перед кавычками","Вставляйте переменные прямо в фигурные скобки {variable}"]
+    order_index   : 1
+    $id           : task_fstring_card
+    $sequence     : 108
+    $createdAt    : 2026-10-30 09:47:22 UTC (4d ago)
+    $updatedAt    : 2026-10-30 09:47:22 UTC (4d ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [60]
+    module_id     : mod_strings_advanced
+    title         : Отчёт по вычислениям (F-строки)
+    description   : Даны два числа `a` и `b`. Сформируйте строку отчета, содержащую сумму чисел, используя F-строку в формате: `Сумма чисел [a] и [b] равна [сумма]`. Запишите результат в переменную `result`.
+    starter_code  : a = 12
+b = 18
+# Используйте f-строку для вычисления суммы внутри скобок
+result = ""
+    solution_code : a = 12
+b = 18
+result = f"Сумма чисел {a} и {b} равна {a + b}"
+    test_cases    : [{"id":"test_1","description":"Сумма 12 и 18","input":{"a":12,"b":18},"expected_output":"Сумма чисел 12 и 18 равна 30","category":"basic","is_visible":true},{"id":"test_2","description":"Сумма 5 и 7","input":{"a":5,"b":7},"expected_output":"Сумма чисел 5 и 7 равна 12","category":"edge","is_visible":false}]
+    xp_reward     : 20
+    difficulty    : medium
+    hints         : ["Внутри фигурных скобок {} в f-строке можно выполнять арифметические действия"]
+    order_index   : 2
+    $id           : task_fstring_math
+    $sequence     : 109
+    $createdAt    : 2026-10-30 09:47:22 UTC (4d ago)
+    $updatedAt    : 2026-10-30 09:47:22 UTC (4d ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [61]
+    module_id     : mod_comprehensions
+    title         : Квадраты чётных чисел
+    description   : ### Генератор квадратов чётных чисел
+
+Вам дана переменная `numbers`, содержащая список целых чисел.
+
+Используя списковое включение (list comprehension), создайте список, содержащий квадраты только чётных чисел из списка `numbers`.
+
+Сохраните полученный список в переменную `result`.
+
+> **Важно:**
+> 1. Не объявляйте функции (не используйте `def`).
+> 2. Запишите итоговый ответ в переменную `result`.
+
+#### Пример:
+Если `numbers = [1, 2, 3, 4, 5, 6]`, то в `result` должен быть список `[4, 16, 36]`.
+    starter_code  : # Переменная numbers задаётся проверяющей системой.
+# Для тестирования в редакторе:
+numbers = [1, 2, 3, 4, 5, 6]
+
+# Создайте список квадратов чётных чисел с помощью list comprehension:
+result = []
+
+    solution_code : result = [x ** 2 for x in numbers if x % 2 == 0]
+
+    test_cases    : [{"id":"test_1","description":"Числа от 1 до 6","input":{"numbers":[1,2,3,4,5,6]},"expected_output":[4,16,36],"category":"basic","is_visible":true},{"id":"test_2","description":"Только нечётные","input":{"numbers":[1,3,5]},"expected_output":[],"category":"basic","is_visible":true},{"id":"test_3","description":"С отрицательными числами","input":{"numbers":[-4,-3,-2,0,1]},"expected_output":[16,4,0],"category":"edge","is_visible":false},{"id":"test_4","description":"Пустой список","input":{"numbers":[]},"expected_output":[],"category":"edge","is_visible":false}]
+    xp_reward     : 20
+    difficulty    : medium
+    hints         : [{"id":"hint_1","text":"Синтаксис генератора списка: `result = [x ** 2 for x in numbers if x % 2 == 0]`","unlock_after_attempts":1}]
+    order_index   : 1
+    $id           : task_comp_squares
+    $sequence     : 110
+    $createdAt    : 2026-10-30 10:05:32 UTC (4d ago)
+    $updatedAt    : 2026-11-03 10:33:37 UTC (20h ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [62]
+    module_id     : mod_comprehensions
+    title         : Инвертирование словаря
+    description   : ### Инвертирование словаря (Dict Comprehension)
+
+Вам дана переменная `data`, содержащая словарь, где ключи и значения уникальны.
+
+С помощью генератора словаря (dict comprehension) поменяйте местами ключи и значения: каждое значение должно стать ключом, а соответствующий ключ — значением.
+
+Сохраните новый словарь в переменную `result`.
+
+> **Важно:**
+> 1. Не объявляйте функции (не используйте `def`).
+> 2. Запишите итоговый ответ в переменную `result`.
+
+#### Пример:
+Если `data = {"a": 1, "b": 2, "c": 3}`, то в `result` должен быть словарь `{1: "a", 2: "b", 3: "c"}`.
+    starter_code  : # Переменная data задаётся проверяющей системой.
+# Для тестирования в редакторе:
+data = {"a": 1, "b": 2, "c": 3}
+
+# Поменяйте местами ключи и значения с помощью dict comprehension:
+result = {}
+
+    solution_code : result = {value: key for key, value in data.items()}
+
+    test_cases    : [{"id":"test_1","description":"Словарь a, b, c","input":{"data":{"a":1,"b":2,"c":3}},"expected_output":{"1":"a","2":"b","3":"c"},"category":"basic","is_visible":true},{"id":"test_2","description":"Пустой словарь","input":{"data":{}},"expected_output":{},"category":"edge","is_visible":true}]
+    xp_reward     : 25
+    difficulty    : hard
+    hints         : [{"id":"hint_1","text":"Используйте `.items()`: `result = {v: k for k, v in data.items()}`","unlock_after_attempts":1}]
+    order_index   : 2
+    $id           : task_comp_dict
+    $sequence     : 111
+    $createdAt    : 2026-10-30 10:05:33 UTC (4d ago)
+    $updatedAt    : 2026-11-03 10:33:37 UTC (20h ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [63]
+    module_id     : mod_comprehensions
+    title         : Фильтрация длинных слов
+    description   : ### Фильтрация слов по длине
+
+Вам дана переменная `words`, содержащая список строк, и переменная `min_length` (минимальная длина).
+
+С помощью генератора списка (list comprehension) оставьте только те слова, длина которых больше или равна `min_length`.
+
+Сохраните результат в переменную `result`.
+
+> **Важно:**
+> 1. Не объявляйте функции (не используйте `def`).
+> 2. Запишите итоговый ответ в переменную `result`.
+
+#### Пример:
+Если `words = ["кот", "собака", "дом", "крокодил"]`, `min_length = 4`, то `result` равен `["собака", "крокодил"]`.
+    starter_code  : # Переменные words и min_length задаются проверяющей системой.
+# Для тестирования в редакторе:
+words = ["кот", "собака", "дом", "крокодил"]
+min_length = 4
+
+# Отфильтруйте слова с помощью list comprehension:
+result = []
+
+    solution_code : result = [w for w in words if len(w) >= min_length]
+
+    test_cases    : [{"id":"test_1","description":"Слова с длиной >= 4","input":{"words":["кот","собака","дом","крокодил"],"min_length":4},"expected_output":["собака","крокодил"],"category":"basic","is_visible":true},{"id":"test_2","description":"Слова с длиной >= 5","input":{"words":["питон","код","строка"],"min_length":5},"expected_output":["питон","строка"],"category":"basic","is_visible":true},{"id":"test_3","description":"Ни одно слово не подходит","input":{"words":["да","нет"],"min_length":10},"expected_output":[],"category":"edge","is_visible":false}]
+    xp_reward     : 30
+    difficulty    : hard
+    hints         : [{"id":"hint_1","text":"Проверяйте длину через len(w): `result = [w for w in words if len(w) >= min_length]`","unlock_after_attempts":1}]
+    order_index   : 3
+    $id           : task_comp_filter_words
+    $sequence     : 112
+    $createdAt    : 2026-10-30 10:05:33 UTC (4d ago)
+    $updatedAt    : 2026-11-03 10:33:37 UTC (20h ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [64]
+    module_id     : mod_lambdas
+    title         : Удвоение через map и lambda
+    description   : Дан список чисел `numbers`. С помощью функции `map` и анонимной функции `lambda` удвойте каждое число в списке и преобразуйте результат в список. Запишите в переменную `result`.
+    starter_code  : numbers = [1, 2, 3, 4, 5]
+# Используйте map с lambda
+result = []
+    solution_code : numbers = [1, 2, 3, 4, 5]
+result = list(map(lambda x: x * 2, numbers))
+    test_cases    : [{"id":"test_1","description":"Удвоение чисел от 1 до 5","input":{"numbers":[1,2,3,4,5]},"expected_output":[2,4,6,8,10],"category":"basic","is_visible":true}]
+    xp_reward     : 20
+    difficulty    : medium
+    hints         : ["Синтаксис lambda: lambda x: выражение","Оберните результат map в list(...)"]
+    order_index   : 1
+    $id           : task_lambda_double
+    $sequence     : 113
+    $createdAt    : 2026-10-30 10:05:34 UTC (4d ago)
+    $updatedAt    : 2026-10-30 10:05:34 UTC (4d ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [65]
+    module_id     : mod_lambdas
+    title         : Фильтрация положительных чисел
+    description   : Дан список чисел `numbers`. С помощью `filter` и `lambda` отфильтруйте только положительные числа (строго больше 0) и преобразуйте в список. Запишите в `result`.
+    starter_code  : numbers = [-5, 3, 0, 12, -1, 8]
+# Отфильтруйте положительные числа
+result = []
+    solution_code : numbers = [-5, 3, 0, 12, -1, 8]
+result = list(filter(lambda x: x > 0, numbers))
+    test_cases    : [{"id":"test_1","description":"Фильтрация положительных","input":{"numbers":[-5,3,0,12,-1,8]},"expected_output":[3,12,8],"category":"basic","is_visible":true}]
+    xp_reward     : 25
+    difficulty    : hard
+    hints         : ["Используйте filter(lambda x: x > 0, numbers)"]
+    order_index   : 2
+    $id           : task_lambda_filter_pos
+    $sequence     : 114
+    $createdAt    : 2026-10-30 10:05:35 UTC (4d ago)
+    $updatedAt    : 2026-10-30 10:05:35 UTC (4d ago)
+    $databaseId   : codesensei
+    $tableId      : tasks
+
+  [66]
+    module_id     : mod_lambdas
+    title         : Сортировка списка кортежей по ключу
+    description   : Дан список кортежей `students` формата `(имя, балл)`. Отсортируйте этот список по баллу (второй элемент кортежа) по убыванию с помощью функции `sorted` и аргумента `key` с использованием `lambda`. Запишите в `result`.
+    starter_code  : students = [("Анна", 88), ("Борис", 95), ("Виктор", 72)]
+# Отсортируйте по убыванию баллов
+result = []
+    solution_code : students = [("Анна", 88), ("Борис", 95), ("Виктор", 72)]
+result = sorted(students, key=lambda x: x[1], reverse=True)
+    test_cases    : [{"id":"test_1","description":"Сортировка студентов по баллам убывания","input":{"students":[["Анна",88],["Борис",95],["Виктор",72]]},"expected_output":[["Борис",95],["Анна",88],["Виктор",72]],"category":"basic","is_visible":true}]
+    xp_reward     : 30
+    difficulty    : hard
+    hints         : ["Используйте sorted(students, key=lambda x: x[1], reverse=True)"]
+    order_index   : 3
+    $id           : task_lambda_sort_tuples
+    $sequence     : 115
+    $createdAt    : 2026-10-30 10:05:35 UTC (4d ago)
+    $updatedAt    : 2026-10-30 10:05:35 UTC (4d ago)
+    $databaseId   : codesensei
+    $tableId      : tasks

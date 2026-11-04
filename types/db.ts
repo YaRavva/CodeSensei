@@ -118,6 +118,7 @@ export interface Database {
           xp_reward: number;
           difficulty: "easy" | "medium" | "hard";
           hints: Json | null;
+          task_type: "linear" | "function";
           order_index: number;
           variant_number: number | null;
           created_at: string;
@@ -134,6 +135,7 @@ export interface Database {
           xp_reward?: number;
           difficulty: "easy" | "medium" | "hard";
           hints?: Json | null;
+          task_type?: "linear" | "function";
           order_index: number;
           variant_number?: number | null;
           created_at?: string;
@@ -150,6 +152,7 @@ export interface Database {
           xp_reward?: number;
           difficulty?: "easy" | "medium" | "hard";
           hints?: Json | null;
+          task_type?: "linear" | "function";
           order_index?: number;
           variant_number?: number | null;
           created_at?: string;

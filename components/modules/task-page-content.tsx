@@ -26,13 +26,6 @@ import { useTheme } from "@/components/theme-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { DifficultyBadge, getDifficultyXP } from "@/components/ui/difficulty-badge";
 import { ToastAction } from "@/components/ui/toast";
 import { usePyodide } from "@/hooks/use-pyodide";
@@ -92,15 +85,14 @@ export function TaskPageContent({
   // Дебаунс для кнопки проверки задания (защита от спама)
   const testTaskDebounceRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Состояние AI-подсказки (модалка)
-  const [hintOpen, setHintOpen] = useState(false);
-  const [hintTitle, setHintTitle] = useState<string>("");
-  const [hintMarkdown, setHintMarkdown] = useState<string>("");
+  // Состояние AI-подсказки (inline)
+  const [hintVisible, setHintVisible] = useState(false);
+  const [hintLoading, setHintLoading] = useState(false);
+  const [hintData, setHintData] = useState<{ type: string; hint: string; steps: string[] } | null>(null);
 
-  // Состояние AI-оценки (модалка)
-  const [feedbackOpen, setFeedbackOpen] = useState(false);
-  const [feedbackTitle, setFeedbackTitle] = useState<string>("");
-  const [feedbackMarkdown, setFeedbackMarkdown] = useState<string>("");
+  // Состояние AI-оценки (inline)
+  const [feedbackVisible, setFeedbackVisible] = useState(false);
+  const [feedbackData, setFeedbackData] = useState<{ score: number; feedback: string } | null>(null);
 
   // Загружаем сохраненный код из последней попытки, если есть
   useEffect(() => {
@@ -223,6 +215,28 @@ export function TaskPageContent({
       return;
     }
 
+    // ЗАПРЕТ ФУНКЦИЙ В ЛИНЕЙНЫХ ЗАДАНИЯХ
+    if (task.task_type === "linear" && /\bdef\s+\w+\s*\(/.test(code)) {
+      toast({
+        title: "Ошибка",
+        description: "В этом задании нельзя использовать функции (ключевое слово def). Используйте линейный код с input/print.",
+        variant: "destructive",
+      });
+      setTestResults({
+        results: testCases.map((tc) => ({
+          testCaseId: tc.id,
+          passed: false,
+          error: "В этом задании нельзя использовать функции (ключевое слово def). Используйте линейный код с input/print.",
+          executionTime: 0,
+        })),
+        passedCount: 0,
+        totalCount: testCases.length,
+        allPassed: false,
+        executionTime: 0,
+      });
+      return;
+    }
+
     // КЛИЕНТСКАЯ ЗАЩИТА ОТ ЭКСПЛОИТА: Если задание уже выполнено, показываем сообщение
     // Серверная проверка всё равно защитит, но это улучшает UX
     if (isCompleted) {
@@ -239,7 +253,7 @@ export function TaskPageContent({
     setTestResults(null);
 
     try {
-      const results = await runTestSuite(code, testCases, pyodide);
+      const results = await runTestSuite(code, testCases, pyodide, task.task_type);
       setTestResults(results);
 
       if (results.allPassed) {
@@ -268,9 +282,8 @@ export function TaskPageContent({
           }
           const evalJson = await evalRes.json();
           if (evalRes.ok && evalJson.success) {
-            setFeedbackTitle(`AI-оценка: ${(evalJson.score * 100).toFixed(0)}%`);
-            setFeedbackMarkdown(evalJson.feedback);
-            setFeedbackOpen(true);
+            setFeedbackData({ score: evalJson.score, feedback: evalJson.feedback });
+            setFeedbackVisible(true);
           }
         } catch {
           // ignore AI failure
@@ -448,6 +461,12 @@ export function TaskPageContent({
   }
 
   async function handleAiHint() {
+    if (hintVisible) {
+      setHintVisible(false);
+      return;
+    }
+    setHintLoading(true);
+    setHintVisible(true);
     try {
       const res = await fetch("/api/ai/hint", {
         method: "POST",
@@ -463,29 +482,16 @@ export function TaskPageContent({
       }
       const data = await res.json();
       const hint = data?.hint;
-
-      let md = ``;
-      if (Array.isArray(hint?.steps) && hint.steps.length) {
-        md += `### Шаги к решению\n\n${hint.steps.map((step: string, i: number) => `${i + 1}. ${step}`).join("\n")}`;
-      } else {
-        md += hint?.hint || "Попробуйте ещё раз";
-      }
-
-      setHintTitle(`AI-помощник`);
-      setHintMarkdown(md);
-      setHintOpen(true);
+      setHintData({
+        type: hint?.type || "concept",
+        hint: hint?.hint || "Попробуйте ещё раз",
+        steps: Array.isArray(hint?.steps) ? hint.steps : [],
+      });
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Неизвестная ошибка";
-      toast({
-        title: "Ошибка подсказки",
-        description: msg,
-        variant: "destructive",
-        action: (
-          <ToastAction altText="Скопировать" onClick={() => navigator.clipboard.writeText(msg)}>
-            Скопировать
-          </ToastAction>
-        ),
-      });
+      setHintData({ type: "error", hint: msg, steps: [] });
+    } finally {
+      setHintLoading(false);
     }
   }
 
@@ -689,9 +695,13 @@ export function TaskPageContent({
                     <RotateCcw className="mr-2 h-4 w-4" />
                     Сбросить код
                   </Button>
-                  <Button onClick={handleAiHint} variant="outline">
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    AI-подсказка
+                  <Button onClick={handleAiHint} variant="outline" disabled={hintLoading}>
+                    {hintLoading ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="mr-2 h-4 w-4" />
+                    )}
+                    {hintVisible ? "Скрыть подсказку" : "AI-подсказка"}
                   </Button>
                 </div>
 
@@ -767,6 +777,63 @@ export function TaskPageContent({
 
             {/* Результаты тестов */}
             {testResults && <TestResults testResults={testResults} testCases={testCases} />}
+
+            {/* Inline AI-подсказка */}
+            {hintVisible && (
+              <Card className="border-primary/30 bg-primary/[0.04]">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    AI-помощник
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  {hintLoading ? (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Думаю над подсказкой...
+                    </div>
+                  ) : hintData ? (
+                    <div className="space-y-3">
+                      <p className="text-sm leading-relaxed">{hintData.hint}</p>
+                      {hintData.steps.length > 0 && (
+                        <div className="rounded-md bg-muted/60 p-3">
+                          <p className="text-xs font-medium text-muted-foreground mb-2">Шаги к решению:</p>
+                          <ol className="space-y-1.5">
+                            {hintData.steps.map((step, i) => (
+                              <li key={i} className="text-sm flex gap-2">
+                                <span className="shrink-0 font-medium text-primary">{i + 1}.</span>
+                                <span>{step}</span>
+                              </li>
+                            ))}
+                          </ol>
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Inline AI-оценка */}
+            {feedbackVisible && feedbackData && (
+              <Card className="border-emerald-500/30 bg-emerald-500/[0.04]">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                      AI-оценка решения
+                    </CardTitle>
+                    <Badge variant={feedbackData.score >= 0.7 ? "success" : "outline"} className="text-sm">
+                      {Math.round(feedbackData.score * 100)}%
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <p className="text-sm leading-relaxed">{feedbackData.feedback}</p>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
 
@@ -795,128 +862,7 @@ export function TaskPageContent({
         </div>
       </div>
 
-      {/* Модальное окно AI подсказки */}
-      <Dialog open={hintOpen} onOpenChange={setHintOpen}>
-        <DialogContent aria-describedby="hint-description" className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
-              {hintTitle}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="max-h-[60vh] overflow-y-auto">
-            <Card>
-              <CardContent className="pt-6">
-                <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:text-foreground prose-p:text-muted-foreground">
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm, remarkBreaks]}
-                    components={{
-                      code({ node, inline, className, children, ...props }: any) {
-                        const match = /language-(\w+)/.exec(className || "");
-                        const isDark =
-                          mounted &&
-                          (theme === "dark" ||
-                            (theme === "system" &&
-                              typeof window !== "undefined" &&
-                              window.matchMedia("(prefers-color-scheme: dark)").matches));
-                        const inlineProp = (props as any).inline;
-                        return !inlineProp && match ? (
-                          <SyntaxHighlighter
-                            style={(isDark ? oneDark : oneLight) as any}
-                            language={match[1]}
-                            PreTag="div"
-                            className="font-mono rounded-md"
-                            customStyle={{ fontFamily: "Geist Mono, monospace" }}
-                          >
-                            {String(children).replace(/\n$/, "")}
-                          </SyntaxHighlighter>
-                        ) : (
-                          <code className={`font-mono ${className}`} {...props}>
-                            {children}
-                          </code>
-                        );
-                      },
-                      p: ({ children }) => (
-                        <p className="mb-4 whitespace-pre-line text-muted-foreground last:mb-0">
-                          {children}
-                        </p>
-                      ),
-                    }}
-                  >
-                    {hintMarkdown}
-                  </ReactMarkdown>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-          <div className="flex justify-center mt-4">
-            <Button onClick={() => setHintOpen(false)}>Ok</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Модальное окно AI оценки */}
-      <Dialog open={feedbackOpen} onOpenChange={setFeedbackOpen}>
-        <DialogContent aria-describedby="feedback-description" className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-              {feedbackTitle}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="max-h-[60vh] overflow-y-auto">
-            <Card>
-              <CardContent className="pt-6">
-                <div
-                  id="feedback-description"
-                  className="prose prose-sm dark:prose-invert max-w-none prose-headings:text-foreground prose-p:text-muted-foreground"
-                >
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm, remarkBreaks]}
-                    components={{
-                      code({ node, inline, className, children, ...props }: any) {
-                        const match = /language-(\w+)/.exec(className || "");
-                        const isDark =
-                          mounted &&
-                          (theme === "dark" ||
-                            (theme === "system" &&
-                              typeof window !== "undefined" &&
-                              window.matchMedia("(prefers-color-scheme: dark)").matches));
-                        const inlineProp = (props as any).inline;
-                        return !inlineProp && match ? (
-                          <SyntaxHighlighter
-                            style={(isDark ? oneDark : oneLight) as any}
-                            language={match[1]}
-                            PreTag="div"
-                            className="font-mono rounded-md"
-                            customStyle={{ fontFamily: "Geist Mono, monospace" }}
-                          >
-                            {String(children).replace(/\n$/, "")}
-                          </SyntaxHighlighter>
-                        ) : (
-                          <code className={`font-mono ${className}`} {...props}>
-                            {children}
-                          </code>
-                        );
-                      },
-                      p: ({ children }) => (
-                        <p className="mb-4 whitespace-pre-line text-muted-foreground last:mb-0">
-                          {children}
-                        </p>
-                      ),
-                    }}
-                  >
-                    {feedbackMarkdown}
-                  </ReactMarkdown>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-          <div className="flex justify-center mt-4">
-            <Button onClick={() => setFeedbackOpen(false)}>Ok</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Модальные окна удалены — теперь inline-блоки под редактором */}
     </>
   );
 }

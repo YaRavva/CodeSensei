@@ -1,0 +1,120 @@
+﻿
+  
+    [3]
+      module_id     : a8666f99-1cf9-4121-abf3-110d82957e95
+      title         : Сумма квадратов
+      description   : # Задание: Сумма квадратов
+  
+  В этом упражнении вы напишете функцию, которая принимает два целых числа и возвращает сумму их квадратов.
+  
+  ## Что нужно сделать
+  1. Создайте функцию `sum_of_squares(a, b)`.
+  2. Функция должна возвести каждое число в квадрат и сложить результаты.
+  3. Верните полученную сумму.
+      starter_code  : def sum_of_squares(a, b):
+      # Напишите здесь ваше решение
+      pass
+      solution_code : def sum_of_squares(a, b):
+      # Правильное решение
+      return a * a + b * b
+      test_cases    : [{"id":"test_1","input":{"a":3,"b":4},"category":"basic","is_visible":true,"description":"Базовый
+ случай","expected_output":25},{"id":"test_2","input":{"a":0,"b":0},"category":"edge","is_visible":false,"description":
+"Граничный случай: нули","expected_output":0},{"id":"test_3","input":{"a":-5,"b":12},"category":"edge","is_visible":fal
+se,"description":"Граничный случай: отрицательные числа","expected_output":169}]
+      xp_reward     : 20
+      difficulty    : medium
+      order_index   : 0
+      $id           : f99a4c1a-b657-46ca-af27-c7903d187ac2
+      $sequence     : 8
+      $createdAt    : 2026-10-24 15:08:30 UTC (10d ago)
+      $updatedAt    : 2026-10-27 11:36:54 UTC (7d ago)
+      $databaseId   : codesensei
+      $tableId      : tasks
+  
+    [4]
+>     module_id     : 8c8f076b-9879-47d8-b503-ce38db78f439
+      title         : Приветствие по имени
+      description   : ### Простое приветствие
+  
+  Вам дана переменная `name`, которая содержит имя пользователя.
+  
+  # Запишите результат в переменную result:
+  # Входная переменная: n
+  # Запишите результат в переменную result
+  
+  # Напишите здесь ваше решение
+  result = 0
+  
+      solution_code : # Входная переменная: n
+  # Запишите результат в переменную result
+  
+  if n < 1:
+      result = 0
+  else:
+      total = 0
+      for i in range(1, n + 1):
+          total += i
+      result = total
+  
+      test_cases    : [{"id":"test_1","input":{"n":5},"category":"basic","is_visible":true,"description":"Базовый случа
+й","expected_output":15},{"id":"test_2","input":{"n":0},"category":"edge","is_visible":false,"description":"Граничный с
+лучай – ноль","expected_output":0},{"id":"test_3","input":{"n":-3},"category":"edge","is_visible":false,"description":"
+Граничный случай – отрицательное число","expected_output":0}]
+      xp_reward     : 20
+      difficulty    : medium
+      order_index   : 0
+      $id           : 6f5c8d5d-3ba8-4843-828c-f170a6503d2e
+      $sequence     : 13
+      $createdAt    : 2026-10-24 15:08:31 UTC (10d ago)
+      $updatedAt    : 2026-11-03 10:34:41 UTC (20h ago)
+      $databaseId   : codesensei
+      $tableId      : tasks
+  
+    [9]
+>     module_id     : 8c8f076b-9879-47d8-b503-ce38db78f439
+      title         : Форматированная анкета
+      description   : ### Форматированная анкета с проверкой возраста
+  
+  Вам даны две переменные: `name` (строка с именем) и `age` (возраст).
+  
+  # Input variable: score (int)
+  # Assign your answer to the variable `result`
+  
+  # Напишите здесь решение
+  
+      solution_code : if 90 <= score <= 100:
+      result = 'A'
+  elif 80 <= score <= 89:
+      result = 'B'
+  elif 70 <= score <= 79:
+      result = 'C'
+  elif 60 <= score <= 69:
+      result = 'D'
+  elif 0 <= score < 60:
+      result = 'F'
+  else:
+      result = 'Invalid'
+  
+      test_cases    : [{"id":"test_1","input":{"score":85},"category":"basic","is_visible":true,"description":"Базовый 
+случай","expected_output":"B"},{"id":"test_2","input":{"score":100},"category":"edge","is_visible":false,"description":
+"Граничный случай: максимум","expected_output":"A"},{"id":"test_3","input":{"score":-10},"category":"error","is_visible
+":false,"description":"Граничный случай: отрицательная оценка","expected_output":"Invalid"}]
+      xp_reward     : 30
+      difficulty    : hard
+      order_index   : 0
+      $id           : d2fb739a-dd42-4a4d-9c66-737e96edbdf4
+      $sequence     : 27
+      $createdAt    : 2026-10-24 15:08:32 UTC (10d ago)
+      $updatedAt    : 2026-10-31 06:18:01 UTC (4d ago)
+      $databaseId   : codesensei
+      $tableId      : tasks
+  
+    [23]
+>     module_id     : 8c8f076b-9879-47d8-b503-ce38db78f439
+      title         : Эхо и длина сообщения
+      description   : ### Эхо и подсчёт символов
+  
+  Вам дана переменная `message`, содержащая текстовое сообщение.
+  
+
+

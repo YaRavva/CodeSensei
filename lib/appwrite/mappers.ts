@@ -83,6 +83,7 @@ export function toTask(row: Row): Task {
     xp_reward: Number(data.xp_reward ?? 10),
     difficulty: (data.difficulty as Task["difficulty"]) || "easy",
     hints: parseJson<Json | null>(data.hints, null),
+    task_type: (data.task_type as Task["task_type"]) || "function",
     order_index: Number(data.order_index ?? 0),
     variant_number: data.variant_number == null ? null : Number(data.variant_number),
     created_at: data.created_at as string,

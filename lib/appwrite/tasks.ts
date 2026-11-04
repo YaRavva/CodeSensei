@@ -49,6 +49,7 @@ export async function createTask(input: {
   xp_reward?: number;
   difficulty?: Task["difficulty"];
   hints?: unknown;
+  task_type?: Task["task_type"];
   order_index?: number;
   variant_number?: number | null;
 }): Promise<Task> {
@@ -62,6 +63,7 @@ export async function createTask(input: {
     xp_reward: input.xp_reward ?? 10,
     difficulty: input.difficulty ?? "easy",
     hints: input.hints == null ? null : serializeJson(input.hints),
+    task_type: input.task_type ?? "function",
     order_index: input.order_index ?? 0,
     variant_number: input.variant_number ?? null,
   });
@@ -81,6 +83,7 @@ export async function updateTask(
       | "solution_code"
       | "xp_reward"
       | "difficulty"
+      | "task_type"
       | "order_index"
       | "variant_number"
     >

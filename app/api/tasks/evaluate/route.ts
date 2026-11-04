@@ -3,7 +3,6 @@ export const dynamic = "force-dynamic";
 
 import { type NextRequest, NextResponse } from "next/server";
 import {
-  clipForPrompt,
   createChatCompletion,
   isOmnirouteConfigured,
   OMNIROUTE_MAX_OUTPUT_TOKENS,
@@ -11,6 +10,7 @@ import {
 } from "@/lib/ai/omniroute";
 import { getTask } from "@/lib/appwrite/tasks";
 import { getAuthContext } from "@/lib/utils/auth";
+import { buildEvaluationPrompt, parseEvaluationResponse } from "@/lib/prompts";
 
 export async function POST(req: NextRequest) {
   try {
@@ -30,19 +30,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Получим описание задачи (минимальный контекст)
     const task = await getTask(String(taskId));
 
-    const typedTask = task as { title: string; description: string } | null;
-    const prompt = `Ты — наставник по Python для школьника. Оцени решение задачи по критериям: корректность, покрытие крайних случаев, читаемость. Верни ТОЛЬКО JSON {"score": number 0..1, "feedback": string}.
+    const typedTask = task as { title: string; description: string; task_type?: string } | null;
+    const taskType = (typedTask?.task_type as "linear" | "function") || "function";
 
-Задача: ${typedTask?.title ?? "Без названия"}
-Описание (Markdown):\n${clipForPrompt(typedTask?.description ?? "")}
-
-Код ученика:\n\n${clipForPrompt(code)}
-
-Вывод выполнения:${runtimeOutput ? `\n${clipForPrompt(runtimeOutput)}` : "\n(нет)"}
-Результаты тестов (сводка):${testSummary ? `\n${clipForPrompt(testSummary)}` : "\n(нет)"}`;
+    const prompt = buildEvaluationPrompt({
+      taskTitle: typedTask?.title ?? "Без названия",
+      taskDescription: typedTask?.description ?? "",
+      taskType,
+      studentCode: code,
+      runtimeOutput,
+      testSummary,
+    });
 
     let content = "";
 
@@ -60,20 +60,15 @@ export async function POST(req: NextRequest) {
       throw error;
     }
 
-    if (content.startsWith("```")) {
-      content = content.replace(/^```[a-zA-Z]*\n?/, "").replace(/```$/, "");
-    }
-    let parsed: { score: number; feedback: string } | null = null;
-    try {
-      parsed = JSON.parse(content);
-    } catch {
-      parsed = { score: 0, feedback: "Оценка недоступна. Попробуйте ещё раз." };
-    }
+    const parsed = parseEvaluationResponse(content);
+    const passed = parsed.score >= 0.7;
 
-    const score = typeof parsed?.score === "number" ? parsed.score : 0;
-    const feedback = typeof parsed?.feedback === "string" ? parsed.feedback : "";
-    const passed = score >= 0.7;
-    return NextResponse.json({ success: true, score, feedback, passed });
+    return NextResponse.json({
+      success: true,
+      score: parsed.score,
+      feedback: parsed.feedback,
+      passed,
+    });
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Unknown error" },

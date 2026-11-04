@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
 import {
-  clipForPrompt,
   createChatCompletion,
   isOmnirouteConfigured,
   OMNIROUTE_MAX_OUTPUT_TOKENS,
@@ -8,6 +7,7 @@ import {
 } from "@/lib/ai/omniroute";
 import { requireApiAdmin } from "@/lib/appwrite/api";
 import { logGeneration } from "@/lib/utils/rate-limit";
+import { buildTaskGenerationPrompt, extractJsonFromMarkdown, tryFixJson } from "@/lib/prompts";
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,7 +15,6 @@ export async function POST(request: NextRequest) {
     if (!auth.ok) return auth.response;
     const userId = auth.userId;
 
-    // Проверка rate limit
     const { checkRateLimit } = await import("@/lib/utils/rate-limit");
     const rateLimitCheck = await checkRateLimit(userId, "task");
     if (!rateLimitCheck.canGenerate) {
@@ -28,7 +27,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Проверка наличия конфигурации Omniroute
     if (!isOmnirouteConfigured()) {
       return NextResponse.json(
         { error: "Omniroute не настроен: задайте OMNIROUTE_BASE_URL и OMNIROUTE_API_KEY" },
@@ -37,101 +35,26 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { topic, difficulty, lessonTheory } = body;
+    const { topic, difficulty, lessonTheory, taskType } = body;
 
     if (!topic || !difficulty) {
       return NextResponse.json({ error: "Topic and difficulty are required" }, { status: 400 });
     }
 
-    const difficultyNames: Record<string, string> = {
-      easy: "легкое (для начинающих)",
-      medium: "среднее (для продолжающих)",
-      hard: "сложное (для опытных)",
-    };
+    const effectiveTaskType: "linear" | "function" = taskType === "linear" ? "linear" : "function";
 
-    const prompt = `Ты — опытный преподаватель программирования Python для школьников 7-9 классов.
+    const prompt = buildTaskGenerationPrompt({
+      topic,
+      difficulty,
+      lessonTheory,
+      taskType: effectiveTaskType,
+    });
 
-Твоя задача: создать практическое задание по теме "${topic}".
-
-**Контекст:**
-- Сложность задания: ${difficultyNames[difficulty] ?? "среднее"}
-${lessonTheory ? `- Теория урока (для контекста):\n${clipForPrompt(lessonTheory)}` : ""}
-
-**Требования к ответу:**
-
-Ты должен вернуть ТОЛЬКО валидный JSON объект со следующей структурой (без дополнительных комментариев или текста вне JSON):
-
-{
-  "title": "Название задания",
-  "description": "Подробное описание задания в формате Markdown. Объясни, что нужно сделать, приведите примеры входных и выходных данных.",
-  "starter_code": "def function_name(параметры):\n    # Напишите здесь ваше решение\n    pass",
-  "solution_code": "def function_name(параметры):\n    # Правильное решение\n    return результат",
-  "test_cases": [
-    {
-      "id": "test_1",
-      "description": "Базовый случай",
-      "input": {"param1": значение1, "param2": значение2},
-      "expected_output": ожидаемый_результат,
-      "category": "basic",
-      "is_visible": true
-    },
-    {
-      "id": "test_2",
-      "description": "Граничный случай",
-      "input": {"param1": значение1, "param2": значение2},
-      "expected_output": ожидаемый_результат,
-      "category": "edge",
-      "is_visible": false
-    }
-  ],
-  "hints": [
-    "Подсказка 1: ...",
-    "Подсказка 2: ...",
-    "Подсказка 3: ..."
-  ],
-  "xp_reward": 10,
-  "rubric": [
-    { "name": "Корректность", "weight": 0.6, "criteria": "Проходит базовые и граничные тесты" },
-    { "name": "Крайние случаи", "weight": 0.2, "criteria": "Учитывает пустые/некорректные входы, большие значения" },
-    { "name": "Стиль и читаемость", "weight": 0.2, "criteria": "Понятные имена, простота, отсутствие лишней сложности" }
-  ],
-  "eval_prompt": "Ты проверяешь решение ученика. Дай краткий отзыв (3-5 предложений) и числовую оценку 0..1 согласно rubric. Верни JSON {"score": number, "feedback": string}."
-}
-
-**Правила:**
-1. Название задания должно быть коротким и понятным (3-7 слов)
-2. Описание должно быть на русском языке, в формате Markdown, понятным для школьников 7-9 классов
-3. Стартовый код должен содержать определение функции с параметрами, но без реализации (используй \`pass\` или комментарии)
-4. Правильное решение (solution_code) должно быть рабочим Python кодом
-5. Тестовые случаи:
-   - Минимум 3 теста (1 базовый видимый, 2 граничных/скрытых)
-   - \`input\` - объект с именованными параметрами функции
-   - \`expected_output\` - ожидаемый результат любого типа
-   - \`category\` - "basic", "edge" или "error"
-   - \`is_visible\` - true только для базовых тестов
-6. Подсказки должны быть постепенными (от общей к конкретной), минимум 3 подсказки
-7. XP награда: 10 для easy, 20 для medium, 30 для hard
-8. Возвращай rubric как массив критериев с весами (сумма весов = 1)
-9. eval_prompt — краткий шаблон для дальнейшей автоматической проверки решения
-
-**Стиль:**
-- Используй простой язык
-- Избегай сложных терминов без объяснений
-- Примеры должны быть релевантными для школьников
-
-**Важно:** Возвращай ТОЛЬКО валидный JSON, без markdown разметки`;
-
-    // Генерация через Omniroute (OpenAI-совместимый chat completions)
     let generatedText = "";
 
     try {
       const completion = await createChatCompletion({
-        messages: [
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
+        messages: [{ role: "user", content: prompt }],
         temperature: 0.7,
         maxTokens: OMNIROUTE_MAX_OUTPUT_TOKENS,
       });
@@ -147,29 +70,29 @@ ${lessonTheory ? `- Теория урока (для контекста):\n${clip
       return NextResponse.json({ error: "Empty response from AI" }, { status: 500 });
     }
 
-    // Извлекаем JSON из ответа
-    let jsonText = generatedText.trim();
+    let jsonText = extractJsonFromMarkdown(generatedText.trim());
 
-    // Удаляем markdown код блоки, если есть
-    if (jsonText.startsWith("```json")) {
-      jsonText = jsonText.replace(/^```json\s*/, "").replace(/\s*```$/, "");
-    } else if (jsonText.startsWith("```")) {
-      jsonText = jsonText.replace(/^```\s*/, "").replace(/\s*```$/, "");
-    }
-
-    // Попытка исправить неполный JSON
     let taskData: any = null;
     try {
       taskData = JSON.parse(jsonText);
     } catch (parseError) {
       console.error("JSON parse error:", parseError);
       console.error("Generated text:", generatedText);
-      // Попытка исправить JSON
       taskData = tryFixJson(jsonText);
     }
 
-    // Логируем успешную генерацию
     await logGeneration(userId, "task");
+
+    if (taskData && typeof taskData === "object") {
+      taskData.task_type = effectiveTaskType;
+      if (Array.isArray(taskData.test_cases)) {
+        for (const tc of taskData.test_cases) {
+          if (tc && typeof tc === "object" && !tc.verification_mode) {
+            tc.verification_mode = effectiveTaskType === "linear" ? "variable" : "function";
+          }
+        }
+      }
+    }
 
     return NextResponse.json({
       success: true,
@@ -184,58 +107,5 @@ ${lessonTheory ? `- Теория урока (для контекста):\n${clip
       },
       { status: 500 }
     );
-  }
-}
-
-/**
- * Пытается исправить неполный или поврежденный JSON
- */
-function tryFixJson(jsonText: string): any {
-  try {
-    // Удаляем trailing commas
-    let fixed = jsonText.replace(/,(\s*[}\]])/g, "$1");
-
-    // Пытаемся балансировать скобки
-    const openBraces = (fixed.match(/\{/g) || []).length;
-    const closeBraces = (fixed.match(/\}/g) || []).length;
-    const openBrackets = (fixed.match(/\[/g) || []).length;
-    const closeBrackets = (fixed.match(/\]/g) || []).length;
-
-    // Закрываем незакрытые скобки
-    if (openBraces > closeBraces) {
-      fixed += "\n" + "}".repeat(openBraces - closeBraces);
-    }
-    if (openBrackets > closeBrackets) {
-      fixed += "\n" + "]".repeat(openBrackets - closeBrackets);
-    }
-
-    // Удаляем неполные строки в конце
-    const lines = fixed.split("\n");
-    const lastLine = lines[lines.length - 1];
-    if (lastLine.includes('"') && !lastLine.match(/".*":\s*".*",?\s*$/)) {
-      // Удаляем последнюю строку, если она неполная
-      lines.pop();
-      fixed = lines.join("\n");
-    }
-
-    // Обрезаем до последнего валидного символа
-    let lastValidIndex = fixed.length;
-    for (let i = fixed.length - 1; i >= 0; i--) {
-      const testStr = fixed.substring(0, i + 1);
-      try {
-        JSON.parse(testStr);
-        lastValidIndex = i + 1;
-        break;
-      } catch {}
-    }
-
-    fixed = fixed.substring(0, lastValidIndex);
-    if (openBraces > closeBraces) {
-      fixed += "}".repeat(openBraces - closeBraces);
-    }
-
-    return JSON.parse(fixed);
-  } catch {
-    throw new Error("Failed to parse AI response as JSON");
   }
 }

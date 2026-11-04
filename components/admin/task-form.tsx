@@ -1,6 +1,7 @@
 "use client";
 
 import { Loader2, Sparkles } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import type { CSSProperties } from "react";
@@ -66,6 +67,7 @@ export function TaskForm({ moduleId, taskId, onSuccess, onCancel }: TaskFormProp
   const [solutionCode, setSolutionCode] = useState("");
   const [testCases, setTestCases] = useState<TestCase[]>([]);
   const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">("easy");
+  const [taskType, setTaskType] = useState<"linear" | "function">("function");
   const [xpReward, setXpReward] = useState("10");
 
   // Обновляем XP при изменении difficulty (только для новых заданий, когда xpReward еще не был установлен)
@@ -131,6 +133,7 @@ export function TaskForm({ moduleId, taskId, onSuccess, onCancel }: TaskFormProp
       setStarterCode(data.starter_code);
       setSolutionCode(data.solution_code || "");
       setDifficulty(data.difficulty);
+      setTaskType(data.task_type || "function");
       // Используем xp_reward из БД или дефолтное значение по сложности
       const defaultXP = data.difficulty === "easy" ? 10 : data.difficulty === "medium" ? 20 : 30;
       setXpReward(data.xp_reward?.toString() || defaultXP.toString());
@@ -189,6 +192,7 @@ export function TaskForm({ moduleId, taskId, onSuccess, onCancel }: TaskFormProp
           topic,
           difficulty,
           lessonTheory: moduleTheory,
+          taskType,
         }),
       });
 
@@ -223,6 +227,9 @@ export function TaskForm({ moduleId, taskId, onSuccess, onCancel }: TaskFormProp
           setXpReward(result.data.xp_reward?.toString() || defaultXP.toString());
         } else if (result.data.xp_reward) {
           setXpReward(result.data.xp_reward.toString());
+        }
+        if (result.data.task_type) {
+          setTaskType(result.data.task_type);
         }
 
         toast({
@@ -269,6 +276,7 @@ export function TaskForm({ moduleId, taskId, onSuccess, onCancel }: TaskFormProp
       solution_code: solutionCode || null,
       test_cases: testCases,
       difficulty,
+      task_type: taskType,
       xp_reward: finalXP,
       order_index: Number.isNaN(parsedOrder) ? 0 : parsedOrder,
     };
@@ -356,18 +364,39 @@ export function TaskForm({ moduleId, taskId, onSuccess, onCancel }: TaskFormProp
         </CardHeader>
         <CardContent className="space-y-6">
           {!taskId && (
-            <div className="space-y-2 p-4 bg-muted rounded-lg">
-              <Label htmlFor="topic">Тема задания для AI-генерации</Label>
-              <Input
-                id="topic"
-                value={topic}
-                onChange={(e) => setTopic(e.target.value)}
-                placeholder="Например: сумма двух чисел, поиск максимума в списке"
-                disabled={generating || loading}
-              />
-              <p className="text-xs text-muted-foreground">
-                Укажите тему задания, и AI сгенерирует описание, код и тесты
-              </p>
+            <div className="space-y-4 p-4 bg-muted rounded-lg">
+              <div className="space-y-2">
+                <Label htmlFor="topic">Тема задания для AI-генерации</Label>
+                <Input
+                  id="topic"
+                  value={topic}
+                  onChange={(e) => setTopic(e.target.value)}
+                  placeholder="Например: сумма двух чисел, поиск максимума в списке"
+                  disabled={generating || loading}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Укажите тему задания, и AI сгенерирует описание, код и тесты
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="taskType">Тип задания</Label>
+                <Select
+                  value={taskType}
+                  onValueChange={(v) => setTaskType(v as "linear" | "function")}
+                  disabled={generating || loading}
+                >
+                  <SelectTrigger id="taskType">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="linear">Линейный код (без функций)</SelectItem>
+                    <SelectItem value="function">Функциональный (с def)</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Линейный — код сверху вниз без def. Функциональный — только в модуле «Функции».
+                </p>
+              </div>
             </div>
           )}
           <div className="space-y-2">
@@ -454,7 +483,12 @@ export function TaskForm({ moduleId, taskId, onSuccess, onCancel }: TaskFormProp
             </Accordion>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="starterCode">Стартовый код *</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="starterCode">Стартовый код *</Label>
+              <Badge variant="outline" className="text-xs">
+                {taskType === "linear" ? "Линейный код (без def)" : "Функциональный (с def)"}
+              </Badge>
+            </div>
             <MonacoEditor
               height="300px"
               language="python"

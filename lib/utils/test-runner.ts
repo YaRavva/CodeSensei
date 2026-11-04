@@ -48,29 +48,40 @@ function inputToPythonArgs(input: Record<string, unknown>): string {
 /**
  * Выполняет один тестовый случай
  */
+/**
+ * Проверяет, использует ли код определение функций (для линейных заданий)
+ */
+function containsFunctionDefinition(code: string): boolean {
+  return /\bdef\s+\w+\s*\(/.test(code);
+}
+
 export async function runTestCase(
   userCode: string,
   testCase: TestCase,
-  pyodide: any
+  pyodide: any,
+  taskType: "linear" | "function" = "function"
 ): Promise<TestResult> {
   const startTime = Date.now();
 
   try {
-    // Проверяем, есть ли определение функции в коде пользователя
-    const functionMatch = userCode.match(/def\s+(\w+)\s*\(/);
-    
+    // ЗАПРЕТ ФУНКЦИЙ В ЛИНЕЙНЫХ ЗАДАНИЯХ
+    if (taskType === "linear" && containsFunctionDefinition(userCode)) {
+      return {
+        testCaseId: testCase.id,
+        passed: false,
+        error: "В этом задании нельзя использовать функции (ключевое слово def). Используйте линейный код с input/print.",
+        executionTime: 0,
+      };
+    }
+
     let testCode = "";
 
     const inputAssignment = testCase.input 
       ? Object.entries(testCase.input).map(([k, v]) => `${k} = ${valueToPython(v)}`).join("\n") + "\n"
       : "";
 
-    if (functionMatch) {
-      const functionName = functionMatch[1];
-      testCode = `
-${inputAssignment}
-${userCode}
-
+    // Общая функция сравнения
+    const compareFunction = `
 import json
 def _test_compare(actual, expected):
     try:
@@ -87,6 +98,18 @@ def _test_compare(actual, expected):
         return actual == expected
     except Exception:
         return False
+`;
+
+    if (taskType === "function") {
+      // Функциональный тип: ищем определение функции и вызываем её
+      const functionMatch = userCode.match(/def\s+(\w+)\s*\(/);
+      const functionName = functionMatch ? functionMatch[1] : "solve";
+      
+      testCode = `
+${inputAssignment}
+${userCode}
+
+${compareFunction}
 
 try:
     _test_result = ${functionName}(${testCase.input ? inputToPythonArgs(testCase.input) : ""})
@@ -99,34 +122,42 @@ except Exception as e:
     _test_error = str(e)
 `;
     } else {
+      // Линейный тип: выполняем код и проверяем результат
       const expectedOutputPy = valueToPython(testCase.expected_output);
-      testCode = `
+      const verificationMode = testCase.verification_mode || "variable";
+      
+      if (verificationMode === "stdout") {
+        testCode = `
 ${inputAssignment}
 ${userCode}
 
-import json
-def _test_compare(actual, expected):
-    try:
-        if isinstance(actual, (int, float)) and isinstance(expected, (int, float)):
-            if isinstance(actual, float) or isinstance(expected, float):
-                return abs(actual - expected) < 0.0001
-            return actual == expected
-        if isinstance(actual, str) and isinstance(expected, str):
-            return actual.strip() == expected.strip()
-        if isinstance(actual, (list, dict)) or isinstance(expected, (list, dict)):
-            actual_json = json.dumps(actual, sort_keys=True, ensure_ascii=False)
-            expected_json = json.dumps(expected, sort_keys=True, ensure_ascii=False)
-            return actual_json == expected_json
-        return actual == expected
-    except Exception:
-        return False
+${compareFunction}
+
+try:
+    _test_expected = ${expectedOutputPy}
+    _test_result = _stdout_capture.getvalue().strip()
+    _test_passed = _test_compare(_test_result, str(_test_expected).strip())
+    _test_error = None
+except Exception as e:
+    _test_result = None
+    _test_passed = False
+    _test_error = str(e)
+`;
+      } else {
+        // variable mode (default for linear)
+        testCode = `
+${inputAssignment}
+${userCode}
+
+${compareFunction}
 
 try:
     _test_expected = ${expectedOutputPy}
     _test_passed = True
-    _test_result = {}
+    _test_result = None
     
     if isinstance(_test_expected, dict):
+        _test_result = {}
         for _k, _v in _test_expected.items():
             if _k not in globals():
                 raise NameError(f"Переменная '{_k}' не найдена в вашем коде.")
@@ -135,17 +166,32 @@ try:
             if not _test_compare(_actual_val, _v):
                 _test_passed = False
     else:
-        _target_var = 'result' if 'result' in globals() else ('output' if 'output' in globals() else list(globals().keys())[-1])
-        _actual_val = globals().get(_target_var)
-        _test_result = _actual_val
-        _test_passed = _test_compare(_actual_val, _test_expected)
+        # Ищем переменную result, output, или последнюю присвоенную
+        _user_vars = [k for k in globals().keys() if not k.startswith('_') and k not in ('__builtins__', '__name__', 'json', 'input')]
+        _target_var = None
+        if 'result' in globals():
+            _target_var = 'result'
+        elif 'output' in globals():
+            _target_var = 'output'
+        elif _user_vars:
+            _target_var = _user_vars[-1]
+        
+        if _target_var:
+            _actual_val = globals().get(_target_var)
+            _test_result = _actual_val
+            _test_passed = _test_compare(_actual_val, _test_expected)
+        else:
+            _test_passed = False
+            _test_error = "Не найдена переменная для проверки. Создайте переменную result или output."
 
-    _test_error = None
+    if '_test_error' not in globals():
+        _test_error = None
 except Exception as e:
     _test_result = None
     _test_passed = False
     _test_error = str(e)
 `;
+      }
     }
 
     // Выполняем тест
@@ -255,10 +301,31 @@ except:
 export async function runTestSuite(
   userCode: string,
   testCases: TestCase[],
-  pyodide: any
+  pyodide: any,
+  taskType: "linear" | "function" = "function"
 ): Promise<TestSuiteResult> {
   const startTime = Date.now();
   const results: TestResult[] = [];
+
+  // ЗАПРЕТ ФУНКЦИЙ В ЛИНЕЙНЫХ ЗАДАНИЯХ — ранняя проверка
+  if (taskType === "linear" && containsFunctionDefinition(userCode)) {
+    const error = "В этом задании нельзя использовать функции (ключевое слово def). Используйте линейный код с input/print.";
+    for (const testCase of testCases) {
+      results.push({
+        testCaseId: testCase.id,
+        passed: false,
+        error,
+        executionTime: 0,
+      });
+    }
+    return {
+      results,
+      passedCount: 0,
+      totalCount: testCases.length,
+      allPassed: false,
+      executionTime: Date.now() - startTime,
+    };
+  }
 
   // Сбрасываем буфер вывода перед тестами
   try {
@@ -269,7 +336,7 @@ export async function runTestSuite(
 
   // Выполняем каждый тест
   for (const testCase of testCases) {
-    const result = await runTestCase(userCode, testCase, pyodide);
+    const result = await runTestCase(userCode, testCase, pyodide, taskType);
     results.push(result);
   }
 

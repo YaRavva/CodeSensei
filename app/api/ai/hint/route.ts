@@ -3,7 +3,6 @@ export const dynamic = "force-dynamic";
 
 import { type NextRequest, NextResponse } from "next/server";
 import {
-  clipForPrompt,
   createChatCompletion,
   isOmnirouteConfigured,
   OMNIROUTE_MAX_OUTPUT_TOKENS,
@@ -11,6 +10,7 @@ import {
 } from "@/lib/ai/omniroute";
 import { getTask } from "@/lib/appwrite/tasks";
 import { getAuthContext } from "@/lib/utils/auth";
+import { buildHintPrompt, parseHintResponse } from "@/lib/prompts";
 
 export async function POST(req: NextRequest) {
   try {
@@ -21,22 +21,24 @@ export async function POST(req: NextRequest) {
     const { taskId, code } = body || {};
     if (!taskId) return NextResponse.json({ error: "taskId is required" }, { status: 400 });
 
-    // Rate limit (простая заглушка — можно расширить позднее)
-    // Здесь можно подключить lib/utils/rate-limit
-
     const task = await getTask(String(taskId));
 
-    const typedTask = task as { title: string; description: string } | null;
-    const prompt = `Ты наставник по Python. Дай поэтапную подсказку (не решение) к задаче. Структура JSON: {"type": "concept"|"edge_case"|"debug", "hint": string, "steps": string[]}.
-Задача: ${typedTask?.title ?? "Без названия"}
-Описание: ${clipForPrompt(typedTask?.description ?? "")}
-Код ученика (может быть пустым):\n${clipForPrompt(code ?? "")}`;
+    const typedTask = task as { title: string; description: string; task_type?: string } | null;
+    const taskType = (typedTask?.task_type as "linear" | "function") || "function";
 
-    if (!isOmnirouteConfigured())
+    const prompt = buildHintPrompt({
+      taskTitle: typedTask?.title ?? "Без названия",
+      taskDescription: typedTask?.description ?? "",
+      taskType,
+      studentCode: code ?? "",
+    });
+
+    if (!isOmnirouteConfigured()) {
       return NextResponse.json(
         { error: "Omniroute не настроен: задайте OMNIROUTE_BASE_URL и OMNIROUTE_API_KEY" },
         { status: 500 }
       );
+    }
 
     let content = "";
 
@@ -54,14 +56,7 @@ export async function POST(req: NextRequest) {
       throw error;
     }
 
-    if (content.startsWith("```"))
-      content = content.replace(/^```[a-zA-Z]*\n?/, "").replace(/```$/, "");
-    let parsed: any = null;
-    try {
-      parsed = JSON.parse(content);
-    } catch {
-      parsed = { type: "concept", hint: content.slice(0, 2000), steps: [] };
-    }
+    const parsed = parseHintResponse(content);
     return NextResponse.json({ success: true, hint: parsed });
   } catch (e) {
     return NextResponse.json(
