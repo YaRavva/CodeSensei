@@ -63,7 +63,7 @@ export async function createTask(input: {
     xp_reward: input.xp_reward ?? 10,
     difficulty: input.difficulty ?? "easy",
     hints: input.hints == null ? null : serializeJson(input.hints),
-    task_type: input.task_type ?? "function",
+    task_type: input.task_type ?? "linear",
     order_index: input.order_index ?? 0,
     variant_number: input.variant_number ?? null,
   });

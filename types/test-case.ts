@@ -9,6 +9,8 @@ export interface TestCase {
   id: string;
   description: string;
   input: Record<string, unknown>;
+  files?: Record<string, string>;
+  output_files?: Record<string, string>;
   expected_output: unknown;
   category: TestCaseCategory;
   is_visible: boolean;

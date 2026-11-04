@@ -7,7 +7,7 @@ import { clipForPrompt } from "./ai/omniroute";
 
 // ─── Типы ───────────────────────────────────────────────────────────
 
-export type TaskType = "linear" | "function";
+export type TaskType = "linear" | "function" | "class";
 
 export interface HintResult {
   type: "concept" | "edge_case" | "debug";
@@ -50,9 +50,9 @@ const levelNames: Record<string, string> = {
 };
 
 function taskTypeLabel(type: TaskType): string {
-  return type === "linear"
-    ? "ЛИНЕЙНЫЙ КОД (без функций, используй input/print)"
-    : "ФУНКЦИОНАЛЬНЫЙ (с функциями, используй def/return)";
+  if (type === "function") return "ФУНКЦИОНАЛЬНЫЙ (def/return разрешены только в модуле функций)";
+  if (type === "class") return "КЛАСС (разрешены методы внутри class; вложенные функции запрещены)";
+  return "ЛИНЕЙНЫЙ КОД (без def; значения предоставляет проверяющая система)";
 }
 
 // ─── Промпт: AI-подсказка ───────────────────────────────────────────
@@ -137,10 +137,14 @@ export function buildTaskGenerationPrompt(input: TaskGenerationInput): string {
 
   const linearRules = taskType === "linear" ? `
 **КРИТИЧЕСКИ ВАЖНО — ЛИНЕЙНЫЙ КОД:**
-- Стартовый код и solution_code НЕ ДОЛЖНЫ содержать \`def\`, \`return\`, определения функций
-- Код должен использовать ТОЛЬКО input(), print(), переменные, условия, циклы
-- Тестовые случаи для линейного кода: input — строка или число (не объект с параметрами), expected_output — строка или число
-- verification_mode для всех тестов: "stdout" (проверка вывода через print) или "variable" (проверка переменной result)` : "";
+- Стартовый код и solution_code НЕ ДОЛЖНЫ содержать \`def\`, \`return\` или определения функций
+- Не используй \`input()\`: задания выполняются в браузерном Pyodide, значения передаются как переменные
+- Тесты передают входные переменные через объект input и проверяют result или stdout` : "";
+  const classRules = taskType === "class" ? `
+**КРИТИЧЕСКИ ВАЖНО — КЛАССЫ:**
+- Разрешены только методы внутри class
+- Вложенные функции и самостоятельные def вне class запрещены
+- Скрипт должен сохранить итог в переменной result` : "";
 
   return `Ты — опытный преподаватель программирования Python для школьников 7-9 классов.
 
@@ -148,24 +152,25 @@ export function buildTaskGenerationPrompt(input: TaskGenerationInput): string {
 
 **Контекст:**
 - Сложность задания: ${diffName}
-- Тип задания: ${taskType === "linear" ? "ЛИНЕЙНЫЙ КОД (строго без функций, только input/print)" : "ФУНКЦИОНАЛЬНЫЙ (с функциями, def/return)"}
-${lessonTheory ? `- Теория урока:\n${clipForPrompt(lessonTheory)}` : ""}${linearRules}
+- Тип задания: ${taskTypeLabel(taskType)}
+${lessonTheory ? `- Теория урока:\n${clipForPrompt(lessonTheory)}` : ""}${linearRules}${classRules}
 
 **Требования к ответу — строго JSON:**
 
 {
   "title": "Название задания (3-7 слов)",
   "description": "Подробное описание в Markdown. Объясни задачу, приведи примеры входных и выходных данных.",
-  "starter_code": "${taskType === "linear" ? "# Напишите ваш код здесь\\n# Используйте input() и print()\\n" : "def function_name(параметры):\n    # Напишите здесь ваше решение\n    pass"}",
+  "starter_code": "${taskType === "linear" ? "# Значения уже переданы в переменных\\n# Запишите ответ в result\\n" : taskType === "class" ? "class Example:\n    def __init__(self):\n        pass\n\nresult = None" : "def function_name(параметры):\n    # Напишите здесь ваше решение\n    pass"}",
   "solution_code": "Рабочее решение на Python",
   "test_cases": [
     {
       "id": "test_1",
       "description": "Базовый случай",
-      "input": ${taskType === "linear" ? "\"пример ввода\"" : "{\"param1\": значение1}"},
+      "input": {"param1": значение1},
       "expected_output": ожидаемый_результат,
       "category": "basic",
-      "is_visible": true${taskType === "linear" ? ",\n      \"verification_mode\": \"stdout\"" : ""}
+      "is_visible": true,
+      "verification_mode": "${taskType === "function" ? "function" : "variable"}"
     }
   ],
   "hints": ["Подсказка 1", "Подсказка 2", "Подсказка 3"],
@@ -181,8 +186,8 @@ ${lessonTheory ? `- Теория урока:\n${clipForPrompt(lessonTheory)}` : 
 **Правила:**
 1. Название — короткое и понятное (3-7 слов)
 2. Описание — на русском, Markdown, понятно для школьников 7-9 классов
-3. Стартовый код — ${taskType === "linear" ? "линейный скрипт с input/print, БЕЗ def/return" : "функция с pass, без реализации"}
-4. solution_code — рабочий Python${taskType === "linear" ? ", БЕЗ определения функций" : ""}
+3. Стартовый код — ${taskType === "linear" ? "линейный код с готовыми переменными, БЕЗ input и def" : taskType === "class" ? "class с методами и итогом в result" : "функция с pass, без реализации"}
+4. solution_code — рабочий Python${taskType === "linear" ? ", БЕЗ определения функций" : taskType === "class" ? ", с методами только внутри class" : ""}
 5. Тестовые случаи: минимум 3 (1 базовый видимый, 2 граничных/скрытых)
 6. Подсказки — постепенные, от общей к конкретной, минимум 3
 7. XP: 10 (easy), 20 (medium), 30 (hard)

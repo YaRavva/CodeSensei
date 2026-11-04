@@ -50,6 +50,8 @@ type TestCase = {
   id: string;
   description: string;
   input: Record<string, unknown>;
+  files?: Record<string, string>;
+  output_files?: Record<string, string>;
   expected_output: unknown;
   category: "basic" | "edge" | "error";
   is_visible: boolean;
@@ -67,7 +69,7 @@ export function TaskForm({ moduleId, taskId, onSuccess, onCancel }: TaskFormProp
   const [solutionCode, setSolutionCode] = useState("");
   const [testCases, setTestCases] = useState<TestCase[]>([]);
   const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">("easy");
-  const [taskType, setTaskType] = useState<"linear" | "function">("function");
+  const [taskType, setTaskType] = useState<"linear" | "function" | "class">("linear");
   const [xpReward, setXpReward] = useState("10");
 
   // Обновляем XP при изменении difficulty (только для новых заданий, когда xpReward еще не был установлен)
@@ -133,7 +135,7 @@ export function TaskForm({ moduleId, taskId, onSuccess, onCancel }: TaskFormProp
       setStarterCode(data.starter_code);
       setSolutionCode(data.solution_code || "");
       setDifficulty(data.difficulty);
-      setTaskType(data.task_type || "function");
+      setTaskType(data.task_type || "linear");
       // Используем xp_reward из БД или дефолтное значение по сложности
       const defaultXP = data.difficulty === "easy" ? 10 : data.difficulty === "medium" ? 20 : 30;
       setXpReward(data.xp_reward?.toString() || defaultXP.toString());
@@ -382,7 +384,7 @@ export function TaskForm({ moduleId, taskId, onSuccess, onCancel }: TaskFormProp
                 <Label htmlFor="taskType">Тип задания</Label>
                 <Select
                   value={taskType}
-                  onValueChange={(v) => setTaskType(v as "linear" | "function")}
+                  onValueChange={(v) => setTaskType(v as "linear" | "function" | "class")}
                   disabled={generating || loading}
                 >
                   <SelectTrigger id="taskType">
@@ -391,6 +393,7 @@ export function TaskForm({ moduleId, taskId, onSuccess, onCancel }: TaskFormProp
                   <SelectContent>
                     <SelectItem value="linear">Линейный код (без функций)</SelectItem>
                     <SelectItem value="function">Функциональный (с def)</SelectItem>
+                    <SelectItem value="class">Класс (методы внутри class)</SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">
@@ -486,7 +489,7 @@ export function TaskForm({ moduleId, taskId, onSuccess, onCancel }: TaskFormProp
             <div className="flex items-center justify-between">
               <Label htmlFor="starterCode">Стартовый код *</Label>
               <Badge variant="outline" className="text-xs">
-                {taskType === "linear" ? "Линейный код (без def)" : "Функциональный (с def)"}
+                {taskType === "linear" ? "Линейный код (без def)" : taskType === "class" ? "Класс (методы разрешены)" : "Функциональный (с def)"}
               </Badge>
             </div>
             <MonacoEditor

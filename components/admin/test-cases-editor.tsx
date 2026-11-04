@@ -21,6 +21,8 @@ export type TestCase = {
   id: string;
   description: string;
   input: Record<string, unknown>;
+  files?: Record<string, string>;
+  output_files?: Record<string, string>;
   expected_output: unknown;
   category: "basic" | "edge" | "error";
   is_visible: boolean;
@@ -65,6 +67,15 @@ export function TestCasesEditor({ testCases, onChange, disabled }: TestCasesEdit
         description: "Неверный формат JSON",
         variant: "destructive",
       });
+    }
+  }
+
+  function updateFiles(id: string, field: "files" | "output_files", value: string) {
+    try {
+      const parsed = JSON.parse(value || "{}");
+      updateTestCase(id, { [field]: parsed });
+    } catch {
+      toast({ title: "Ошибка JSON", description: "Неверный формат файлового JSON", variant: "destructive" });
     }
   }
 
@@ -147,6 +158,26 @@ export function TestCasesEditor({ testCases, onChange, disabled }: TestCasesEdit
                 <p className="text-xs text-muted-foreground">
                   JSON объект, ключи должны соответствовать параметрам функции
                 </p>
+              </div>
+              <div className="space-y-2">
+                <Label>Файлы теста (JSON, необязательно)</Label>
+                <Textarea
+                  value={JSON.stringify(testCase.files || {}, null, 2)}
+                  onChange={(e) => updateFiles(testCase.id, "files", e.target.value)}
+                  placeholder='{"input.txt":"Первая строка\\n"}'
+                  rows={3}
+                  disabled={disabled}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Ожидаемые созданные файлы (JSON, необязательно)</Label>
+                <Textarea
+                  value={JSON.stringify(testCase.output_files || {}, null, 2)}
+                  onChange={(e) => updateFiles(testCase.id, "output_files", e.target.value)}
+                  placeholder='{"errors.txt":"ERROR\\n"}'
+                  rows={3}
+                  disabled={disabled}
+                />
               </div>
               <div className="space-y-2">
                 <Label>Expected Output</Label>

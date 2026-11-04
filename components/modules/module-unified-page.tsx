@@ -388,7 +388,7 @@ export function ModuleUnifiedPage({
     if (!task) return;
 
     // ЗАПРЕТ ФУНКЦИЙ В ЛИНЕЙНЫХ ЗАДАНИЯХ
-    if (task.task_type === "linear" && /\bdef\s+\w+\s*\(/.test(state.code)) {
+    if (task.task_type !== "function" && task.task_type !== "class" && /\bdef\s+\w+\s*\(/.test(state.code)) {
       toast({
         title: "Ошибка",
         description: "В этом задании нельзя использовать функции (ключевое слово def). Используйте линейный код с input/print.",

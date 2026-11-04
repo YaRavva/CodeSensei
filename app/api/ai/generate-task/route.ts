@@ -41,7 +41,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Topic and difficulty are required" }, { status: 400 });
     }
 
-    const effectiveTaskType: "linear" | "function" = taskType === "linear" ? "linear" : "function";
+    const effectiveTaskType: "linear" | "function" | "class" =
+      taskType === "function" || taskType === "class" ? taskType : "linear";
 
     const prompt = buildTaskGenerationPrompt({
       topic,
@@ -88,7 +89,7 @@ export async function POST(request: NextRequest) {
       if (Array.isArray(taskData.test_cases)) {
         for (const tc of taskData.test_cases) {
           if (tc && typeof tc === "object" && !tc.verification_mode) {
-            tc.verification_mode = effectiveTaskType === "linear" ? "variable" : "function";
+            tc.verification_mode = effectiveTaskType === "function" ? "function" : "variable";
           }
         }
       }

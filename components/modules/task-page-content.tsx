@@ -219,7 +219,7 @@ export function TaskPageContent({
     }
 
     // ЗАПРЕТ ФУНКЦИЙ В ЛИНЕЙНЫХ ЗАДАНИЯХ
-    if (task.task_type === "linear" && /\bdef\s+\w+\s*\(/.test(code)) {
+    if (task.task_type !== "function" && /\bdef\s+\w+\s*\(/.test(code) && task.task_type !== "class") {
       toast({
         title: "Ошибка",
         description: "В этом задании нельзя использовать функции (ключевое слово def). Используйте линейный код с input/print.",

@@ -24,7 +24,9 @@ export async function POST(req: NextRequest) {
     const task = await getTask(String(taskId));
 
     const typedTask = task as { title: string; description: string; task_type?: string } | null;
-    const taskType = (typedTask?.task_type as "linear" | "function") || "function";
+    const taskType = typedTask?.task_type === "function" || typedTask?.task_type === "class"
+      ? typedTask.task_type
+      : "linear";
 
     const prompt = buildHintPrompt({
       taskTitle: typedTask?.title ?? "Без названия",

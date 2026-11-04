@@ -25,15 +25,15 @@ function valueToPython(value: unknown): string {
 export function buildPreviewCode(
   userCode: string,
   testCase: TestCase | undefined,
-  taskType: "linear" | "function" = "linear"
+  taskType: "linear" | "function" | "class" = "linear"
 ): string {
-  if (!testCase || taskType !== "linear") return userCode;
+  if (!testCase || taskType === "function") return userCode;
 
   const inputCode = Object.entries(testCase.input || {})
     .map(([key, value]) => `${key} = ${valueToPython(value)}`)
-    .join("\\n");
+    .join("\n");
   const safeUserCode = removeTopLevelInputAssignments(userCode, Object.keys(testCase.input || {}));
-  return `${inputCode}${inputCode ? "\\n\\n" : ""}${safeUserCode}`;
+  return `${inputCode}${inputCode ? "\n\n" : ""}${safeUserCode}`;
 }
 
 function inputToPythonArgs(input: Record<string, unknown>): string {
@@ -42,8 +42,33 @@ function inputToPythonArgs(input: Record<string, unknown>): string {
     .join(", ");
 }
 
-function containsFunctionDefinition(code: string): boolean {
-  return /\bdef\s+\w+\s*\(/.test(code);
+function containsForbiddenFunctionDefinition(code: string, taskType: "linear" | "function" | "class"): boolean {
+  if (taskType === "function") return false;
+
+  let classIndent: number | null = null;
+  let methodIndent: number | null = null;
+  for (const line of code.split("\n")) {
+    if (!line.trim() || line.trimStart().startsWith("#")) continue;
+    const indent = line.length - line.trimStart().length;
+    const trimmed = line.trim();
+
+    if (classIndent !== null && indent <= classIndent && !trimmed.startsWith("class ")) {
+      classIndent = null;
+      methodIndent = null;
+    }
+    if (/^class\s+\w+/.test(trimmed)) {
+      if (taskType !== "class" || indent !== 0) return true;
+      classIndent = indent;
+      methodIndent = null;
+      continue;
+    }
+    if (/^def\s+\w+\s*\(/.test(trimmed)) {
+      if (taskType !== "class" || classIndent === null || indent <= classIndent) return true;
+      if (methodIndent !== null && indent > methodIndent) return true;
+      methodIndent = indent;
+    }
+  }
+  return false;
 }
 
 /**
@@ -76,12 +101,12 @@ export async function runTestCase(
   userCode: string,
   testCase: TestCase,
   pyodide: any,
-  taskType: "linear" | "function" = "function"
+  taskType: "linear" | "function" | "class" = "linear"
 ): Promise<TestResult> {
   const startTime = Date.now();
 
   try {
-    if (taskType === "linear" && containsFunctionDefinition(userCode)) {
+    if (containsForbiddenFunctionDefinition(userCode, taskType)) {
       return {
         testCaseId: testCase.id,
         passed: false,
@@ -94,6 +119,21 @@ export async function runTestCase(
     const inputAssignment = Object.entries(input)
       .map(([key, value]) => `_test_ns[${valueToPython(key)}] = ${valueToPython(value)}`)
       .join("\n");
+    const fixtureSetup = Object.keys(testCase.files || {}).length > 0 || Object.keys(testCase.output_files || {}).length > 0
+      ? `
+import os
+_fixture_files = ${valueToPython(testCase.files || {})}
+for _fixture_name, _fixture_content in _fixture_files.items():
+    with open(_fixture_name, "w", encoding="utf-8") as _fixture_file:
+        _fixture_file.write(_fixture_content)
+_expected_output_files = ${valueToPython(testCase.output_files || {})}
+for _output_name in _expected_output_files:
+    try:
+        os.remove(_output_name)
+    except FileNotFoundError:
+        pass
+`
+      : "";
     const safeUserCode = taskType === "linear"
       ? removeTopLevelInputAssignments(userCode, Object.keys(input))
       : userCode;
@@ -111,6 +151,7 @@ export async function runTestCase(
 import json
 _test_ns = {}
 ${inputAssignment}
+${fixtureSetup}
 `;
 
     if (taskType === "function") {
@@ -122,6 +163,16 @@ if _test_function is None:
 _test_result = _test_function(${functionArgs})
 _test_expected = ${expectedOutputPy}
 _test_passed = _compare_values(_test_result, _test_expected) if '_compare_values' in globals() else _test_result == _test_expected
+_test_error = None
+`;
+    } else if (taskType === "class") {
+      testCode += `
+exec(${codeLiteral}, _test_ns, _test_ns)
+_test_expected = ${expectedOutputPy}
+if 'result' not in _test_ns:
+    raise NameError("Не найдена переменная result. Сохраните ответ в result.")
+_test_result = _test_ns['result']
+_test_passed = _compare_values(_test_result, _test_expected)
 _test_error = None
 `;
     } else if (verificationMode === "stdout") {
@@ -154,6 +205,15 @@ else:
         raise NameError("Не найдена переменная result. Запишите ответ в result.")
     _test_result = _test_ns[_target_name]
     _test_passed = _compare_values(_test_result, _test_expected)
+_output_files = ${valueToPython(testCase.output_files || {})}
+for _output_name, _expected_content in _output_files.items():
+    try:
+        with open(_output_name, "r", encoding="utf-8") as _output_file:
+            _actual_content = _output_file.read()
+        if not _compare_values(_actual_content, _expected_content):
+            _test_passed = False
+    except Exception:
+        _test_passed = False
 _test_error = None
 `;
     }
@@ -165,7 +225,7 @@ def _compare_values(actual, expected):
         if isinstance(actual, (int, float)) and isinstance(expected, (int, float)):
             return abs(actual - expected) < 0.0001
         if isinstance(actual, str) and isinstance(expected, str):
-            return actual.strip() == expected.strip()
+            return actual == expected
         if isinstance(actual, (list, dict)) or isinstance(expected, (list, dict)):
             return json.dumps(actual, sort_keys=True, ensure_ascii=False) == json.dumps(expected, sort_keys=True, ensure_ascii=False)
         return actual == expected
@@ -227,11 +287,11 @@ export async function runTestSuite(
   userCode: string,
   testCases: TestCase[],
   pyodide: any,
-  taskType: "linear" | "function" = "function"
+  taskType: "linear" | "function" | "class" = "linear"
 ): Promise<TestSuiteResult> {
   const startTime = Date.now();
 
-  if (taskType === "linear" && containsFunctionDefinition(userCode)) {
+  if (containsForbiddenFunctionDefinition(userCode, taskType)) {
     const error = "В этом задании нельзя объявлять функции. Уберите строку с def и используйте линейный код.";
     const results = testCases.map((testCase) => ({
       testCaseId: testCase.id,
