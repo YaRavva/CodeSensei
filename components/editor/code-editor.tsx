@@ -1,6 +1,7 @@
 "use client";
 
 import { Editor, loader } from "@monaco-editor/react";
+import * as monaco from "monaco-editor";
 import { useEffect, useState } from "react";
 import { useTheme } from "@/components/theme-provider";
 
@@ -13,16 +14,9 @@ interface CodeEditorProps {
   className?: string;
 }
 
-// Keep the runtime loader aligned with the installed Monaco package.
-// The loader default is 0.54.0, while this project uses 0.57.0; mixing them
-// causes cursor and text-coordinate offsets in the editor.
-if (typeof window !== "undefined") {
-  loader.config({
-    paths: {
-      vs: "https://cdn.jsdelivr.net/npm/monaco-editor@0.57.0/min/vs",
-    },
-  });
-}
+// Use the same Monaco instance as the installed package. The 0.57 AMD build
+// no longer exposes the legacy `m` export expected by the CDN loader.
+loader.config({ monaco });
 
 export function CodeEditor({
   value,
