@@ -52,7 +52,7 @@ import {
 } from "@/components/ui/select";
 import { usePyodide } from "@/hooks/use-pyodide";
 import { useToast } from "@/hooks/use-toast";
-import { runTestSuite } from "@/lib/utils/test-runner";
+import { buildPreviewCode, runTestSuite } from "@/lib/utils/test-runner";
 import type { Module, Task, TaskAttempt } from "@/types/db";
 import type { TestCase, TestSuiteResult } from "@/types/test-case";
 
@@ -297,7 +297,14 @@ export function ModuleUnifiedPage({
     }));
 
     try {
-      const result = await executeCode(state.code, 10000);
+      const task = tasks.find((item) => item.id === taskId);
+      const testCases: TestCase[] = Array.isArray(task?.test_cases)
+        ? (task.test_cases as unknown as TestCase[])
+        : [];
+      const result = await executeCode(
+        buildPreviewCode(state.code, testCases[0], task?.task_type),
+        10000
+      );
       setTaskStates((prev) => ({
         ...prev,
         [taskId]: { ...prev[taskId], running: false, executionResult: result },

@@ -13,7 +13,16 @@ interface CodeEditorProps {
   className?: string;
 }
 
-// Monaco Editor загружается нативно через @monaco-editor/react
+// Keep the runtime loader aligned with the installed Monaco package.
+// The loader default is 0.54.0, while this project uses 0.57.0; mixing them
+// causes cursor and text-coordinate offsets in the editor.
+if (typeof window !== "undefined") {
+  loader.config({
+    paths: {
+      vs: "https://cdn.jsdelivr.net/npm/monaco-editor@0.57.0/min/vs",
+    },
+  });
+}
 
 export function CodeEditor({
   value,

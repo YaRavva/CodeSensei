@@ -1,14 +1,8 @@
 import type { TestCase, TestResult, TestSuiteResult } from "@/types/test-case";
 
-/**
- * Преобразует значение в Python код для использования в тестах
- */
 function valueToPython(value: unknown): string {
-  if (value === null || value === undefined) {
-    return "None";
-  }
+  if (value === null || value === undefined) return "None";
   if (typeof value === "string") {
-    // Экранируем кавычки и специальные символы
     const escaped = value
       .replace(/\\/g, "\\\\")
       .replace(/"/g, '\\"')
@@ -17,42 +11,65 @@ function valueToPython(value: unknown): string {
       .replace(/\t/g, "\\t");
     return `"${escaped}"`;
   }
-  if (typeof value === "number") {
-    return String(value);
-  }
-  if (typeof value === "boolean") {
-    return value ? "True" : "False";
-  }
-  if (Array.isArray(value)) {
-    const items = value.map((item) => valueToPython(item)).join(", ");
-    return `[${items}]`;
-  }
+  if (typeof value === "number") return String(value);
+  if (typeof value === "boolean") return value ? "True" : "False";
+  if (Array.isArray(value)) return `[${value.map(valueToPython).join(", ")}]`;
   if (typeof value === "object") {
-    const entries = Object.entries(value)
-      .map(([key, val]) => `"${key}": ${valueToPython(val)}`)
-      .join(", ");
-    return `{${entries}}`;
+    return `{${Object.entries(value)
+      .map(([key, item]) => `${valueToPython(key)}: ${valueToPython(item)}`)
+      .join(", ")}}`;
   }
   return String(value);
 }
 
-/**
- * Преобразует объект input в Python аргументы функции
- */
+export function buildPreviewCode(
+  userCode: string,
+  testCase: TestCase | undefined,
+  taskType: "linear" | "function" = "linear"
+): string {
+  if (!testCase || taskType !== "linear") return userCode;
+
+  const inputCode = Object.entries(testCase.input || {})
+    .map(([key, value]) => `${key} = ${valueToPython(value)}`)
+    .join("\\n");
+  const safeUserCode = removeTopLevelInputAssignments(userCode, Object.keys(testCase.input || {}));
+  return `${inputCode}${inputCode ? "\\n\\n" : ""}${safeUserCode}`;
+}
+
 function inputToPythonArgs(input: Record<string, unknown>): string {
   return Object.entries(input)
     .map(([key, value]) => `${key}=${valueToPython(value)}`)
     .join(", ");
 }
 
-/**
- * Выполняет один тестовый случай
- */
-/**
- * Проверяет, использует ли код определение функций (для линейных заданий)
- */
 function containsFunctionDefinition(code: string): boolean {
   return /\bdef\s+\w+\s*\(/.test(code);
+}
+
+/**
+ * The starter code may contain an old local example such as `name = "Alice"`.
+ * Input belongs to the test case, so top-level assignments to input names are ignored.
+ */
+function removeTopLevelInputAssignments(code: string, inputNames: string[]): string {
+  if (inputNames.length === 0) return code;
+  const names = inputNames.map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+  const assignment = new RegExp(`^(\\s*)(${names})\\s*=\\s*(?!=)(.*)$`);
+  return code
+    .split("\n")
+    .map((line) => {
+      const match = line.match(assignment);
+      if (!match || match[1].length > 0) return line;
+      return `# Input ${match[2]} is supplied by the test case`;
+    })
+    .join("\n");
+}
+
+function simplifyPythonError(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  const lines = message.split("\n").map((line) => line.trim()).filter(Boolean);
+  const last = lines.at(-1) || message;
+  const match = last.match(/(?:NameError|TypeError|SyntaxError|ValueError|IndexError|KeyError|ZeroDivisionError):\s*(.*)/);
+  return match ? `${last.split(":")[0]}: ${match[1]}` : last;
 }
 
 export async function runTestCase(
@@ -64,240 +81,148 @@ export async function runTestCase(
   const startTime = Date.now();
 
   try {
-    // ЗАПРЕТ ФУНКЦИЙ В ЛИНЕЙНЫХ ЗАДАНИЯХ
     if (taskType === "linear" && containsFunctionDefinition(userCode)) {
       return {
         testCaseId: testCase.id,
         passed: false,
-        error: "В этом задании нельзя использовать функции (ключевое слово def). Используйте линейный код с input/print.",
+        error: "В этом задании нельзя объявлять функции. Уберите строку с def и используйте линейный код.",
         executionTime: 0,
       };
     }
 
-    let testCode = "";
+    const input = testCase.input || {};
+    const inputAssignment = Object.entries(input)
+      .map(([key, value]) => `_test_ns[${valueToPython(key)}] = ${valueToPython(value)}`)
+      .join("\n");
+    const safeUserCode = taskType === "linear"
+      ? removeTopLevelInputAssignments(userCode, Object.keys(input))
+      : userCode;
+    const codeLiteral = JSON.stringify(safeUserCode);
+    const expectedOutputPy = valueToPython(testCase.expected_output);
+    const verificationMode = testCase.verification_mode || "variable";
+    const functionMatch = userCode.match(/def\s+(\w+)\s*\(/);
+    const functionName = functionMatch?.[1] || "solve";
+    const functionNamePy = valueToPython(functionName);
+    const functionArgs = Object.keys(input)
+      .map((key) => `_test_ns[${valueToPython(key)}]`)
+      .join(", ");
 
-    const inputAssignment = testCase.input 
-      ? Object.entries(testCase.input).map(([k, v]) => `${k} = ${valueToPython(v)}`).join("\n") + "\n"
-      : "";
-
-    // Общая функция сравнения
-    const compareFunction = `
+    let testCode = `
 import json
-def _test_compare(actual, expected):
-    try:
-        if isinstance(actual, (int, float)) and isinstance(expected, (int, float)):
-            if isinstance(actual, float) or isinstance(expected, float):
-                return abs(actual - expected) < 0.0001
-            return actual == expected
-        if isinstance(actual, str) and isinstance(expected, str):
-            return actual.strip() == expected.strip()
-        if isinstance(actual, (list, dict)) or isinstance(expected, (list, dict)):
-            actual_json = json.dumps(actual, sort_keys=True, ensure_ascii=False)
-            expected_json = json.dumps(expected, sort_keys=True, ensure_ascii=False)
-            return actual_json == expected_json
-        return actual == expected
-    except Exception:
-        return False
+_test_ns = {}
+${inputAssignment}
 `;
 
     if (taskType === "function") {
-      // Функциональный тип: ищем определение функции и вызываем её
-      const functionMatch = userCode.match(/def\s+(\w+)\s*\(/);
-      const functionName = functionMatch ? functionMatch[1] : "solve";
-      
-      testCode = `
-${inputAssignment}
-${userCode}
-
-${compareFunction}
-
-try:
-    _test_result = ${functionName}(${testCase.input ? inputToPythonArgs(testCase.input) : ""})
-    _test_expected = ${valueToPython(testCase.expected_output)}
-    _test_passed = _test_compare(_test_result, _test_expected)
-    _test_error = None
-except Exception as e:
-    _test_result = None
-    _test_passed = False
-    _test_error = str(e)
+      testCode += `
+exec(${codeLiteral}, _test_ns, _test_ns)
+_test_function = _test_ns.get(${functionNamePy})
+if _test_function is None:
+    raise NameError("Функция ${functionName} не найдена. Объявите её через def.")
+_test_result = _test_function(${functionArgs})
+_test_expected = ${expectedOutputPy}
+_test_passed = _compare_values(_test_result, _test_expected) if '_compare_values' in globals() else _test_result == _test_expected
+_test_error = None
+`;
+    } else if (verificationMode === "stdout") {
+      testCode += `
+exec(${codeLiteral}, _test_ns, _test_ns)
+_test_expected = ${expectedOutputPy}
+_test_result = _stdout_capture.getvalue().strip()
+_test_passed = _compare_values(_test_result, str(_test_expected).strip()) if '_compare_values' in globals() else _test_result == str(_test_expected).strip()
+_test_error = None
 `;
     } else {
-      // Линейный тип: выполняем код и проверяем результат
-      const expectedOutputPy = valueToPython(testCase.expected_output);
-      const verificationMode = testCase.verification_mode || "variable";
-      
-      if (verificationMode === "stdout") {
-        testCode = `
-${inputAssignment}
-${userCode}
-
-${compareFunction}
-
-try:
-    _test_expected = ${expectedOutputPy}
-    _test_result = _stdout_capture.getvalue().strip()
-    _test_passed = _test_compare(_test_result, str(_test_expected).strip())
-    _test_error = None
-except Exception as e:
-    _test_result = None
-    _test_passed = False
-    _test_error = str(e)
-`;
-      } else {
-        // variable mode (default for linear)
-        testCode = `
-${inputAssignment}
-${userCode}
-
-${compareFunction}
-
-try:
-    _test_expected = ${expectedOutputPy}
+      testCode += `
+exec(${codeLiteral}, _test_ns, _test_ns)
+_test_expected = ${expectedOutputPy}
+_test_result = None
+_test_passed = False
+if isinstance(_test_expected, dict):
+    _test_result = {}
     _test_passed = True
-    _test_result = None
-    
-    if isinstance(_test_expected, dict):
-        _test_result = {}
-        for _k, _v in _test_expected.items():
-            if _k not in globals():
-                raise NameError(f"Переменная '{_k}' не найдена в вашем коде.")
-            _actual_val = globals()[_k]
-            _test_result[_k] = _actual_val
-            if not _test_compare(_actual_val, _v):
-                _test_passed = False
-    else:
-        # Ищем переменную result, output, или последнюю присвоенную
-        _user_vars = [k for k in globals().keys() if not k.startswith('_') and k not in ('__builtins__', '__name__', 'json', 'input')]
-        _target_var = None
-        if 'result' in globals():
-            _target_var = 'result'
-        elif 'output' in globals():
-            _target_var = 'output'
-        elif _user_vars:
-            _target_var = _user_vars[-1]
-        
-        if _target_var:
-            _actual_val = globals().get(_target_var)
-            _test_result = _actual_val
-            _test_passed = _test_compare(_actual_val, _test_expected)
-        else:
+    for _key, _expected_value in _test_expected.items():
+        if _key not in _test_ns:
+            raise NameError(f"Переменная '{_key}' не найдена в решении.")
+        _actual_value = _test_ns[_key]
+        _test_result[_key] = _actual_value
+        if not _compare_values(_actual_value, _expected_value):
             _test_passed = False
-            _test_error = "Не найдена переменная для проверки. Создайте переменную result или output."
-
-    if '_test_error' not in globals():
-        _test_error = None
-except Exception as e:
-    _test_result = None
-    _test_passed = False
-    _test_error = str(e)
+else:
+    _target_name = 'result' if 'result' in _test_ns else ('output' if 'output' in _test_ns else None)
+    if _target_name is None:
+        raise NameError("Не найдена переменная result. Запишите ответ в result.")
+    _test_result = _test_ns[_target_name]
+    _test_passed = _compare_values(_test_result, _test_expected)
+_test_error = None
 `;
-      }
     }
 
-    // Выполняем тест
+    testCode = `
+import json
+def _compare_values(actual, expected):
+    try:
+        if isinstance(actual, (int, float)) and isinstance(expected, (int, float)):
+            return abs(actual - expected) < 0.0001
+        if isinstance(actual, str) and isinstance(expected, str):
+            return actual.strip() == expected.strip()
+        if isinstance(actual, (list, dict)) or isinstance(expected, (list, dict)):
+            return json.dumps(actual, sort_keys=True, ensure_ascii=False) == json.dumps(expected, sort_keys=True, ensure_ascii=False)
+        return actual == expected
+    except Exception:
+        return False
+${testCode}
+`;
+
     await pyodide.runPythonAsync(testCode);
 
-    // Получаем результаты
-    let passed = false;
-    let result: any;
-    let error: string | undefined;
-
-    try {
-      passed = Boolean(pyodide.runPython("bool(_test_passed)"));
-    } catch {
-      passed = false;
-    }
-
+    const passed = Boolean(pyodide.runPython("bool(_test_passed)"));
+    let actualOutput: unknown;
     try {
       const resultValue = pyodide.runPython("_test_result");
-      result =
-        resultValue !== undefined && resultValue !== null && resultValue !== "None"
-          ? resultValue
-          : undefined;
+      if (resultValue !== undefined && resultValue !== null && resultValue !== "None") {
+        actualOutput = resultValue;
+      }
     } catch {
-      result = undefined;
+      actualOutput = undefined;
     }
 
+    let error: string | undefined;
     try {
       const errorValue = pyodide.runPython("_test_error");
-      error =
-        errorValue && errorValue !== "None" && errorValue !== null ? String(errorValue) : undefined;
+      if (errorValue && errorValue !== "None") error = String(errorValue);
     } catch {
       error = undefined;
     }
 
-    // Очищаем тестовые переменные после получения результатов
     try {
-      pyodide.runPython(`
-try:
-    del _test_result, _test_passed, _test_error, _test_expected, _test_compare
-except:
-    pass
-`);
+      pyodide.runPython("del _test_ns, _test_result, _test_passed, _test_error, _test_expected");
     } catch {
-      // Игнорируем ошибки при очистке
+      // Cleanup is best effort; every test still uses a fresh namespace.
     }
-
-    const executionTime = Date.now() - startTime;
 
     return {
       testCaseId: testCase.id,
       passed,
-      actualOutput: result,
+      actualOutput,
       error,
-      executionTime,
+      executionTime: Date.now() - startTime,
     };
-  } catch (err) {
-    const executionTime = Date.now() - startTime;
-
-    // Улучшенная обработка ошибок
-    let errorMessage = "";
-
-    if (err instanceof Error) {
-      errorMessage = err.message;
-
-      // Извлекаем более понятное сообщение из traceback Python
-      const lines = errorMessage.split("\n");
-      const errorLine = lines[lines.length - 1] || errorMessage;
-
-      // Упрощаем сообщение для пользователя
-      if (errorLine.includes("UnboundLocalError")) {
-        const match = errorLine.match(/UnboundLocalError: (.+)/);
-        errorMessage = match ? `Ошибка: ${match[1]}` : errorLine;
-      } else if (errorLine.includes("NameError")) {
-        const match = errorLine.match(/NameError: (.+)/);
-        errorMessage = match ? `Ошибка: ${match[1]}` : errorLine;
-      } else {
-        errorMessage = errorLine.trim();
-      }
-    } else {
-      errorMessage = String(err);
-    }
-
-    // Очищаем состояние после ошибки
+  } catch (error) {
     try {
-      pyodide.runPython(`
-try:
-    del _test_result, _test_passed, _test_error, _test_expected, _test_compare
-except:
-    pass
-`);
+      pyodide.runPython("del _test_ns, _test_result, _test_passed, _test_error, _test_expected");
     } catch {
-      // Игнорируем ошибки при очистке
+      // Ignore cleanup failures after an execution error.
     }
-
     return {
       testCaseId: testCase.id,
       passed: false,
-      error: errorMessage || "Произошла ошибка при выполнении теста",
-      executionTime,
+      error: simplifyPythonError(error),
+      executionTime: Date.now() - startTime,
     };
   }
 }
 
-/**
- * Выполняет набор тестовых случаев
- */
 export async function runTestSuite(
   userCode: string,
   testCases: TestCase[],
@@ -305,50 +230,40 @@ export async function runTestSuite(
   taskType: "linear" | "function" = "function"
 ): Promise<TestSuiteResult> {
   const startTime = Date.now();
-  const results: TestResult[] = [];
 
-  // ЗАПРЕТ ФУНКЦИЙ В ЛИНЕЙНЫХ ЗАДАНИЯХ — ранняя проверка
   if (taskType === "linear" && containsFunctionDefinition(userCode)) {
-    const error = "В этом задании нельзя использовать функции (ключевое слово def). Используйте линейный код с input/print.";
-    for (const testCase of testCases) {
-      results.push({
-        testCaseId: testCase.id,
-        passed: false,
-        error,
-        executionTime: 0,
-      });
-    }
-    return {
-      results,
-      passedCount: 0,
-      totalCount: testCases.length,
-      allPassed: false,
-      executionTime: Date.now() - startTime,
-    };
+    const error = "В этом задании нельзя объявлять функции. Уберите строку с def и используйте линейный код.";
+    const results = testCases.map((testCase) => ({
+      testCaseId: testCase.id,
+      passed: false,
+      error,
+      executionTime: 0,
+    }));
+    return { results, passedCount: 0, totalCount: results.length, allPassed: false, executionTime: Date.now() - startTime };
   }
 
-  // Сбрасываем буфер вывода перед тестами
   try {
     pyodide.runPython("_stdout_capture.reset()");
   } catch {
-    // Игнорируем, если _stdout_capture еще не создан
+    // stdout capture is initialized by usePyodide.
   }
 
-  // Выполняем каждый тест
+  const results: TestResult[] = [];
   for (const testCase of testCases) {
-    const result = await runTestCase(userCode, testCase, pyodide, taskType);
-    results.push(result);
+    try {
+      pyodide.runPython("_stdout_capture.reset()");
+    } catch {
+      // Continue; variable-based checks do not require stdout.
+    }
+    results.push(await runTestCase(userCode, testCase, pyodide, taskType));
   }
 
-  const executionTime = Date.now() - startTime;
-  const passedCount = results.filter((r) => r.passed).length;
-  const totalCount = results.length;
-
+  const passedCount = results.filter((result) => result.passed).length;
   return {
     results,
     passedCount,
-    totalCount,
-    allPassed: passedCount === totalCount,
-    executionTime,
+    totalCount: results.length,
+    allPassed: passedCount === results.length,
+    executionTime: Date.now() - startTime,
   };
 }

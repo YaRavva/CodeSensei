@@ -30,7 +30,7 @@ import { DifficultyBadge, getDifficultyXP } from "@/components/ui/difficulty-bad
 import { ToastAction } from "@/components/ui/toast";
 import { usePyodide } from "@/hooks/use-pyodide";
 import { useToast } from "@/hooks/use-toast";
-import { runTestSuite } from "@/lib/utils/test-runner";
+import { buildPreviewCode, runTestSuite } from "@/lib/utils/test-runner";
 import type { Module, Task, TaskAttempt } from "@/types/db";
 import type { TestCase, TestSuiteResult } from "@/types/test-case";
 
@@ -143,7 +143,10 @@ export function TaskPageContent({
     setExecutionResult(null);
 
     try {
-      const result = await executeCode(code, 10000);
+      const result = await executeCode(
+        buildPreviewCode(code, testCases[0], task.task_type),
+        10000
+      );
       setExecutionResult(result);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
