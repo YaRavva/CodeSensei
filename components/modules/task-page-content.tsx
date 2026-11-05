@@ -19,6 +19,12 @@ import { oneDark, oneLight } from "react-syntax-highlighter/dist/esm/styles/pris
 import remarkBreaks from "remark-breaks";
 import remarkGfm from "remark-gfm";
 import { useAuth } from "@/components/auth/auth-provider";
+import {
+  defaultProgramInput,
+  ProgramInput,
+  parseProgramInput,
+  usesProgramInput,
+} from "@/components/editor/program-input";
 import { CodeEditor } from "@/components/editor/code-editor";
 import { ErrorDisplay } from "@/components/editor/error-display";
 import { TestResults } from "@/components/editor/test-results";
@@ -67,6 +73,10 @@ export function TaskPageContent({
 
   // Состояние кода
   const [code, setCode] = useState(task.starter_code || "");
+  const initialProgramInput = defaultProgramInput(
+    Array.isArray(task.test_cases) ? (task.test_cases as unknown as TestCase[]) : []
+  );
+  const [programInput, setProgramInput] = useState(initialProgramInput);
   const [initialCode] = useState(task.starter_code || "");
 
   // Состояние выполнения
@@ -145,7 +155,8 @@ export function TaskPageContent({
     try {
       const result = await executeCode(
         buildPreviewCode(code, testCases[0], task.task_type),
-        10000
+        10000,
+        parseProgramInput(programInput)
       );
       setExecutionResult(result);
     } catch (error) {
@@ -661,6 +672,14 @@ export function TaskPageContent({
                   height="400px"
                   language="python"
                 />
+
+                {usesProgramInput(code, initialProgramInput) && (
+                  <ProgramInput
+                    id={`program-input-${task.id}`}
+                    value={programInput}
+                    onChange={setProgramInput}
+                  />
+                )}
 
                 {/* Кнопки управления */}
                 <div className="flex flex-wrap gap-2">

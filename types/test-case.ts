@@ -9,6 +9,8 @@ export interface TestCase {
   id: string;
   description: string;
   input: Record<string, unknown>;
+  /** Lines returned one by one by input() during the test. */
+  stdin?: string[];
   files?: Record<string, string>;
   output_files?: Record<string, string>;
   expected_output: unknown;

@@ -2,6 +2,40 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+/**
+ * input() support. By default Pyodide answers input() with window.prompt(),
+ * which blocks the page, hides the prompt text and pops up for every call in
+ * every test. Instead input() reads prepared lines: the "program input" field
+ * when running, test_case.stdin when testing.
+ */
+export const INPUT_SETUP = `
+import builtins
+
+_cs_stdin_lines = []
+_cs_stdin_pos = 0
+_cs_echo_input = True
+
+def _cs_set_stdin(lines, echo=True):
+    global _cs_stdin_lines, _cs_stdin_pos, _cs_echo_input
+    _cs_stdin_lines = [str(line) for line in (lines or [])]
+    _cs_stdin_pos = 0
+    _cs_echo_input = echo
+
+def _cs_input(prompt=""):
+    global _cs_stdin_pos
+    if _cs_stdin_pos >= len(_cs_stdin_lines):
+        raise EOFError("Программа запросила больше данных, чем указано во вводе. Добавьте строку в поле «Ввод программы».")
+    value = _cs_stdin_lines[_cs_stdin_pos]
+    _cs_stdin_pos += 1
+    # When running, show the prompt and the typed value like a console does.
+    # In tests the prompt is not part of the checked output.
+    if _cs_echo_input:
+        print(f"{prompt}{value}")
+    return value
+
+builtins.input = _cs_input
+`;
+
 // Более точные типы для Pyodide
 interface Pyodide {
   runPython: (code: string) => any;
@@ -66,6 +100,7 @@ class PyodideStdout:
 _stdout_capture = PyodideStdout()
 sys.stdout = _stdout_capture
 `);
+        pyodideInstance.runPython(INPUT_SETUP);
 
         pyodideCache = pyodideInstance;
         return pyodideInstance;
@@ -96,6 +131,8 @@ sys.stdout = _stdout_capture
       // Настраиваем перехват print() для получения вывода
       pyodideInstance.runPython(`
 import sys
+
+
 from io import StringIO
 
 class PyodideStdout:
@@ -118,6 +155,7 @@ class PyodideStdout:
 _stdout_capture = PyodideStdout()
 sys.stdout = _stdout_capture
 `);
+        pyodideInstance.runPython(INPUT_SETUP);
 
       pyodideCache = pyodideInstance;
       return pyodideInstance;
@@ -138,7 +176,8 @@ interface UsePyodideReturn {
   error: Error | null;
   executeCode: (
     code: string,
-    timeout?: number
+    timeout?: number,
+    stdin?: string[]
   ) => Promise<{
     output: string;
     error: string | null;
@@ -175,7 +214,8 @@ export function usePyodide(): UsePyodideReturn {
   const executeCode = useCallback(
     async (
       code: string,
-      timeout: number = 10000
+      timeout: number = 10000,
+      stdin: string[] = []
     ): Promise<{
       output: string;
       error: string | null;
@@ -207,6 +247,9 @@ except:
         } catch {
           // Игнорируем ошибки при очистке
         }
+
+        // Lines returned by input(), one per call.
+        pyodide.runPython(`_cs_set_stdin(${JSON.stringify(stdin)}, True)`);
 
         // Создаем промис для выполнения кода с timeout
         const executionPromise = pyodide.runPythonAsync(code);

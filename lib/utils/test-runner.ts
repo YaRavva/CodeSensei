@@ -147,9 +147,12 @@ for _output_name in _expected_output_files:
       .map((key) => `_test_ns[${valueToPython(key)}]`)
       .join(", ");
 
+    const stdinPy = valueToPython((testCase.stdin ?? []).map(String));
+
     let testCode = `
 import json
 _test_ns = {}
+_cs_set_stdin(${stdinPy}, False)
 ${inputAssignment}
 ${fixtureSetup}
 `;

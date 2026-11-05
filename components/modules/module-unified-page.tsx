@@ -29,6 +29,12 @@ import { oneDark, oneLight } from "react-syntax-highlighter/dist/esm/styles/pris
 import remarkBreaks from "remark-breaks";
 import remarkGfm from "remark-gfm";
 import { useAuth } from "@/components/auth/auth-provider";
+import {
+  defaultProgramInput,
+  ProgramInput,
+  parseProgramInput,
+  usesProgramInput,
+} from "@/components/editor/program-input";
 import { CodeEditor } from "@/components/editor/code-editor";
 import { TestResults } from "@/components/editor/test-results";
 import { useTheme } from "@/components/theme-provider";
@@ -99,6 +105,8 @@ export function ModuleUnifiedPage({
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const { user, refreshProfile } = useAuth();
+  // Text of the "program input" field per task (lines returned by input()).
+  const [programInputs, setProgramInputs] = useState<Record<string, string>>({});
 
   useEffect(() => {
     setMounted(true);
@@ -303,7 +311,8 @@ export function ModuleUnifiedPage({
         : [];
       const result = await executeCode(
         buildPreviewCode(state.code, testCases[0], task?.task_type),
-        10000
+        10000,
+        parseProgramInput(programInputs[taskId] ?? defaultProgramInput(testCases))
       );
       setTaskStates((prev) => ({
         ...prev,
@@ -1228,6 +1237,24 @@ export function ModuleUnifiedPage({
                                     height="400px"
                                     language="python"
                                   />
+
+                                  {(() => {
+                                    const taskTests = Array.isArray(task.test_cases)
+                                      ? (task.test_cases as unknown as TestCase[])
+                                      : [];
+                                    const initialInput = defaultProgramInput(taskTests);
+                                    const currentCode = state?.code || task.starter_code || "";
+                                    if (!usesProgramInput(currentCode, initialInput)) return null;
+                                    return (
+                                      <ProgramInput
+                                        id={`program-input-${task.id}`}
+                                        value={programInputs[task.id] ?? initialInput}
+                                        onChange={(value) =>
+                                          setProgramInputs((prev) => ({ ...prev, [task.id]: value }))
+                                        }
+                                      />
+                                    );
+                                  })()}
 
                                   {/* Кнопки управления */}
                                   <div className="flex flex-wrap gap-2">
