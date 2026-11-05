@@ -1,6 +1,7 @@
 import { DashboardContent } from "@/components/dashboard/dashboard-content";
 import { listAttemptsByUser } from "@/lib/appwrite/attempts";
 import { listUserProgress } from "@/lib/appwrite/progress";
+import { countSolvedTasks } from "@/lib/stats/user-stats";
 import { getUserAchievements } from "@/lib/utils/achievements";
 import { requireAuth } from "@/lib/utils/auth";
 
@@ -15,6 +16,8 @@ export default async function DashboardPage() {
 
   const completedModules = progress.filter((item) => item.status === "completed").length;
   const successfulAttempts = attempts.filter((attempt) => attempt.is_successful).length;
+  // Same definition as the leaderboard: unique tasks with a successful attempt.
+  const solvedTasks = countSolvedTasks(attempts);
   const totalAttempts = attempts.length;
 
   const avgExecutionTime =
@@ -44,6 +47,7 @@ export default async function DashboardPage() {
         currentLevel: profile.current_level,
         completedModules,
         successfulAttempts,
+        solvedTasks,
         totalAttempts,
         avgExecutionTime,
         avgSolvingTime,

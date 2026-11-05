@@ -1,6 +1,6 @@
 "use client";
 
-import { Award, Crown, Medal, Trophy } from "lucide-react";
+import { Award, Medal, Trophy } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AchievementIcon } from "@/components/achievements/achievement-icon";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -18,12 +18,11 @@ type LeaderboardPeriod = "all_time" | "month" | "week";
 
 interface LeaderboardUser {
   id: string;
-  display_name: string | null;
-  email: string | null;
+  display_name: string;
   avatar_url: string | null;
-  total_xp: number | null;
-  current_level: number | null;
-  role: string;
+  total_xp: number;
+  current_level: number;
+  solved_tasks: number;
   rank: number;
 }
 
@@ -40,6 +39,10 @@ interface LeaderboardContentProps {
   currentUserRank: number | null;
   currentUserData: LeaderboardUser | null;
   period: LeaderboardPeriod;
+  /** ISO date from which weekly/monthly XP is recorded. */
+  periodSince: string;
+  /** False for teachers and admins: they are not ranked. */
+  isRanked: boolean;
   userAchievementsByUserId?: Record<string, LeaderboardAchievement[]>;
 }
 
@@ -49,6 +52,8 @@ export function LeaderboardContent({
   currentUserRank,
   currentUserData,
   period,
+  periodSince,
+  isRanked,
   userAchievementsByUserId,
 }: LeaderboardContentProps) {
   const router = useRouter();
@@ -60,11 +65,7 @@ export function LeaderboardContent({
     router.push(`/leaderboard?${params.toString()}`);
   }
 
-  function getRankIcon(rank: number, role?: string) {
-    // Корона для админов
-    if (role === "admin") {
-      return <Crown className="h-5 w-5 text-yellow-500" />;
-    }
+  function getRankIcon(rank: number) {
     // Золотая медаль за первое место
     if (rank === 1) {
       return <Trophy className="h-5 w-5 text-yellow-500 fill-yellow-500" />;
@@ -81,7 +82,7 @@ export function LeaderboardContent({
   }
 
   function getUserDisplayName(user: LeaderboardUser) {
-    return user.display_name || user.email?.split("@")[0] || "Без имени";
+    return user.display_name || "Ученик";
   }
 
   function getUserInitials(user: LeaderboardUser) {
@@ -113,6 +114,12 @@ export function LeaderboardContent({
             </SelectContent>
           </Select>
         </div>
+
+        {!isRanked && (
+          <p className="mb-6 text-sm text-muted-foreground">
+            Учителя и администраторы не участвуют в рейтинге.
+          </p>
+        )}
 
         {/* Информация о текущем пользователе */}
         {(currentUserRank || currentUserData) &&
@@ -151,9 +158,7 @@ export function LeaderboardContent({
           <CardDescription>
             {period === "all_time"
               ? "За все время"
-              : period === "month"
-                ? "За последний месяц"
-                : "За последнюю неделю"}
+              : `${period === "month" ? "За последние 30 дней" : "За последние 7 дней"} (XP учитывается с ${new Date(periodSince).toLocaleDateString("ru-RU")})`}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -175,7 +180,7 @@ export function LeaderboardContent({
                   >
                     {/* Ранг */}
                     <div className="flex items-center justify-center w-12">
-                      {getRankIcon(user.rank, user.role) || (
+                      {getRankIcon(user.rank) || (
                         <span
                           className={`text-lg font-bold ${
                             user.rank <= 10 ? "text-foreground" : "text-muted-foreground"
@@ -210,12 +215,7 @@ export function LeaderboardContent({
                             Вы
                           </Badge>
                         )}
-                        {user.role === "admin" && (
-                          <Badge variant="secondary" className="text-xs">
-                            Админ
-                          </Badge>
-                        )}
-                        {user.rank <= 3 && user.role !== "admin" && (
+                        {user.rank <= 3 && (
                           <Badge variant="outline" className="text-xs">
                             Топ {user.rank}
                           </Badge>
@@ -225,6 +225,7 @@ export function LeaderboardContent({
                         <Badge variant="secondary" className="text-xs">
                           Уровень {user.current_level || 1}
                         </Badge>
+                        <span className="text-xs">Решено заданий: {user.solved_tasks}</span>
                       </div>
                     </div>
 

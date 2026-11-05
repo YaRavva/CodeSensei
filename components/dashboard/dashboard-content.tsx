@@ -18,6 +18,7 @@ interface DashboardStats {
   currentLevel: number;
   completedModules: number;
   successfulAttempts: number;
+  solvedTasks: number;
   totalAttempts: number;
   avgExecutionTime: number;
   avgSolvingTime: number;
@@ -80,8 +81,8 @@ export function DashboardContent({ profile, stats, achievements }: DashboardCont
             <CardTitle className="text-sm font-medium">Решённых задач</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.successfulAttempts}</div>
-            <p className="text-xs text-muted-foreground">из {stats.totalAttempts} попыток</p>
+            <div className="text-2xl font-bold">{stats.solvedTasks}</div>
+            <p className="text-xs text-muted-foreground">всего попыток: {stats.totalAttempts}</p>
           </CardContent>
         </Card>
 
@@ -130,7 +131,7 @@ export function DashboardContent({ profile, stats, achievements }: DashboardCont
               <span className="font-medium">{stats.totalAttempts}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-sm text-muted-foreground">Успешных решений:</span>
+              <span className="text-sm text-muted-foreground">Успешных попыток:</span>
               <span className="font-medium">{stats.successfulAttempts}</span>
             </div>
             {stats.totalAttempts > 0 && (

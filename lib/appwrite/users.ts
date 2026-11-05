@@ -198,9 +198,10 @@ export async function addXp(
   return { total_xp: totalXp, current_level: level };
 }
 
+/** Leaderboard participants: students only (teachers and admins are not ranked). */
 export async function listLeaderboardUsers(): Promise<UserProfile[]> {
   const rows = await listRows(TABLES.users, [
-    Query.equal("role", ["student", "admin"]),
+    Query.equal("role", "student"),
     Query.orderDesc("total_xp"),
   ]);
 
@@ -209,7 +210,7 @@ export async function listLeaderboardUsers(): Promise<UserProfile[]> {
 
 export async function countUsersWithMoreXp(totalXp: number): Promise<number> {
   const rows = await listRows(TABLES.users, [
-    Query.equal("role", ["student", "admin"]),
+    Query.equal("role", "student"),
     Query.greaterThan("total_xp", totalXp),
   ]);
 
