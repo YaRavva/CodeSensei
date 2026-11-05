@@ -204,8 +204,13 @@ export function checkAchievementCondition(
       );
 
     case "first_day_tasks": {
-      if (!data.profileCreatedAt) return false;
-      const registered = new Date(data.profileCreatedAt).getTime();
+      // Profiles migrated from the old database got the migration date as
+      // $createdAt, so the first day starts at the earliest known activity.
+      const starts = [data.profileCreatedAt, ...data.tasks.map((task) => task.firstAttemptAt)]
+        .filter((value): value is string => Boolean(value))
+        .map((value) => new Date(value).getTime());
+      if (starts.length === 0) return false;
+      const registered = Math.min(...starts);
       const matching = solved.filter((task) => {
         const time = new Date(task.solvedAt as string).getTime();
         return time >= registered && time < registered + 86_400_000;

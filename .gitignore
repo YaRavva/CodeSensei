@@ -40,3 +40,6 @@ next-env.d.ts
 
 # biome
 .biome/
+
+# data backups (contain personal data)
+/backups/
