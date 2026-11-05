@@ -1,0 +1,297 @@
+id: m09_lists
+topic: Храним много значений в одном списке и обрабатываем их по очереди.
+theory: |
+  Список хранит много значений в одной переменной: оценки за четверть, покупки, температуру за неделю. Значения пишут в квадратных скобках через запятую.
+
+  ## Создание и индексы
+
+  ```python
+  grades = [5, 4, 3, 5]
+  print(grades[0], grades[-1])
+  print(len(grades))
+  ```
+
+  Результат:
+
+  ```text
+  5 5
+  4
+  ```
+
+  Индексы — как у строк: с нуля, `-1` — последний элемент. Элемент списка можно заменить: `grades[2] = 4`.
+
+  ## Добавление и удаление
+
+  - `append(x)` — добавить `x` в конец;
+  - `remove(x)` — удалить первое значение `x`;
+  - `pop()` — удалить и вернуть последний элемент.
+
+  ```python
+  shop = ["хлеб", "молоко"]
+  shop.append("сыр")
+  shop.remove("хлеб")
+  print(shop)
+  ```
+
+  Результат:
+
+  ```text
+  ['молоко', 'сыр']
+  ```
+
+  ## Перебор списка
+
+  ```python
+  temps = [3, -2, 5]
+  for t in temps:
+      print(t * 2)
+  ```
+
+  Результат:
+
+  ```text
+  6
+  -4
+  10
+  ```
+
+  ## Готовые функции и in
+
+  `sum()`, `min()`, `max()` считают сумму, минимум и максимум. `sorted()` возвращает новый отсортированный список, а `список.sort()` сортирует сам список. `x in список` проверяет, есть ли значение.
+
+  ```python
+  nums = [7, 2, 9, 4]
+  print(sum(nums), min(nums), max(nums))
+  print(sorted(nums))
+  print(9 in nums, 5 in nums)
+  ```
+
+  Результат:
+
+  ```text
+  22 2 9
+  [2, 4, 7, 9]
+  True False
+  ```
+
+  ## Новый список из старого
+
+  Частая схема: пустой список `[]`, перебор, `append()` подходящих элементов.
+
+  ```python
+  nums = [4, -1, 0, 8]
+  positive = []
+  for x in nums:
+      if x > 0:
+          positive.append(x)
+  print(positive)
+  ```
+
+  Результат:
+
+  ```text
+  [4, 8]
+  ```
+
+  В заданиях модуля ответ записывают в переменную `result`.
+tasks:
+  - slug: t1
+    title: Сумма оценок
+    difficulty: easy
+    mode: variable
+    description: |
+      Запишите в `result` сумму всех оценок из списка `grades`.
+
+      **Что уже есть:** список `grades`.
+
+      **Пример:** для `[5, 4, 3, 5]` в `result` должно быть `17`.
+
+      ```text
+      result = 17
+      ```
+
+      **Как проверим:** посмотрим `result` для разных списков.
+    starter: |
+      grades = [5, 4, 3, 5]  # при проверке подставим другой список
+      # Запишите сумму в result
+    solution: |
+      result = sum(grades)
+    hints:
+      - Какая готовая функция складывает все элементы списка?
+      - sum(grades) возвращает сумму — запишите её в result.
+      - 'Наибольший элемент: result = max(nums)'
+    tests:
+      - description: "[5, 4, 3, 5]"
+        input: { grades: [5, 4, 3, 5] }
+        expected: 17
+        visible: true
+      - description: Одна оценка
+        input: { grades: [4] }
+        expected: 4
+      - description: Длинный список
+        input: { grades: [5, 5, 4, 3, 4, 5, 2] }
+        expected: 28
+
+  - slug: t2
+    title: Список покупок
+    difficulty: easy
+    mode: variable
+    description: |
+      Добавьте товар `item` в конец списка `shop` и запишите получившийся список в `result`.
+
+      **Что уже есть:** список `shop` и строка `item`.
+
+      **Пример:** `shop = ["хлеб", "молоко"]`, `item = "сыр"` → `result`:
+
+      ```text
+      ['хлеб', 'молоко', 'сыр']
+      ```
+
+      **Как проверим:** посмотрим `result` для разных списков, в том числе пустого.
+    starter: |
+      shop = ["хлеб", "молоко"]  # при проверке подставим другие значения
+      item = "сыр"
+      # Добавьте item в shop и запишите список в result
+    solution: |
+      shop.append(item)
+      result = shop
+    hints:
+      - Какой метод списка добавляет элемент в конец?
+      - Вызовите shop.append(item), затем result = shop.
+      - 'Пример: nums.append(10) добавит 10 в конец nums'
+    tests:
+      - description: Добавляем сыр
+        input: { shop: [хлеб, молоко], item: сыр }
+        expected: [хлеб, молоко, сыр]
+        visible: true
+      - description: Пустой список
+        input: { shop: [], item: яблоки }
+        expected: [яблоки]
+
+  - slug: t3
+    title: Только положительные
+    difficulty: medium
+    mode: variable
+    description: |
+      Соберите в `result` новый список только из положительных чисел списка `nums`, в том же порядке.
+
+      **Что уже есть:** список `nums`.
+
+      **Пример:** для `[4, -1, 0, 8, -3]` в `result`:
+
+      ```text
+      [4, 8]
+      ```
+
+      **Как проверим:** посмотрим `result`; ноль положительным не считается.
+    starter: |
+      nums = [4, -1, 0, 8, -3]  # при проверке подставим другой список
+      # Соберите положительные числа в result
+    solution: |
+      result = []
+      for x in nums:
+          if x > 0:
+              result.append(x)
+    hints:
+      - С какого списка начать и когда в него добавлять элемент?
+      - Начните с result = [], в цикле for добавляйте x через append, если x > 0.
+      - 'Чётные числа: evens = [], for x in nums: if x % 2 == 0: evens.append(x)'
+    tests:
+      - description: Смешанный список
+        input: { nums: [4, -1, 0, 8, -3] }
+        expected: [4, 8]
+        visible: true
+      - description: Нет положительных
+        input: { nums: [-5, 0, -2] }
+        expected: []
+      - description: Все положительные
+        input: { nums: [1, 2, 3] }
+        expected: [1, 2, 3]
+
+  - slug: t4
+    title: Средний балл без худшей оценки
+    difficulty: medium
+    mode: variable
+    description: |
+      Учитель разрешил не учитывать одну самую низкую оценку. Запишите в `result` среднее остальных оценок, округлённое до двух знаков.
+
+      **Что уже есть:** список `grades` (не меньше двух оценок).
+
+      **Пример:** для `[5, 3, 4, 5]` без тройки остаются 5, 4, 5:
+
+      ```text
+      result = 4.67
+      ```
+
+      **Как проверим:** посмотрим `result` для разных списков, в том числе с одинаковыми оценками.
+    starter: |
+      grades = [5, 3, 4, 5]  # при проверке подставим другой список
+      # Уберите одну минимальную оценку и посчитайте среднее
+    solution: |
+      total = sum(grades) - min(grades)
+      result = round(total / (len(grades) - 1), 2)
+    hints:
+      - Как посчитать сумму и количество оценок без одной самой низкой?
+      - Сумма — sum(grades) - min(grades), количество — len(grades) - 1. Результат округлите через round(..., 2).
+      - 'Среднее всех оценок: result = round(sum(grades) / len(grades), 2)'
+    tests:
+      - description: "[5, 3, 4, 5]"
+        input: { grades: [5, 3, 4, 5] }
+        expected: 4.67
+        visible: true
+      - description: Две оценки
+        input: { grades: [2, 5] }
+        expected: 5
+      - description: Две одинаковые низкие
+        input: { grades: [3, 3, 5] }
+        expected: 4
+
+  - slug: t5
+    title: Лучшая серия
+    difficulty: hard
+    mode: variable
+    description: |
+      В списке `steps` — число шагов за каждый день. Запишите в `result` длину самой длинной серии дней подряд, когда шагов было не меньше `goal`.
+
+      **Что уже есть:** список `steps` и число `goal`.
+
+      **Пример:** для `steps = [12000, 8000, 10500, 11000, 9999, 13000]`, `goal = 10000` лучшая серия — 2 дня (10500 и 11000):
+
+      ```text
+      result = 2
+      ```
+
+      **Как проверим:** посмотрим `result` для разных списков, в том числе когда цель не достигнута ни разу.
+    starter: |
+      steps = [12000, 8000, 10500, 11000, 9999, 13000]  # при проверке подставим другие значения
+      goal = 10000
+      # Ведите текущую серию и лучшую серию
+    solution: |
+      best = 0
+      current = 0
+      for s in steps:
+          if s >= goal:
+              current += 1
+              if current > best:
+                  best = current
+          else:
+              current = 0
+      result = best
+    hints:
+      - Что должно происходить с текущей серией, если в какой-то день цель не выполнена?
+      - Две переменные — current (текущая серия) и best (лучшая). При s >= goal увеличивайте current и обновляйте best, иначе обнуляйте current.
+      - 'Подсчёт подряд идущих пятёрок: если g == 5 — run += 1, иначе run = 0'
+    tests:
+      - description: Пример из условия
+        input: { steps: [12000, 8000, 10500, 11000, 9999, 13000], goal: 10000 }
+        expected: 2
+        visible: true
+      - description: Цель ни разу не достигнута
+        input: { steps: [100, 200], goal: 1000 }
+        expected: 0
+      - description: Серия в конце
+        input: { steps: [5000, 10000, 10000, 10000], goal: 10000 }
+        expected: 3
+      - description: Все дни подряд
+        input: { steps: [20000, 15000], goal: 10000 }
+        expected: 2

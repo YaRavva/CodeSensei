@@ -240,6 +240,10 @@ def _cs_normalize(value):
         return [_cs_normalize(item) for item in value]
     if isinstance(value, dict):
         return {str(key): _cs_normalize(item) for key, item in value.items()}
+    if isinstance(value, float) and not isinstance(value, bool):
+        # 5.0 == 5 and tiny float noise is ignored, as for single numbers.
+        rounded = round(value, 6)
+        return int(rounded) if rounded.is_integer() else rounded
     return value
 
 def _cs_normalize_output(text):

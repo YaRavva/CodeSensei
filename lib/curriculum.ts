@@ -94,7 +94,7 @@ export const CURRICULUM: CurriculumModule[] = [
   {
     id: "m12_dicts", order: 12, level: 3, title: "Словари",
     goals: ["Хранить пары «ключ — значение»", "Найти значение по ключу", "Посчитать, сколько раз встречается элемент"],
-    introduces: ["dict", "call:dict", "method:get", "method:items", "method:keys", "method:values"],
+    introduces: ["dict", "call:dict", "method:get", "method:items", "method:keys", "method:values", "unpack"],
     taskType: "function", modes: ["function"],
   },
   {

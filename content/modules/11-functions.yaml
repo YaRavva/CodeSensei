@@ -1,0 +1,304 @@
+id: m11_functions
+topic: Упаковываем код в функции с параметрами и возвращаем результат через return.
+theory: |
+  Функция — это кусок кода с именем, который можно вызывать много раз с разными данными. Вы уже пользовались готовыми функциями: `print()`, `len()`, `sum()`. Теперь научимся писать свои.
+
+  ## Объявление функции
+
+  Функцию объявляют словом `def`, дальше — имя, в скобках — **параметры**, двоеточие и тело с отступом. `return` возвращает результат тому, кто вызвал функцию.
+
+  ```python
+  def square(n):
+      return n * n
+
+  print(square(4))
+  print(square(10) + 1)
+  ```
+
+  Результат:
+
+  ```text
+  16
+  101
+  ```
+
+  ## return и print — не одно и то же
+
+  `print()` показывает значение на экране, а `return` **отдаёт** его программе, чтобы с ним можно было работать дальше. Функция без `return` возвращает `None`.
+
+  ```python
+  def show(n):
+      print(n * 2)
+
+  def double(n):
+      return n * 2
+
+  x = double(5) + 1
+  print(x)
+  y = show(5)
+  print(y)
+  ```
+
+  Результат:
+
+  ```text
+  11
+  10
+  None
+  ```
+
+  ## Несколько параметров и условия
+
+  ```python
+  def ticket_price(age, is_student):
+      if age < 7:
+          return 0
+      if is_student:
+          return 150
+      return 300
+
+  print(ticket_price(5, False), ticket_price(15, True), ticket_price(30, False))
+  ```
+
+  Результат:
+
+  ```text
+  0 150 300
+  ```
+
+  `return` сразу завершает функцию — код после него не выполняется.
+
+  ## Функция вызывает функцию
+
+  ```python
+  def is_even(n):
+      return n % 2 == 0
+
+  def count_even(nums):
+      count = 0
+      for x in nums:
+          if is_even(x):
+              count += 1
+      return count
+
+  print(count_even([1, 2, 4, 7]))
+  ```
+
+  Результат:
+
+  ```text
+  2
+  ```
+
+  ## Как проверяются задания
+
+  С этого модуля проверка **вызывает вашу функцию** с разными аргументами и сравнивает то, что она вернула через `return`. Имя функции и порядок параметров меняйте только так, как сказано в условии; главная функция должна быть объявлена первой.
+tasks:
+  - slug: t1
+    title: Квадрат числа
+    difficulty: easy
+    mode: function
+    description: |
+      Напишите функцию `square(n)`, которая возвращает квадрат числа `n`.
+
+      **Что уже есть:** заготовка функции.
+
+      **Пример:** `square(4)` возвращает:
+
+      ```text
+      16
+      ```
+
+      **Как проверим:** вызовем функцию с разными числами, в том числе отрицательными.
+    starter: |
+      def square(n):
+          # Верните квадрат n через return
+          pass
+    solution: |
+      def square(n):
+          return n * n
+    hints:
+      - Что должна сделать функция с результатом — вывести его или вернуть?
+      - Напишите return n * n вместо pass.
+      - 'Функция, удваивающая число: def double(n): return n * 2'
+    tests:
+      - description: square(4)
+        input: { n: 4 }
+        expected: 16
+        visible: true
+      - description: Отрицательное число
+        input: { n: -3 }
+        expected: 9
+      - description: Ноль
+        input: { n: 0 }
+        expected: 0
+
+  - slug: t2
+    title: Приветствие
+    difficulty: easy
+    mode: function
+    description: |
+      Напишите функцию `greet(name)`, которая возвращает строку `Привет, <имя>!`.
+
+      **Что уже есть:** заготовка функции.
+
+      **Пример:** `greet("Аня")` возвращает:
+
+      ```text
+      Привет, Аня!
+      ```
+
+      **Как проверим:** вызовем функцию с разными именами.
+    starter: |
+      def greet(name):
+          # Соберите и верните строку приветствия
+          pass
+    solution: |
+      def greet(name):
+          return f"Привет, {name}!"
+    hints:
+      - Функция должна напечатать приветствие или вернуть строку?
+      - Соберите строку через f-строку или + и верните через return.
+      - 'Пример: def farewell(name): return "Пока, " + name'
+    tests:
+      - description: greet("Аня")
+        input: { name: Аня }
+        expected: Привет, Аня!
+        visible: true
+      - description: Другое имя
+        input: { name: Тимур }
+        expected: Привет, Тимур!
+
+  - slug: t3
+    title: Стоимость доставки
+    difficulty: medium
+    mode: function
+    description: |
+      Напишите функцию `delivery(weight, distance)`: доставка стоит 100 рублей, плюс 10 рублей за каждый килограмм и 5 рублей за каждый километр. Если вес больше 20 кг, добавляется ещё 200 рублей. Верните стоимость.
+
+      **Что уже есть:** заготовка функции.
+
+      **Пример:** `delivery(3, 10)` = 100 + 30 + 50:
+
+      ```text
+      180
+      ```
+
+      **Как проверим:** вызовем функцию для лёгких и тяжёлых посылок, в том числе ровно 20 кг.
+    starter: |
+      def delivery(weight, distance):
+          # Посчитайте стоимость и верните её
+          pass
+    solution: |
+      def delivery(weight, distance):
+          cost = 100 + 10 * weight + 5 * distance
+          if weight > 20:
+              cost += 200
+          return cost
+    hints:
+      - Из каких частей складывается цена и какая часть зависит от условия?
+      - Посчитайте базовую стоимость, затем if weight > 20 добавьте 200 и верните cost.
+      - 'Похожая функция: def price(n): total = n * 50, if n > 10: total -= 100, return total'
+    tests:
+      - description: delivery(3, 10)
+        input: { weight: 3, distance: 10 }
+        expected: 180
+        visible: true
+      - description: Тяжёлая посылка
+        input: { weight: 25, distance: 4 }
+        expected: 570
+      - description: Ровно 20 кг
+        input: { weight: 20, distance: 0 }
+        expected: 300
+
+  - slug: t4
+    title: Сколько чётных
+    difficulty: medium
+    mode: function
+    description: |
+      Напишите функцию `count_even(nums)`, которая возвращает, сколько в списке чётных чисел.
+
+      **Что уже есть:** заготовка функции.
+
+      **Пример:** `count_even([1, 2, 4, 7])` возвращает:
+
+      ```text
+      2
+      ```
+
+      **Как проверим:** вызовем функцию для разных списков, в том числе пустого.
+    starter: |
+      def count_even(nums):
+          # Посчитайте чётные числа и верните количество
+          pass
+    solution: |
+      def count_even(nums):
+          count = 0
+          for x in nums:
+              if x % 2 == 0:
+                  count += 1
+          return count
+    hints:
+      - Где нужно завести счётчик — внутри цикла или до него? Где написать return?
+      - Счётчик — до цикла, проверка x % 2 == 0 — в цикле, return count — после цикла, без отступа цикла.
+      - 'Сколько отрицательных: count = 0, for x in nums: if x < 0: count += 1, return count'
+    tests:
+      - description: "[1, 2, 4, 7]"
+        input: { nums: [1, 2, 4, 7] }
+        expected: 2
+        visible: true
+      - description: Пустой список
+        input: { nums: [] }
+        expected: 0
+      - description: С нулём и отрицательными
+        input: { nums: [0, -2, -3, 8] }
+        expected: 3
+
+  - slug: t5
+    title: Надёжный пароль
+    difficulty: hard
+    mode: function
+    description: |
+      Напишите функцию `is_strong(password)`. Пароль надёжный, если в нём не меньше 8 символов, есть хотя бы одна цифра и хотя бы одна заглавная буква. Верните `True` или `False`.
+
+      **Что уже есть:** заготовка функции.
+
+      **Пример:** `is_strong("Python2026")` возвращает:
+
+      ```text
+      True
+      ```
+
+      **Как проверим:** вызовем функцию для паролей, где не хватает каждого из условий.
+    starter: |
+      def is_strong(password):
+          # Проверьте длину, наличие цифры и заглавной буквы
+          pass
+    solution: |
+      def is_strong(password):
+          has_digit = False
+          has_upper = False
+          for ch in password:
+              if ch.isdigit():
+                  has_digit = True
+              if ch.isupper():
+                  has_upper = True
+          return len(password) >= 8 and has_digit and has_upper
+    hints:
+      - Как узнать, что в пароле есть хотя бы одна цифра? Что нужно запомнить, пока перебираете символы?
+      - Заведите два флага False, в цикле ставьте их в True через isdigit() и isupper(). В конце верните длину ≥ 8 and оба флага.
+      - 'Есть ли в слове буква «я»: found = False, for ch in word: if ch == "я": found = True'
+    tests:
+      - description: Python2026
+        input: { password: Python2026 }
+        expected: true
+        visible: true
+      - description: Нет цифры
+        input: { password: PythonCode }
+        expected: false
+      - description: Нет заглавной
+        input: { password: python2026 }
+        expected: false
+      - description: Короткий
+        input: { password: Py2 }
+        expected: false

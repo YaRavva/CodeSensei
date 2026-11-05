@@ -69,7 +69,8 @@ def _cs_features(code):
         elif isinstance(node, _cs_ast.Set):
             found.add("set")
         elif isinstance(node, _cs_ast.Tuple):
-            found.add("tuple")
+            # a, b = ... / for k, v in ...: unpacking; (1, 2): a tuple value.
+            found.add("unpack" if isinstance(node.ctx, _cs_ast.Store) else "tuple")
         elif isinstance(node, _cs_ast.JoinedStr):
             found.add("fstring")
         elif isinstance(node, _cs_ast.Subscript):

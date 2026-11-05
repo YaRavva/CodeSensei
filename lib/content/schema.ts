@@ -10,7 +10,7 @@ const json: z.ZodType<unknown> = z.lazy(() =>
 );
 
 export const testSchema = z.object({
-  description: z.string().min(1),
+  description: z.coerce.string().min(1),
   input: z.record(z.string(), json).default({}),
   stdin: z.array(z.string()).optional(),
   expected: json,

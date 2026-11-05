@@ -1,0 +1,282 @@
+id: m12_dicts
+topic: Храним пары «ключ — значение» и быстро находим нужное.
+theory: |
+  Словарь хранит пары **ключ — значение**: имя — телефон, товар — цена, слово — перевод. По ключу значение находится сразу, без перебора.
+
+  ## Создание и доступ
+
+  ```python
+  prices = {"хлеб": 50, "молоко": 90}
+  print(prices["хлеб"])
+  prices["сыр"] = 300
+  prices["хлеб"] = 55
+  print(prices)
+  print(len(prices))
+  ```
+
+  Результат:
+
+  ```text
+  50
+  {'хлеб': 55, 'молоко': 90, 'сыр': 300}
+  3
+  ```
+
+  Присваивание по ключу добавляет новую пару или меняет старое значение. Обращение к несуществующему ключу вызывает `KeyError`.
+
+  ## get() и in
+
+  `d.get(key, default)` возвращает значение или `default`, если ключа нет. `key in d` проверяет, есть ли ключ.
+
+  ```python
+  prices = {"хлеб": 50}
+  print(prices.get("сыр", 0))
+  print("хлеб" in prices)
+  ```
+
+  Результат:
+
+  ```text
+  0
+  True
+  ```
+
+  ## Перебор словаря
+
+  `for key in d` перебирает ключи, `d.items()` — пары, `d.values()` — только значения.
+
+  ```python
+  ages = {"Аня": 14, "Борис": 15}
+  for name, age in ages.items():
+      print(name, age)
+  print(sum(ages.values()))
+  ```
+
+  Результат:
+
+  ```text
+  Аня 14
+  Борис 15
+  29
+  ```
+
+  ## Подсчёт
+
+  Словарь удобен, чтобы считать, сколько раз встречается каждый элемент:
+
+  ```python
+  counts = {}
+  for fruit in ["яблоко", "груша", "яблоко"]:
+      counts[fruit] = counts.get(fruit, 0) + 1
+  print(counts)
+  ```
+
+  Результат:
+
+  ```text
+  {'яблоко': 2, 'груша': 1}
+  ```
+tasks:
+  - slug: t1
+    title: Цена товара
+    difficulty: easy
+    mode: function
+    description: |
+      Напишите функцию `get_price(prices, item)`, которая возвращает цену товара из словаря, а если товара нет — `0`.
+
+      **Что уже есть:** заготовка функции. `prices` — словарь «товар — цена».
+
+      **Пример:** `get_price({"хлеб": 50, "сыр": 300}, "сыр")` возвращает:
+
+      ```text
+      300
+      ```
+
+      **Как проверим:** вызовем функцию для товаров, которые есть и которых нет.
+    starter: |
+      def get_price(prices, item):
+          # Верните цену или 0, если товара нет
+          pass
+    solution: |
+      def get_price(prices, item):
+          return prices.get(item, 0)
+    hints:
+      - Какой метод словаря возвращает значение по умолчанию, если ключа нет?
+      - prices.get(item, 0) вернёт цену или 0.
+      - 'Пример: phones.get("Аня", "нет номера")'
+    tests:
+      - description: Сыр есть
+        input: { prices: { хлеб: 50, сыр: 300 }, item: сыр }
+        expected: 300
+        visible: true
+      - description: Товара нет
+        input: { prices: { хлеб: 50 }, item: торт }
+        expected: 0
+
+  - slug: t2
+    title: Новый контакт
+    difficulty: easy
+    mode: function
+    description: |
+      Напишите функцию `add_contact(book, name, phone)`: она добавляет контакт в телефонную книгу (или обновляет номер) и возвращает книгу.
+
+      **Что уже есть:** заготовка функции. `book` — словарь «имя — телефон».
+
+      **Пример:** `add_contact({"Аня": "111"}, "Борис", "222")` возвращает:
+
+      ```text
+      {'Аня': '111', 'Борис': '222'}
+      ```
+
+      **Как проверим:** добавим новый контакт и обновим существующий.
+    starter: |
+      def add_contact(book, name, phone):
+          # Добавьте контакт и верните book
+          pass
+    solution: |
+      def add_contact(book, name, phone):
+          book[name] = phone
+          return book
+    hints:
+      - Как добавить в словарь новую пару «ключ — значение»?
+      - Присвойте book[name] = phone и верните book.
+      - 'Пример: prices["сыр"] = 300'
+    tests:
+      - description: Новый контакт
+        input: { book: { Аня: "111" }, name: Борис, phone: "222" }
+        expected: { Аня: "111", Борис: "222" }
+        visible: true
+      - description: Обновление номера
+        input: { book: { Аня: "111" }, name: Аня, phone: "999" }
+        expected: { Аня: "999" }
+
+  - slug: t3
+    title: Подсчёт букв
+    difficulty: medium
+    mode: function
+    description: |
+      Напишите функцию `count_letters(word)`, которая возвращает словарь: какая буква сколько раз встречается в слове.
+
+      **Что уже есть:** заготовка функции.
+
+      **Пример:** `count_letters("мама")` возвращает:
+
+      ```text
+      {'м': 2, 'а': 2}
+      ```
+
+      **Как проверим:** вызовем функцию для разных слов; порядок ключей не важен.
+    starter: |
+      def count_letters(word):
+          counts = {}
+          # Переберите буквы и увеличивайте счётчик каждой
+          pass
+    solution: |
+      def count_letters(word):
+          counts = {}
+          for ch in word:
+              counts[ch] = counts.get(ch, 0) + 1
+          return counts
+    hints:
+      - Что делать, если буква встретилась впервые, а что — если она уже есть в словаре?
+      - counts.get(ch, 0) + 1 работает в обоих случаях. Верните counts после цикла.
+      - 'Подсчёт слов: for w in words: counts[w] = counts.get(w, 0) + 1'
+    tests:
+      - description: мама
+        input: { word: мама }
+        expected: { м: 2, а: 2 }
+        visible: true
+      - description: Все буквы разные
+        input: { word: кот }
+        expected: { к: 1, о: 1, т: 1 }
+      - description: Одна буква
+        input: { word: ааа }
+        expected: { а: 3 }
+
+  - slug: t4
+    title: Самый дорогой товар
+    difficulty: medium
+    mode: function
+    description: |
+      Напишите функцию `most_expensive(prices)`, которая возвращает название самого дорогого товара.
+
+      **Что уже есть:** заготовка функции. В словаре хотя бы один товар, цены разные.
+
+      **Пример:** `most_expensive({"хлеб": 50, "сыр": 300, "молоко": 90})` возвращает:
+
+      ```text
+      сыр
+      ```
+
+      **Как проверим:** вызовем функцию для разных словарей.
+    starter: |
+      def most_expensive(prices):
+          # Найдите товар с наибольшей ценой
+          pass
+    solution: |
+      def most_expensive(prices):
+          best = ""
+          best_price = -1
+          for item, price in prices.items():
+              if price > best_price:
+                  best = item
+                  best_price = price
+          return best
+    hints:
+      - Что нужно запоминать, пока перебираете товары?
+      - Храните лучший товар и его цену. Перебирайте prices.items() и обновляйте их, если цена больше.
+      - 'Самый старший: oldest = "", best = -1, for name, age in ages.items(): if age > best: …'
+    tests:
+      - description: Сыр дороже всех
+        input: { prices: { хлеб: 50, сыр: 300, молоко: 90 } }
+        expected: сыр
+        visible: true
+      - description: Один товар
+        input: { prices: { чай: 120 } }
+        expected: чай
+      - description: Дорогой в начале
+        input: { prices: { торт: 900, вода: 40 } }
+        expected: торт
+
+  - slug: t5
+    title: Средние оценки класса
+    difficulty: hard
+    mode: function
+    description: |
+      Напишите функцию `averages(journal)`. В словаре `journal` у каждого ученика список оценок. Верните новый словарь «ученик — средняя оценка», округлённая до двух знаков.
+
+      **Что уже есть:** заготовка функции. У каждого ученика хотя бы одна оценка.
+
+      **Пример:** `averages({"Аня": [5, 4, 5], "Борис": [3, 4]})` возвращает:
+
+      ```text
+      {'Аня': 4.67, 'Борис': 3.5}
+      ```
+
+      **Как проверим:** вызовем функцию для разных журналов.
+    starter: |
+      def averages(journal):
+          result = {}
+          # Для каждого ученика посчитайте среднюю оценку
+          pass
+    solution: |
+      def averages(journal):
+          result = {}
+          for name, grades in journal.items():
+              result[name] = round(sum(grades) / len(grades), 2)
+          return result
+    hints:
+      - Что лежит в значении словаря и как из него получить среднее?
+      - Перебирайте journal.items(), для каждого списка оценок считайте round(sum / len, 2) и кладите в result[name].
+      - 'Сумма покупок каждого: for name, items in orders.items(): totals[name] = sum(items)'
+    tests:
+      - description: Аня и Борис
+        input: { journal: { Аня: [5, 4, 5], Борис: [3, 4] } }
+        expected: { Аня: 4.67, Борис: 3.5 }
+        visible: true
+      - description: Один ученик
+        input: { journal: { Вика: [5] } }
+        expected: { Вика: 5 }
+      - description: Пустой журнал
+        input: { journal: {} }
+        expected: {}
