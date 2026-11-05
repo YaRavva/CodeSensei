@@ -1,0 +1,428 @@
+id: m23_inheritance
+topic: Классы-наследники — общий код в родителе, свои отличия в потомке, super().
+theory: |
+  Если несколько классов похожи, общее описывают в **родительском** классе, а различия — в **наследниках**. Наследник получает все атрибуты и методы родителя и может их дополнить или заменить.
+
+  ## Наследник
+
+  Родитель указывается в скобках: `class Dog(Animal):`. Метод с тем же именем в наследнике **переопределяет** метод родителя.
+
+  ```python
+  class Animal:
+      def __init__(self, name):
+          self.name = name
+
+      def sound(self):
+          return "..."
+
+      def speak(self):
+          return self.name + ": " + self.sound()
+
+  class Cat(Animal):
+      def sound(self):
+          return "мяу"
+
+  print(Animal("Рыбка").speak())
+  print(Cat("Мурка").speak())
+  ```
+
+  Результат:
+
+  ```text
+  Рыбка: ...
+  Мурка: мяу
+  ```
+
+  Метод `speak` написан один раз в родителе, но для кошки он вызывает её собственный `sound`.
+
+  ## super()
+
+  Если у наследника свой конструктор, конструктор родителя вызывают через `super().__init__(...)`, чтобы не повторять его код.
+
+  ```python
+  class Animal:
+      def __init__(self, name):
+          self.name = name
+
+  class Pet(Animal):
+      def __init__(self, name, owner):
+          super().__init__(name)
+          self.owner = owner
+
+  pet = Pet("Шарик", "Аня")
+  print(pet.name, pet.owner)
+  ```
+
+  Результат:
+
+  ```text
+  Шарик Аня
+  ```
+
+  ## Список разных объектов
+
+  Объекты разных классов-наследников можно обработать одним циклом: каждый сам знает, как выполнить метод.
+
+  ```python
+  class Animal:
+      def sound(self):
+          return "..."
+
+  class Cat(Animal):
+      def sound(self):
+          return "мяу"
+
+  zoo = [Animal(), Cat()]
+  for animal in zoo:
+      print(animal.sound())
+  ```
+
+  Результат:
+
+  ```text
+  ...
+  мяу
+  ```
+tasks:
+  - slug: t1
+    title: Собака-наследник
+    difficulty: easy
+    mode: class
+    description: |
+      Допишите класс `Dog`, наследника `Animal`: переопределите метод `sound`, чтобы он возвращал `гав`.
+
+      **Что уже есть:** класс `Animal` и строки, которые создают собаку и сохраняют `speak()` в `result`.
+
+      **Пример:** для `name = "Шарик"` в `result` окажется:
+
+      ```text
+      Шарик: гав
+      ```
+
+      **Как проверим:** подставим другие клички в `name`.
+    starter: |
+      class Animal:
+          def __init__(self, name):
+              self.name = name
+
+          def sound(self):
+              return "..."
+
+          def speak(self):
+              return self.name + ": " + self.sound()
+
+      class Dog(Animal):
+          # Переопределите sound
+          pass
+
+      name = "Шарик"  # при проверке подставим другие клички
+      result = Dog(name).speak()
+    solution: |
+      class Animal:
+          def __init__(self, name):
+              self.name = name
+
+          def sound(self):
+              return "..."
+
+          def speak(self):
+              return self.name + ": " + self.sound()
+
+      class Dog(Animal):
+          def sound(self):
+              return "гав"
+
+      name = "Шарик"
+      result = Dog(name).speak()
+    hints:
+      - Какой метод нужно заменить, чтобы speak() родителя вывел «гав»?
+      - Внутри class Dog(Animal) объявите def sound(self) и верните "гав".
+      - 'Пример из теории: class Cat(Animal): def sound(self): return "мяу"'
+    tests:
+      - description: Шарик
+        input: { name: Шарик }
+        expected: "Шарик: гав"
+        visible: true
+      - description: Бобик
+        input: { name: Бобик }
+        expected: "Бобик: гав"
+
+  - slug: t2
+    title: Квадрат — это прямоугольник
+    difficulty: easy
+    mode: class
+    description: |
+      Допишите конструктор класса `Square`, наследника `Rectangle`: он получает одну сторону `side` и вызывает конструктор родителя через `super()` с шириной и высотой, равными `side`.
+
+      **Что уже есть:** класс `Rectangle` с методом `area` и строки, которые сохраняют площадь квадрата в `result`.
+
+      **Пример:** для `side = 4` в `result` окажется:
+
+      ```text
+      16
+      ```
+
+      **Как проверим:** подставим другие стороны.
+    starter: |
+      class Rectangle:
+          def __init__(self, width, height):
+              self.width = width
+              self.height = height
+
+          def area(self):
+              return self.width * self.height
+
+      class Square(Rectangle):
+          def __init__(self, side):
+              # Вызовите конструктор родителя
+              pass
+
+      side = 4  # при проверке подставим другие стороны
+      result = Square(side).area()
+    solution: |
+      class Rectangle:
+          def __init__(self, width, height):
+              self.width = width
+              self.height = height
+
+          def area(self):
+              return self.width * self.height
+
+      class Square(Rectangle):
+          def __init__(self, side):
+              super().__init__(side, side)
+
+      side = 4
+      result = Square(side).area()
+    hints:
+      - Какие ширину и высоту нужно передать родителю, чтобы получился квадрат?
+      - Внутри __init__ квадрата вызовите super().__init__(side, side).
+      - 'Пример из теории: super().__init__(name)'
+    tests:
+      - description: Сторона 4
+        input: { side: 4 }
+        expected: 16
+        visible: true
+      - description: Сторона 1
+        input: { side: 1 }
+        expected: 1
+      - description: Сторона 2.5
+        input: { side: 2.5 }
+        expected: 6.25
+
+  - slug: t3
+    title: Площадь фигур
+    difficulty: medium
+    mode: class
+    description: |
+      Напишите классы `Circle` и `Square` — наследники `Shape`, каждый со своим методом `area`. Площадь круга — `3.14 * r * r`, квадрата — `a * a`.
+
+      **Что уже есть:** класс `Shape` и строки, которые создают фигуры из списка `shapes` и сохраняют в `result` сумму площадей, округлённую до 2 знаков.
+
+      **Пример:** для `shapes = [["circle", 1], ["square", 2]]` в `result` окажется:
+
+      ```text
+      7.14
+      ```
+
+      **Как проверим:** подставим другие наборы фигур.
+    starter: |
+      class Shape:
+          def __init__(self, size):
+              self.size = size
+
+          def area(self):
+              return 0
+
+      # Напишите Circle(Shape) и Square(Shape)
+
+      shapes = [["circle", 1], ["square", 2]]  # при проверке подставим другие
+      figures = []
+      for kind, size in shapes:
+          if kind == "circle":
+              figures.append(Circle(size))
+          else:
+              figures.append(Square(size))
+      result = round(sum(f.area() for f in figures), 2)
+    solution: |
+      class Shape:
+          def __init__(self, size):
+              self.size = size
+
+          def area(self):
+              return 0
+
+      class Circle(Shape):
+          def area(self):
+              return 3.14 * self.size * self.size
+
+      class Square(Shape):
+          def area(self):
+              return self.size * self.size
+
+      shapes = [["circle", 1], ["square", 2]]
+      figures = []
+      for kind, size in shapes:
+          if kind == "circle":
+              figures.append(Circle(size))
+          else:
+              figures.append(Square(size))
+      result = round(sum(f.area() for f in figures), 2)
+    hints:
+      - Конструктор уже есть в Shape. Что нужно написать в каждом наследнике?
+      - Объявите class Circle(Shape) и class Square(Shape), в каждом только def area(self) со своей формулой через self.size.
+      - 'Пример из теории: class Cat(Animal): def sound(self): ...'
+    tests:
+      - description: Круг и квадрат
+        input: { shapes: [[circle, 1], [square, 2]] }
+        expected: 7.14
+        visible: true
+      - description: Только квадраты
+        input: { shapes: [[square, 3], [square, 1]] }
+        expected: 10
+      - description: Два круга
+        input: { shapes: [[circle, 2], [circle, 10]] }
+        expected: 326.56
+
+  - slug: t4
+    title: Зарплата с премией
+    difficulty: medium
+    mode: class
+    description: |
+      Напишите класс `Manager`, наследника `Employee`: конструктор получает имя, оклад и премию (`bonus`), вызывает конструктор родителя через `super()`, а метод `total()` возвращает оклад плюс премию.
+
+      **Что уже есть:** класс `Employee` и строки, которые создают сотрудников из списка `staff` и сохраняют их выплаты в `result`.
+
+      **Пример:** для `staff = [["Аня", 50000, 0], ["Борис", 60000, 15000]]` (премия 0 — обычный сотрудник) в `result` окажется:
+
+      ```text
+      [50000, 75000]
+      ```
+
+      **Как проверим:** подставим другие списки сотрудников.
+    starter: |
+      class Employee:
+          def __init__(self, name, salary):
+              self.name = name
+              self.salary = salary
+
+          def total(self):
+              return self.salary
+
+      class Manager(Employee):
+          # Конструктор с bonus и свой total
+          pass
+
+      staff = [["Аня", 50000, 0], ["Борис", 60000, 15000]]  # при проверке подставим другие
+      people = [Manager(n, s, b) if b > 0 else Employee(n, s) for n, s, b in staff]
+      result = [p.total() for p in people]
+    solution: |
+      class Employee:
+          def __init__(self, name, salary):
+              self.name = name
+              self.salary = salary
+
+          def total(self):
+              return self.salary
+
+      class Manager(Employee):
+          def __init__(self, name, salary, bonus):
+              super().__init__(name, salary)
+              self.bonus = bonus
+
+          def total(self):
+              return self.salary + self.bonus
+
+      staff = [["Аня", 50000, 0], ["Борис", 60000, 15000]]
+      people = [Manager(n, s, b) if b > 0 else Employee(n, s) for n, s, b in staff]
+      result = [p.total() for p in people]
+    hints:
+      - Какие атрибуты сохранит конструктор родителя, а какой нужно сохранить самому?
+      - В Manager.__init__ вызовите super().__init__(name, salary) и сохраните self.bonus. В total верните self.salary + self.bonus.
+      - 'Пример из теории: super().__init__(name), затем self.owner = owner'
+    tests:
+      - description: Сотрудник и менеджер
+        input: { staff: [[Аня, 50000, 0], [Борис, 60000, 15000]] }
+        expected: [50000, 75000]
+        visible: true
+      - description: Только менеджеры
+        input: { staff: [[Вика, 70000, 5000]] }
+        expected: [75000]
+      - description: Трое
+        input: { staff: [[Гена, 40000, 0], [Дина, 45000, 1000], [Ева, 30000, 0]] }
+        expected: [40000, 46000, 30000]
+
+  - slug: t5
+    title: Рыцарь в доспехах
+    difficulty: hard
+    mode: class
+    description: |
+      У персонажа `Character` есть здоровье `hp`, метод `take_damage(damage)` уменьшает его, но не ниже 0. Напишите `Knight` — наследника, у которого есть доспех `armor`: урон уменьшается на `armor` (но не меньше 0), а дальше работает метод родителя.
+
+      **Что уже есть:** класс `Character` (допишите `take_damage`) и строки, которые наносят удары из списка `hits` обычному персонажу и рыцарю. В `result` — их здоровье.
+
+      **Пример:** для `hits = [30, 5, 50]` и `armor = 10` в `result` окажется:
+
+      ```text
+      [15, 40]
+      ```
+
+      **Как проверим:** подставим другие удары и доспехи.
+    starter: |
+      class Character:
+          def __init__(self, hp):
+              self.hp = hp
+
+          def take_damage(self, damage):
+              # Уменьшите hp, но не ниже 0
+              pass
+
+      # Напишите Knight(Character) с armor
+
+      hits = [30, 5, 50]  # при проверке подставим другие удары
+      armor = 10
+      hero = Character(100)
+      knight = Knight(100, armor)
+      for damage in hits:
+          hero.take_damage(damage)
+          knight.take_damage(damage)
+      result = [hero.hp, knight.hp]
+    solution: |
+      class Character:
+          def __init__(self, hp):
+              self.hp = hp
+
+          def take_damage(self, damage):
+              self.hp = max(0, self.hp - damage)
+
+      class Knight(Character):
+          def __init__(self, hp, armor):
+              super().__init__(hp)
+              self.armor = armor
+
+          def take_damage(self, damage):
+              super().take_damage(max(0, damage - self.armor))
+
+      hits = [30, 5, 50]
+      armor = 10
+      hero = Character(100)
+      knight = Knight(100, armor)
+      for damage in hits:
+          hero.take_damage(damage)
+          knight.take_damage(damage)
+      result = [hero.hp, knight.hp]
+    hints:
+      - Как переиспользовать take_damage родителя, а не копировать его код в рыцаря?
+      - В Character.take_damage пишите self.hp = max(0, self.hp - damage). В Knight уменьшите урон на armor (не ниже 0) и вызовите super().take_damage(...).
+      - 'Пример: super().__init__(hp) вызывает конструктор родителя — так же вызывается любой его метод'
+    tests:
+      - description: Три удара
+        input: { hits: [30, 5, 50], armor: 10 }
+        expected: [15, 40]
+        visible: true
+      - description: Доспех сильнее ударов
+        input: { hits: [5, 5], armor: 10 }
+        expected: [90, 100]
+      - description: Смертельный удар
+        input: { hits: [150], armor: 20 }
+        expected: [0, 0]

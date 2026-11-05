@@ -1,18 +1,31 @@
-import { CURRICULUM } from "@/lib/curriculum";
+import { CURRICULUM, LEVELS } from "@/lib/curriculum";
 
-/** Modules of the "Дополнительно" section (PRD 3.2). */
-export const EXTRA_MODULE_IDS = CURRICULUM.filter((m) => m.extra).map((m) => m.id);
-/** Modules of the core part; "Дополнительно" opens after all of them are completed. */
-export const CORE_MODULE_IDS = CURRICULUM.filter((m) => !m.extra).map((m) => m.id);
-
-export function isExtraModule(moduleId: string): boolean {
-  return EXTRA_MODULE_IDS.includes(moduleId);
+/**
+ * Course levels are blocks of 10 modules (PRD 3.2). Level 1 is always open;
+ * every next level opens when all modules of the previous one are completed.
+ */
+export function moduleLevel(moduleId: string): number {
+  return CURRICULUM.find((m) => m.id === moduleId)?.level ?? 1;
 }
 
-/** How many core modules are not completed yet. */
-export function coreModulesLeft(progress: { module_id: string; status: string }[]): number {
+export function levelModuleIds(level: number): string[] {
+  return CURRICULUM.filter((m) => m.level === level).map((m) => m.id);
+}
+
+/** Highest open level for a user: 1 + number of fully completed levels in a row. */
+export function openLevel(progress: { module_id: string; status: string }[]): number {
   const completed = new Set(progress.filter((p) => p.status === "completed").map((p) => p.module_id));
-  return CORE_MODULE_IDS.filter((id) => !completed.has(id)).length;
+  let open = 1;
+  for (const { level } of LEVELS) {
+    if (level >= LEVELS.length) break;
+    if (levelModuleIds(level).every((id) => completed.has(id))) open = level + 1;
+    else break;
+  }
+  return open;
+}
+
+export function isModuleOpen(moduleId: string, progress: { module_id: string; status: string }[]): boolean {
+  return moduleLevel(moduleId) <= openLevel(progress);
 }
 
 export function isStaffRole(role: string | null | undefined): boolean {

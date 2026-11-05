@@ -1,0 +1,297 @@
+id: m24_practice
+topic: Итоговые задачи, где нужно самому выбрать подход — циклы, строки, списки, функции.
+theory: |
+  В итоговом модуле нет новых конструкций. Здесь задачи, в которых нужно **самому выбрать подход** и собрать решение из изученного. Перед тем как писать код, полезно пройти три шага.
+
+  ## 1. Разберите пример вручную
+
+  Возьмите пример из условия и проследите, что должно происходить на каждом шаге. Часто так сразу видно, какой нужен цикл и какие переменные.
+
+  ```python
+  n = 9875
+  # 9 + 8 + 7 + 5 = 29, затем 2 + 9 = 11, затем 1 + 1 = 2
+  while n >= 10:
+      n = sum(int(d) for d in str(n))
+      print(n)
+  ```
+
+  Результат:
+
+  ```text
+  29
+  11
+  2
+  ```
+
+  ## 2. Разбейте задачу на части
+
+  Отдельную часть удобно вынести в маленькую функцию и проверить её отдельно.
+
+  ```python
+  def is_prime(n):
+      if n < 2:
+          return False
+      for d in range(2, int(n ** 0.5) + 1):
+          if n % d == 0:
+              return False
+      return True
+
+  print([n for n in range(10) if is_prime(n)])
+  ```
+
+  Результат:
+
+  ```text
+  [2, 3, 5, 7]
+  ```
+
+  Делители достаточно искать до квадратного корня из `n`: если есть делитель больше корня, то парный ему меньше корня.
+
+  ## 3. Проверьте крайние случаи
+
+  Пустая строка, один элемент, одинаковые значения, ноль — на таких данных решения ломаются чаще всего.
+
+  ```python
+  def first_letter(text):
+      if text == "":
+          return "нет"
+      return text[0]
+
+  print(first_letter("кот"), first_letter(""))
+  ```
+
+  Результат:
+
+  ```text
+  к нет
+  ```
+tasks:
+  - slug: t1
+    title: Цифровой корень
+    difficulty: easy
+    mode: function
+    description: |
+      Напишите функцию `digital_root(n)`: складывайте цифры числа, пока не останется одна цифра, и верните её.
+
+      **Что уже есть:** заготовка функции. `n` — неотрицательное целое.
+
+      **Пример:** `digital_root(9875)` возвращает (9 + 8 + 7 + 5 = 29, 2 + 9 = 11, 1 + 1 = 2):
+
+      ```text
+      2
+      ```
+
+      **Как проверим:** вызовем функцию для однозначных и многозначных чисел.
+    starter: |
+      def digital_root(n):
+          # Пока число не однозначное, заменяйте его суммой цифр
+          pass
+    solution: |
+      def digital_root(n):
+          while n >= 10:
+              n = sum(int(d) for d in str(n))
+          return n
+    hints:
+      - Когда нужно остановиться и как получить сумму цифр числа?
+      - Пока n >= 10, заменяйте n на sum(int(d) for d in str(n)). Затем верните n.
+      - 'Пример из теории: while n >= 10: n = sum(...)'
+    tests:
+      - description: "9875"
+        input: { n: 9875 }
+        expected: 2
+        visible: true
+      - description: Однозначное
+        input: { n: 7 }
+        expected: 7
+      - description: "99999"
+        input: { n: 99999 }
+        expected: 9
+
+  - slug: t2
+    title: Анаграммы
+    difficulty: easy
+    mode: function
+    description: |
+      Напишите функцию `is_anagram(a, b)`, которая возвращает `True`, если строки состоят из одних и тех же букв в одинаковом количестве. Регистр и пробелы не учитываются.
+
+      **Что уже есть:** заготовка функции.
+
+      **Пример:** `is_anagram("Лунь", "нуль")` возвращает:
+
+      ```text
+      True
+      ```
+
+      **Как проверим:** вызовем функцию для анаграмм и не анаграмм, в том числе с пробелами.
+    starter: |
+      def is_anagram(a, b):
+          # Приведите строки к одному виду и сравните отсортированные буквы
+          pass
+    solution: |
+      def is_anagram(a, b):
+          clean_a = a.lower().replace(" ", "")
+          clean_b = b.lower().replace(" ", "")
+          return sorted(clean_a) == sorted(clean_b)
+    hints:
+      - Если отсортировать буквы двух анаграмм, что получится?
+      - Уберите пробелы replace(" ", ""), приведите к lower() и сравните sorted() обеих строк.
+      - 'Пример: sorted("кот") даёт [''к'', ''о'', ''т'']'
+    tests:
+      - description: Лунь и нуль
+        input: { a: Лунь, b: нуль }
+        expected: true
+        visible: true
+      - description: С пробелами
+        input: { a: "кот лук", b: колкут }
+        expected: true
+      - description: Разное количество букв
+        input: { a: мама, b: мам }
+        expected: false
+
+  - slug: t3
+    title: Сжатие строки
+    difficulty: medium
+    mode: function
+    description: |
+      Напишите функцию `rle(text)`, которая сжимает строку: каждая серия одинаковых символов подряд заменяется символом и длиной серии.
+
+      **Что уже есть:** заготовка функции. Строка не пустая.
+
+      **Пример:** `rle("aaabccdddd")` возвращает:
+
+      ```text
+      a3b1c2d4
+      ```
+
+      **Как проверим:** вызовем функцию для строк с длинными и короткими сериями.
+    starter: |
+      def rle(text):
+          # Считайте длину текущей серии, при смене символа дописывайте результат
+          pass
+    solution: |
+      def rle(text):
+          result = ""
+          count = 1
+          for i in range(1, len(text)):
+              if text[i] == text[i - 1]:
+                  count += 1
+              else:
+                  result += text[i - 1] + str(count)
+                  count = 1
+          return result + text[-1] + str(count)
+    hints:
+      - Как понять, что серия закончилась? Не забудьте про последнюю серию.
+      - Сравнивайте text[i] с text[i - 1]. Если равны — увеличивайте count, иначе допишите предыдущий символ и count, начните новую серию. После цикла допишите последнюю серию.
+      - 'Пример сравнения соседей: if nums[i] == nums[i - 1]: ...'
+    tests:
+      - description: aaabccdddd
+        input: { text: aaabccdddd }
+        expected: a3b1c2d4
+        visible: true
+      - description: Один символ
+        input: { text: x }
+        expected: x1
+      - description: Без повторов
+        input: { text: abc }
+        expected: a1b1c1
+
+  - slug: t4
+    title: Простые числа
+    difficulty: medium
+    mode: function
+    description: |
+      Напишите функцию `primes_up_to(n)`, которая возвращает список всех простых чисел от 2 до `n` включительно.
+
+      **Что уже есть:** заготовка функции.
+
+      **Пример:** `primes_up_to(20)` возвращает:
+
+      ```text
+      [2, 3, 5, 7, 11, 13, 17, 19]
+      ```
+
+      **Как проверим:** вызовем функцию для разных `n`, в том числе меньше 2.
+    starter: |
+      def primes_up_to(n):
+          primes = []
+          # Для каждого числа проверьте делители до корня
+          pass
+    solution: |
+      def primes_up_to(n):
+          primes = []
+          for number in range(2, n + 1):
+              if all(number % d != 0 for d in range(2, int(number ** 0.5) + 1)):
+                  primes.append(number)
+          return primes
+    hints:
+      - Как проверить одно число на простоту и до какого делителя достаточно проверять?
+      - Для каждого number от 2 до n проверьте, что ни одно d от 2 до int(number ** 0.5) не делит его, — тогда добавьте в список.
+      - 'Пример из теории: функция is_prime(n)'
+    tests:
+      - description: До 20
+        input: { n: 20 }
+        expected: [2, 3, 5, 7, 11, 13, 17, 19]
+        visible: true
+      - description: До 2
+        input: { n: 2 }
+        expected: [2]
+      - description: До 1
+        input: { n: 1 }
+        expected: []
+      - description: До 30
+        input: { n: 30 }
+        expected: [2, 3, 5, 7, 11, 13, 17, 19, 23, 29]
+
+  - slug: t5
+    title: Диапазоны страниц
+    difficulty: hard
+    mode: function
+    description: |
+      Номера страниц для печати отсортированы и не повторяются. Напишите функцию `page_ranges(pages)`, которая записывает их коротко: подряд идущие номера — через дефис, остальные — через запятую.
+
+      **Что уже есть:** заготовка функции. Список не пустой.
+
+      **Пример:** `page_ranges([1, 2, 3, 5, 7, 8, 9, 12])` возвращает:
+
+      ```text
+      1-3,5,7-9,12
+      ```
+
+      **Как проверим:** вызовем функцию для разных списков, в том числе из одной страницы.
+    starter: |
+      def page_ranges(pages):
+          parts = []
+          # Ищите начало и конец каждого отрезка подряд идущих номеров
+          pass
+    solution: |
+      def page_ranges(pages):
+          parts = []
+          start = pages[0]
+          for i in range(1, len(pages) + 1):
+              if i == len(pages) or pages[i] != pages[i - 1] + 1:
+                  end = pages[i - 1]
+                  if start == end:
+                      parts.append(str(start))
+                  else:
+                      parts.append(f"{start}-{end}")
+                  if i < len(pages):
+                      start = pages[i]
+          return ",".join(parts)
+    hints:
+      - Когда отрезок подряд идущих номеров заканчивается? Как не потерять последний отрезок?
+      - Храните start — начало отрезка. Отрезок кончается, когда pages[i] != pages[i - 1] + 1 или список закончился; тогда добавьте "start" или "start-end" и начните новый отрезок.
+      - 'Склейка частей: ",".join(["1-3", "5"]) даёт "1-3,5"'
+    tests:
+      - description: Смешанный
+        input: { pages: [1, 2, 3, 5, 7, 8, 9, 12] }
+        expected: 1-3,5,7-9,12
+        visible: true
+      - description: Одна страница
+        input: { pages: [4] }
+        expected: "4"
+      - description: Всё подряд
+        input: { pages: [10, 11, 12, 13] }
+        expected: 10-13
+      - description: Без отрезков
+        input: { pages: [1, 3, 5] }
+        expected: 1,3,5

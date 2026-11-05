@@ -3,7 +3,7 @@ import { ModuleUnifiedPage } from "@/components/modules/module-unified-page";
 import { listAttemptsForTasks } from "@/lib/appwrite/attempts";
 import { getPublishedModule, listPublishedModules } from "@/lib/appwrite/modules";
 import { listTasksByModule, toPublicTask } from "@/lib/appwrite/tasks";
-import { coreModulesLeft, isExtraModule, isStaffRole } from "@/lib/course-access";
+import { isModuleOpen, isStaffRole } from "@/lib/course-access";
 import { listUserProgress } from "@/lib/appwrite/progress";
 import { requireAuth } from "@/lib/utils/auth";
 import type { Json } from "@/types/db";
@@ -16,9 +16,9 @@ export default async function ModulePage({ params }: { params: Promise<{ moduleI
   if (!module) {
     redirect("/modules");
   }
-  // "Дополнительно" opens after the core part (PRD 3.2).
-  if (isExtraModule(moduleId) && !isStaffRole(profile.role)) {
-    if (coreModulesLeft(await listUserProgress(user.$id)) > 0) redirect("/modules");
+  // Levels open one after another (PRD 3.2).
+  if (!isStaffRole(profile.role) && !isModuleOpen(moduleId, await listUserProgress(user.$id))) {
+    redirect("/modules");
   }
 
   const [tasks, published] = await Promise.all([listTasksByModule(moduleId), listPublishedModules()]);

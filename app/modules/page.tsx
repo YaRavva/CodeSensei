@@ -1,7 +1,8 @@
 import { ModulesList } from "@/components/modules/modules-list";
 import { countTasksByModule, listPublishedModules } from "@/lib/appwrite/modules";
 import { listUserProgress } from "@/lib/appwrite/progress";
-import { coreModulesLeft, EXTRA_MODULE_IDS, isStaffRole } from "@/lib/course-access";
+import { isStaffRole, openLevel } from "@/lib/course-access";
+import { LEVELS } from "@/lib/curriculum";
 import { requireAuth } from "@/lib/utils/auth";
 import { checkNameAndRedirect } from "@/lib/utils/auth-redirect";
 
@@ -23,8 +24,8 @@ export default async function ModulesPage() {
         modules={modules}
         userProgress={progressData}
         tasksCountMap={tasksCountMap}
-        extraModuleIds={EXTRA_MODULE_IDS}
-        coreLeft={isStaffRole(profile.role) ? 0 : coreModulesLeft(progressData)}
+        levels={LEVELS.map((item) => ({ ...item }))}
+        openLevel={isStaffRole(profile.role) ? LEVELS.length : openLevel(progressData)}
       />
     </div>
   );

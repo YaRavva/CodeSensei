@@ -4,7 +4,7 @@ import { getLastAttempt } from "@/lib/appwrite/attempts";
 import { getModule, getPublishedModule } from "@/lib/appwrite/modules";
 import { getTaskInModule, listTaskSummariesByModule, toPublicTask } from "@/lib/appwrite/tasks";
 import { listUserProgress } from "@/lib/appwrite/progress";
-import { coreModulesLeft, isExtraModule, isStaffRole } from "@/lib/course-access";
+import { isModuleOpen, isStaffRole } from "@/lib/course-access";
 import { requireAuth } from "@/lib/utils/auth";
 
 export default async function TaskPage({
@@ -19,7 +19,7 @@ export default async function TaskPage({
   // Students only see published modules; staff can preview drafts.
   const module = isStaff ? await getModule(moduleId) : await getPublishedModule(moduleId);
   if (!module) notFound();
-  if (isExtraModule(moduleId) && !isStaff && coreModulesLeft(await listUserProgress(user.$id)) > 0) {
+  if (!isStaff && !isModuleOpen(moduleId, await listUserProgress(user.$id))) {
     notFound();
   }
 

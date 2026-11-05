@@ -1,0 +1,287 @@
+id: m22_text_analysis
+topic: Анализ текста и табличных данных — частоты слов, очистка, группировка и рейтинги.
+theory: |
+  Многие настоящие задачи — это обработка текста и данных: посчитать слова, найти самые частые, разобрать строки таблицы. Здесь пригодится всё изученное: строки, словари, сортировка с `key`.
+
+  ## Частоты слов
+
+  Словарь «слово → сколько раз» собирают через `get(слово, 0) + 1`.
+
+  ```python
+  text = "кот и пёс и кот"
+  counts = {}
+  for word in text.split():
+      counts[word] = counts.get(word, 0) + 1
+  print(counts)
+  ```
+
+  Результат:
+
+  ```text
+  {'кот': 2, 'и': 2, 'пёс': 1}
+  ```
+
+  ## Очистка текста
+
+  Прежде чем считать слова, убирают знаки препинания и приводят буквы к одному регистру.
+
+  ```python
+  text = "Привет, мир! Мир?"
+  for mark in ",.!?":
+      text = text.replace(mark, "")
+  print(text.lower().split())
+  ```
+
+  Результат:
+
+  ```text
+  ['привет', 'мир', 'мир']
+  ```
+
+  ## Самые частые
+
+  Сортируем ключи словаря по убыванию частоты, а при равенстве — по алфавиту.
+
+  ```python
+  counts = {"и": 3, "кот": 2, "дом": 2}
+  order = sorted(counts, key=lambda w: (-counts[w], w))
+  print(order[:2])
+  ```
+
+  Результат:
+
+  ```text
+  ['и', 'дом']
+  ```
+
+  ## Разбор строк таблицы
+
+  Строку `"Аня,7А,85"` разбирают через `split(",")` и сразу раскладывают по переменным.
+
+  ```python
+  name, group, score = "Аня,7А,85".split(",")
+  print(name, group, int(score) + 5)
+  ```
+
+  Результат:
+
+  ```text
+  Аня 7А 90
+  ```
+tasks:
+  - slug: t1
+    title: Частоты слов
+    difficulty: easy
+    mode: function
+    description: |
+      Напишите функцию `word_count(text)`, которая возвращает словарь: слово → сколько раз оно встречается в `text`. Регистр не учитывайте: `Кот` и `кот` — одно слово.
+
+      **Что уже есть:** заготовка функции. Знаков препинания в тексте нет.
+
+      **Пример:** `word_count("Кот и кот")` возвращает:
+
+      ```text
+      {'кот': 2, 'и': 1}
+      ```
+
+      **Как проверим:** вызовем функцию для разных строк.
+    starter: |
+      def word_count(text):
+          counts = {}
+          # Переберите слова в нижнем регистре и увеличивайте счётчики
+          pass
+    solution: |
+      def word_count(text):
+          counts = {}
+          for word in text.lower().split():
+              counts[word] = counts.get(word, 0) + 1
+          return counts
+    hints:
+      - Как привести слова к одному регистру и как увеличить счётчик слова, которого ещё нет в словаре?
+      - Перебирайте text.lower().split() и пишите counts[word] = counts.get(word, 0) + 1.
+      - 'Пример из теории: counts[word] = counts.get(word, 0) + 1'
+    tests:
+      - description: Кот и кот
+        input: { text: Кот и кот }
+        expected: { кот: 2, и: 1 }
+        visible: true
+      - description: Одно слово
+        input: { text: да }
+        expected: { да: 1 }
+      - description: Повторы
+        input: { text: А а А б }
+        expected: { а: 3, б: 1 }
+
+  - slug: t2
+    title: Самое длинное слово
+    difficulty: easy
+    mode: function
+    description: |
+      Напишите функцию `longest_word(text)`, которая возвращает самое длинное слово строки. Если таких несколько, верните первое из них.
+
+      **Что уже есть:** заготовка функции.
+
+      **Пример:** `longest_word("мама мыла раму мылом")` возвращает:
+
+      ```text
+      мылом
+      ```
+
+      **Как проверим:** вызовем функцию для разных строк.
+    starter: |
+      def longest_word(text):
+          # max(..., key=...)
+          pass
+    solution: |
+      def longest_word(text):
+          return max(text.split(), key=len)
+    hints:
+      - По какому признаку нужно сравнивать слова в max()?
+      - Передайте в max список text.split() и key=len — при равной длине max вернёт первое слово.
+      - 'Пример: min(words, key=len)'
+    tests:
+      - description: мама мыла раму мылом
+        input: { text: мама мыла раму мылом }
+        expected: мылом
+        visible: true
+      - description: Одинаковая длина
+        input: { text: кот пёс ёж }
+        expected: кот
+      - description: Одно слово
+        input: { text: программирование }
+        expected: программирование
+
+  - slug: t3
+    title: Чистые слова
+    difficulty: medium
+    mode: function
+    description: |
+      Напишите функцию `clean_words(text)`, которая убирает из текста знаки `,` `.` `!` `?` `:` `;` и возвращает список слов в нижнем регистре.
+
+      **Что уже есть:** заготовка функции.
+
+      **Пример:** `clean_words("Привет, мир! Как дела?")` возвращает:
+
+      ```text
+      ['привет', 'мир', 'как', 'дела']
+      ```
+
+      **Как проверим:** вызовем функцию для разных строк.
+    starter: |
+      def clean_words(text):
+          # Уберите знаки через replace, затем lower() и split()
+          pass
+    solution: |
+      def clean_words(text):
+          for mark in ",.!?:;":
+              text = text.replace(mark, "")
+          return text.lower().split()
+    hints:
+      - Как убрать сразу несколько разных знаков, не пиша replace шесть раз подряд?
+      - Переберите символы строки ",.!?:;" циклом и для каждого вызовите text = text.replace(mark, ""). Затем верните text.lower().split().
+      - 'Пример из теории: for mark in ",.!?": text = text.replace(mark, "")'
+    tests:
+      - description: Привет, мир!
+        input: { text: "Привет, мир! Как дела?" }
+        expected: [привет, мир, как, дела]
+        visible: true
+      - description: Двоеточие и точка с запятой
+        input: { text: "Итак: раз; два." }
+        expected: [итак, раз, два]
+      - description: Без знаков
+        input: { text: ОДНО СЛОВО }
+        expected: [одно, слово]
+
+  - slug: t4
+    title: Самые частые слова
+    difficulty: medium
+    mode: function
+    description: |
+      Напишите функцию `top_words(text, k)`, которая возвращает `k` самых частых слов текста. Слова с равной частотой идут по алфавиту. Регистр не учитывается, знаков препинания нет.
+
+      **Что уже есть:** заготовка функции.
+
+      **Пример:** `top_words("б а б в а б", 2)` возвращает:
+
+      ```text
+      ['б', 'а']
+      ```
+
+      **Как проверим:** вызовем функцию для разных текстов и `k`.
+    starter: |
+      def top_words(text, k):
+          counts = {}
+          # Посчитайте частоты, отсортируйте ключом (-частота, слово)
+          pass
+    solution: |
+      def top_words(text, k):
+          counts = {}
+          for word in text.lower().split():
+              counts[word] = counts.get(word, 0) + 1
+          order = sorted(counts, key=lambda w: (-counts[w], w))
+          return order[:k]
+    hints:
+      - Из каких двух шагов состоит задача? Как отсортировать сразу по частоте и по алфавиту?
+      - "Соберите словарь частот, затем sorted(counts, key=lambda w: (-counts[w], w)) и срез [:k]."
+      - 'Пример из теории: sorted(counts, key=lambda w: (-counts[w], w))'
+    tests:
+      - description: Два самых частых
+        input: { text: б а б в а б, k: 2 }
+        expected: [б, а]
+        visible: true
+      - description: Равные частоты
+        input: { text: яблоко груша банан, k: 2 }
+        expected: [банан, груша]
+      - description: Регистр
+        input: { text: Да да нет, k: 1 }
+        expected: [да]
+
+  - slug: t5
+    title: Лучший в каждом классе
+    difficulty: hard
+    mode: function
+    description: |
+      Каждая строка списка `rows` выглядит как `имя,класс,балл`. Напишите функцию `best_by_class(rows)`, которая возвращает словарь: класс → имя ученика с наибольшим баллом. При равных баллах выбирайте имя, которое раньше по алфавиту.
+
+      **Что уже есть:** заготовка функции.
+
+      **Пример:** `best_by_class(["Аня,7А,85", "Борис,7Б,90", "Вика,7А,92"])` возвращает:
+
+      ```text
+      {'7А': 'Вика', '7Б': 'Борис'}
+      ```
+
+      **Как проверим:** вызовем функцию для разных таблиц, в том числе с равными баллами.
+    starter: |
+      def best_by_class(rows):
+          best = {}
+          # Для каждого класса храните пару (балл, имя) лучшего ученика
+          pass
+    solution: |
+      def best_by_class(rows):
+          best = {}
+          for row in rows:
+              name, group, score = row.split(",")
+              score = int(score)
+              if group not in best:
+                  best[group] = (score, name)
+              else:
+                  old_score, old_name = best[group]
+                  if score > old_score or (score == old_score and name < old_name):
+                      best[group] = (score, name)
+          return {group: pair[1] for group, pair in best.items()}
+    hints:
+      - Что нужно хранить для каждого класса, чтобы сравнивать нового ученика с текущим лучшим?
+      - Разбирайте строку через split(","), храните best[класс] = (балл, имя). Заменяйте, если балл больше или балл равен, а имя раньше по алфавиту. В конце оставьте только имена.
+      - 'Пример разбора: name, group, score = "Аня,7А,85".split(",")'
+    tests:
+      - description: Два класса
+        input: { rows: ["Аня,7А,85", "Борис,7Б,90", "Вика,7А,92"] }
+        expected: { 7А: Вика, 7Б: Борис }
+        visible: true
+      - description: Равные баллы
+        input: { rows: ["Яна,8В,70", "Ева,8В,70"] }
+        expected: { 8В: Ева }
+      - description: Один ученик
+        input: { rows: ["Лев,5А,100"] }
+        expected: { 5А: Лев }

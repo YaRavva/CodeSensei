@@ -21,10 +21,10 @@ interface ModulesListProps {
   modules: Module[];
   userProgress: UserProgress[];
   tasksCountMap?: Record<string, number>;
-  /** Modules of the "Дополнительно" section. */
-  extraModuleIds?: string[];
-  /** Core modules left before "Дополнительно" opens (0 — open). */
-  coreLeft?: number;
+  /** Course levels (blocks of 10 modules). */
+  levels?: { level: number; title: string; description: string }[];
+  /** Highest open level; later levels are shown as a locked divider. */
+  openLevel?: number;
 }
 
 type ModuleStatus = "not_started" | "in_progress" | "completed";
@@ -50,8 +50,8 @@ export function ModulesList({
   modules,
   userProgress,
   tasksCountMap = {},
-  extraModuleIds = [],
-  coreLeft = 0,
+  levels = [],
+  openLevel = Number.POSITIVE_INFINITY,
 }: ModulesListProps) {
   const [filter, setFilter] = useState<{
     status?: ModuleStatus;
@@ -167,11 +167,11 @@ export function ModulesList({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Все уровни</SelectItem>
-              <SelectItem value="1">Уровень 1 — Начальный</SelectItem>
-              <SelectItem value="2">Уровень 2 — Базовый</SelectItem>
-              <SelectItem value="3">Уровень 3 — Средний</SelectItem>
-              <SelectItem value="4">Уровень 4 — Продвинутый</SelectItem>
-              <SelectItem value="5">Уровень 5 — Эксперт</SelectItem>
+              {(levels.length > 0 ? levels : [1, 2, 3].map((level) => ({ level, title: `Уровень ${level}` }))).map((item) => (
+                <SelectItem key={item.level} value={String(item.level)}>
+                  {item.title}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
 
@@ -197,46 +197,61 @@ export function ModulesList({
         </div>
       </div>
 
-      {/* Список модулей: основная часть и «Дополнительно» */}
-      {[
-        { key: "core", items: sortedModules.filter((m) => !extraModuleIds.includes(m.id)) },
-        { key: "extra", items: sortedModules.filter((m) => extraModuleIds.includes(m.id)) },
-      ].map(({ key, items }) =>
-        items.length === 0 ? null : (
-          <section key={key} className="space-y-4" aria-labelledby={`section-${key}`}>
-            {extraModuleIds.length > 0 && (
-              <div className="flex flex-wrap items-end justify-between gap-2 border-b pb-3">
-                <div>
-                  <h2 id={`section-${key}`} className="text-xl font-semibold">
-                    {key === "core" ? "Основная часть" : "Дополнительно"}
+      {/* Список модулей: уровни по 10 модулей, следующий открывается после предыдущего */}
+      {levels.length === 0 ? (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {sortedModules.map((module) => (
+            <ModuleCard
+              key={module.id}
+              module={module}
+              status={getModuleStatus(module.id, userProgress)}
+              tasksCount={tasksCountMap[module.id] || 0}
+            />
+          ))}
+        </div>
+      ) : (
+        levels.map((level) => {
+          const items = sortedModules.filter((m) => m.level === level.level);
+          const all = modules.filter((m) => m.level === level.level);
+          if (all.length === 0) return null;
+          const done = all.filter((m) => getModuleStatus(m.id, userProgress) === "completed").length;
+          const locked = level.level > openLevel;
+          const previous = levels.find((item) => item.level === level.level - 1);
+          return (
+            <section key={level.level} className="space-y-4" aria-labelledby={`level-${level.level}`}>
+              <div className="flex items-center gap-4 pt-2">
+                <div className="h-px flex-1 bg-border" aria-hidden="true" />
+                <div className="text-center">
+                  <h2
+                    id={`level-${level.level}`}
+                    className={`flex items-center justify-center gap-2 text-lg font-semibold ${locked ? "text-muted-foreground" : ""}`}
+                  >
+                    {locked && <Lock className="size-4" aria-hidden="true" />}
+                    {level.title}
                   </h2>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    {key === "core"
-                      ? "Модули по порядку: от первой программы до обработки ошибок."
-                      : "Генераторы, lambda, рекурсия, файлы и классы — для тех, кто прошёл основную часть."}
+                    {locked
+                      ? `Откроется, когда будут пройдены все модули уровня «${previous?.title ?? ""}»`
+                      : `${level.description} Пройдено ${done} из ${all.length}.`}
                   </p>
                 </div>
-                {key === "extra" && coreLeft > 0 && (
-                  <span className="inline-flex items-center gap-2 rounded-full border bg-muted/40 px-3 py-1 text-xs font-medium text-muted-foreground">
-                    <Lock className="size-3.5" aria-hidden="true" />
-                    Откроется после основной части · осталось модулей: {coreLeft}
-                  </span>
-                )}
+                <div className="h-px flex-1 bg-border" aria-hidden="true" />
               </div>
-            )}
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {items.map((module) => (
-                <ModuleCard
-                  key={module.id}
-                  module={module}
-                  status={getModuleStatus(module.id, userProgress)}
-                  tasksCount={tasksCountMap[module.id] || 0}
-                  locked={key === "extra" && coreLeft > 0}
-                />
-              ))}
-            </div>
-          </section>
-        )
+              {!locked && items.length > 0 && (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {items.map((module) => (
+                    <ModuleCard
+                      key={module.id}
+                      module={module}
+                      status={getModuleStatus(module.id, userProgress)}
+                      tasksCount={tasksCountMap[module.id] || 0}
+                    />
+                  ))}
+                </div>
+              )}
+            </section>
+          );
+        })
       )}
 
       {sortedModules.length === 0 && (

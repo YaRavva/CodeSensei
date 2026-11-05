@@ -1,0 +1,293 @@
+id: m21_stack_queue
+topic: Две важные структуры данных на основе списка — стек (последним пришёл, первым ушёл) и очередь.
+theory: |
+  **Стек** похож на стопку тарелок: кладём сверху и берём сверху. **Очередь** — как очередь в столовой: кто пришёл первым, того и обслуживают первым. Обе структуры легко сделать из списка.
+
+  ## Стек
+
+  `append(x)` кладёт элемент наверх, `pop()` снимает верхний и возвращает его. Верхний элемент — `stack[-1]`.
+
+  ```python
+  stack = []
+  stack.append("книга 1")
+  stack.append("книга 2")
+  stack.append("книга 3")
+  print(stack.pop())
+  print(stack[-1])
+  print(len(stack))
+  ```
+
+  Результат:
+
+  ```text
+  книга 3
+  книга 2
+  2
+  ```
+
+  ## Очередь
+
+  Новые элементы добавляем в конец через `append`, обслуживаем первого — `pop(0)`.
+
+  ```python
+  queue = ["Аня", "Борис"]
+  queue.append("Вика")
+  first = queue.pop(0)
+  print(first)
+  print(queue)
+  ```
+
+  Результат:
+
+  ```text
+  Аня
+  ['Борис', 'Вика']
+  ```
+
+  ## Пустой список — False
+
+  Пустой список в условии считается ложью, непустой — истиной. Поэтому `while stack:` работает, пока в стеке что-то есть.
+
+  ```python
+  stack = [1, 2, 3]
+  total = 0
+  while stack:
+      total += stack.pop()
+  print(total, stack)
+  ```
+
+  Результат:
+
+  ```text
+  6 []
+  ```
+tasks:
+  - slug: t1
+    title: Верхняя тарелка
+    difficulty: easy
+    mode: function
+    description: |
+      Напишите функцию `top(stack)`, которая возвращает верхний (последний) элемент стека, не снимая его. Если стек пуст, верните строку `пусто`.
+
+      **Что уже есть:** заготовка функции.
+
+      **Пример:** `top(["синяя", "белая", "красная"])` возвращает:
+
+      ```text
+      красная
+      ```
+
+      **Как проверим:** вызовем функцию для пустого и непустого стека.
+    starter: |
+      def top(stack):
+          # Верхний элемент — последний в списке
+          pass
+    solution: |
+      def top(stack):
+          if not stack:
+              return "пусто"
+          return stack[-1]
+    hints:
+      - Каким индексом обратиться к последнему элементу и что делать, если элементов нет?
+      - Если not stack — верните "пусто", иначе верните stack[-1].
+      - 'Пример: if not items: return 0'
+    tests:
+      - description: Три тарелки
+        input: { stack: [синяя, белая, красная] }
+        expected: красная
+        visible: true
+      - description: Пустой стек
+        input: { stack: [] }
+        expected: пусто
+      - description: Числа
+        input: { stack: [1, 2] }
+        expected: 2
+
+  - slug: t2
+    title: Переворот стеком
+    difficulty: easy
+    mode: function
+    description: |
+      Напишите функцию `reverse_text(text)`, которая переворачивает строку с помощью стека: положите все символы в список, а затем снимайте их через `pop()`. Срез `[::-1]` не используйте.
+
+      **Что уже есть:** заготовка функции.
+
+      **Пример:** `reverse_text("стек")` возвращает:
+
+      ```text
+      кетс
+      ```
+
+      **Как проверим:** вызовем функцию для разных строк.
+    starter: |
+      def reverse_text(text):
+          stack = list(text)
+          # Снимайте символы по одному и склейте их
+          pass
+    solution: |
+      def reverse_text(text):
+          stack = list(text)
+          letters = [stack.pop() for _ in text]
+          return "".join(letters)
+    hints:
+      - В каком порядке pop() возвращает элементы стека?
+      - Снимите stack.pop() столько раз, сколько символов в тексте (например, генератором списка), и склейте через "".join(...).
+      - 'Пример из теории: while stack: total += stack.pop()'
+    tests:
+      - description: стек
+        input: { text: стек }
+        expected: кетс
+        visible: true
+      - description: Фраза
+        input: { text: "А роза" }
+        expected: азор А
+      - description: Один символ
+        input: { text: я }
+        expected: я
+
+  - slug: t3
+    title: Отмена действий
+    difficulty: medium
+    mode: function
+    description: |
+      Редактор получает список действий `actions`. Обычное действие добавляется в историю, а слово `undo` отменяет последнее ещё не отменённое действие (если история пуста — ничего не происходит). Напишите функцию `apply_actions(actions)`, которая возвращает итоговую историю.
+
+      **Что уже есть:** заготовка функции.
+
+      **Пример:** `apply_actions(["печать", "жирный", "undo", "курсив"])` возвращает:
+
+      ```text
+      ['печать', 'курсив']
+      ```
+
+      **Как проверим:** вызовем функцию с разными действиями и лишними undo.
+    starter: |
+      def apply_actions(actions):
+          history = []
+          # undo снимает последнее действие со стека
+          pass
+    solution: |
+      def apply_actions(actions):
+          history = []
+          for action in actions:
+              if action == "undo":
+                  if history:
+                      history.pop()
+              else:
+                  history.append(action)
+          return history
+    hints:
+      - Какое действие отменяет undo — первое или последнее? Какая структура подходит?
+      - История — стек. Для undo снимайте history.pop(), только если история не пуста; иначе добавляйте действие.
+      - 'Пример: if stack: stack.pop()'
+    tests:
+      - description: Одна отмена
+        input: { actions: [печать, жирный, undo, курсив] }
+        expected: [печать, курсив]
+        visible: true
+      - description: Лишние undo
+        input: { actions: [undo, a, undo, undo] }
+        expected: []
+      - description: Без отмен
+        input: { actions: [a, b] }
+        expected: [a, b]
+
+  - slug: t4
+    title: Очередь в столовой
+    difficulty: medium
+    mode: function
+    description: |
+      События записаны в списке `events`: имя означает, что человек встал в конец очереди, а `-` — что обслужили первого в очереди (если очередь пуста, ничего не происходит). Напишите функцию `canteen(events)`, которая возвращает список обслуженных по порядку.
+
+      **Что уже есть:** заготовка функции.
+
+      **Пример:** `canteen(["Аня", "Борис", "-", "Вика", "-"])` возвращает:
+
+      ```text
+      ['Аня', 'Борис']
+      ```
+
+      **Как проверим:** вызовем функцию для разных событий.
+    starter: |
+      def canteen(events):
+          queue = []
+          served = []
+          # Имя — в конец очереди, "-" — обслужить первого
+          pass
+    solution: |
+      def canteen(events):
+          queue = []
+          served = []
+          for event in events:
+              if event == "-":
+                  if queue:
+                      served.append(queue.pop(0))
+              else:
+                  queue.append(event)
+          return served
+    hints:
+      - Кого обслуживают первым в очереди и каким методом его достать из списка?
+      - Для "-" переносите queue.pop(0) в served (если очередь не пуста), иначе добавляйте имя в queue.
+      - 'Пример из теории: first = queue.pop(0)'
+    tests:
+      - description: Двое обслужены
+        input: { events: [Аня, Борис, "-", Вика, "-"] }
+        expected: [Аня, Борис]
+        visible: true
+      - description: Обслуживание при пустой очереди
+        input: { events: ["-", Гена, "-", "-"] }
+        expected: [Гена]
+      - description: Все по очереди
+        input: { events: [a, b, c, "-", "-", "-"] }
+        expected: [a, b, c]
+
+  - slug: t5
+    title: Правильные скобки
+    difficulty: hard
+    mode: function
+    description: |
+      Напишите функцию `balanced(text)`, которая возвращает `True`, если скобки `()`, `[]` и `{}` в строке расставлены правильно: каждая закрывается скобкой своего типа и в правильном порядке. Другие символы не учитываются.
+
+      **Что уже есть:** заготовка функции и словарь пар скобок.
+
+      **Пример:** `balanced("([a + b] * {c})")` возвращает:
+
+      ```text
+      True
+      ```
+
+      **Как проверим:** вызовем функцию для правильных и неправильных строк, в том числе `"(]"` и `"(("`.
+    starter: |
+      def balanced(text):
+          pairs = {")": "(", "]": "[", "}": "{"}
+          # Открывающие — в стек, закрывающая должна совпасть с верхушкой
+          pass
+    solution: |
+      def balanced(text):
+          pairs = {")": "(", "]": "[", "}": "{"}
+          stack = []
+          for ch in text:
+              if ch in "([{":
+                  stack.append(ch)
+              elif ch in pairs:
+                  if not stack or stack.pop() != pairs[ch]:
+                      return False
+          return not stack
+    hints:
+      - Какая открывающая скобка должна закрыться первой — самая ранняя или самая последняя?
+      - Открывающие кладите в стек. Для закрывающей проверьте, что стек не пуст и снятая скобка равна pairs[ch]. В конце стек должен быть пуст.
+      - 'Пример: if not stack or stack.pop() != "(": return False'
+    tests:
+      - description: Правильная запись
+        input: { text: "([a + b] * {c})" }
+        expected: true
+        visible: true
+      - description: Разные типы
+        input: { text: "(]" }
+        expected: false
+      - description: Не закрыто
+        input: { text: "((" }
+        expected: false
+      - description: Лишняя закрывающая
+        input: { text: "())" }
+        expected: false

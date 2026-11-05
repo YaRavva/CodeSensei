@@ -1,0 +1,299 @@
+id: m20_sorting
+topic: Как устроены сортировка и поиск — обмены, двоичный поиск, сортировка слиянием.
+theory: |
+  Функция `sorted()` сортирует за нас. Но знать, **как** работает сортировка и поиск, полезно: это классические алгоритмы, на которых строятся многие задачи.
+
+  ## Обмен значений
+
+  В Python два значения меняют местами одной строкой — через кортежи.
+
+  ```python
+  nums = [5, 2]
+  nums[0], nums[1] = nums[1], nums[0]
+  print(nums)
+  ```
+
+  Результат:
+
+  ```text
+  [2, 5]
+  ```
+
+  ## Сортировка пузырьком
+
+  Проходим по списку и меняем соседей, если они стоят неправильно. После каждого прохода самый большой элемент «всплывает» в конец.
+
+  ```python
+  nums = [4, 1, 3, 2]
+  for end in range(len(nums) - 1, 0, -1):
+      for i in range(end):
+          if nums[i] > nums[i + 1]:
+              nums[i], nums[i + 1] = nums[i + 1], nums[i]
+  print(nums)
+  ```
+
+  Результат:
+
+  ```text
+  [1, 2, 3, 4]
+  ```
+
+  ## Двоичный поиск
+
+  В **отсортированном** списке искать быстрее: смотрим на середину и отбрасываем половину, где искомого быть не может.
+
+  ```python
+  nums = [1, 3, 5, 7, 9, 11]
+  target = 9
+  left, right = 0, len(nums) - 1
+  steps = 0
+  while left <= right:
+      steps += 1
+      middle = (left + right) // 2
+      if nums[middle] == target:
+          break
+      if nums[middle] < target:
+          left = middle + 1
+      else:
+          right = middle - 1
+  print(middle, steps)
+  ```
+
+  Результат:
+
+  ```text
+  4 2
+  ```
+
+  Для списка из миллиона элементов двоичному поиску хватает около 20 шагов.
+tasks:
+  - slug: t1
+    title: Отсортирован ли список
+    difficulty: easy
+    mode: function
+    description: |
+      Напишите функцию `is_sorted(nums)`, которая возвращает `True`, если каждый элемент не больше следующего, и `False` в остальных случаях. Функцию `sorted()` не используйте.
+
+      **Что уже есть:** заготовка функции.
+
+      **Пример:** `is_sorted([1, 2, 2, 5])` возвращает:
+
+      ```text
+      True
+      ```
+
+      **Как проверим:** вызовем функцию для отсортированных и неотсортированных списков.
+    starter: |
+      def is_sorted(nums):
+          # Сравните каждую пару соседей
+          pass
+    solution: |
+      def is_sorted(nums):
+          return all(nums[i] <= nums[i + 1] for i in range(len(nums) - 1))
+    hints:
+      - Какие пары элементов достаточно сравнить, чтобы понять, что список упорядочен?
+      - Сравнивайте nums[i] и nums[i + 1] для i от 0 до len(nums) - 2. Удобно через all(...).
+      - 'Пример: all(x > 0 for x in nums)'
+    tests:
+      - description: "[1, 2, 2, 5]"
+        input: { nums: [1, 2, 2, 5] }
+        expected: true
+        visible: true
+      - description: Не отсортирован
+        input: { nums: [3, 1, 2] }
+        expected: false
+      - description: Нарушение в конце
+        input: { nums: [1, 2, 3, 0] }
+        expected: false
+
+  - slug: t2
+    title: Линейный поиск
+    difficulty: easy
+    mode: function
+    description: |
+      Напишите функцию `linear_search(items, target)`, которая возвращает индекс первого элемента, равного `target`, или `-1`, если его нет. Метод `index()` не используйте.
+
+      **Что уже есть:** заготовка функции.
+
+      **Пример:** `linear_search(["кот", "пёс", "ёж"], "ёж")` возвращает:
+
+      ```text
+      2
+      ```
+
+      **Как проверим:** вызовем функцию для найденных и ненайденных значений.
+    starter: |
+      def linear_search(items, target):
+          # Перебирайте индексы и значения через enumerate
+          pass
+    solution: |
+      def linear_search(items, target):
+          for i, item in enumerate(items):
+              if item == target:
+                  return i
+          return -1
+    hints:
+      - Когда можно сразу вернуть ответ, не досматривая список до конца?
+      - В цикле for i, item in enumerate(items) верните i при совпадении. После цикла верните -1.
+      - 'Пример: for i, x in enumerate(nums): if x < 0: return i'
+    tests:
+      - description: Найден ёж
+        input: { items: [кот, пёс, ёж], target: ёж }
+        expected: 2
+        visible: true
+      - description: Нет элемента
+        input: { items: [1, 2, 3], target: 5 }
+        expected: -1
+      - description: Повтор
+        input: { items: [7, 4, 7], target: 7 }
+        expected: 0
+
+  - slug: t3
+    title: Сортировка пузырьком
+    difficulty: medium
+    mode: function
+    description: |
+      Напишите функцию `bubble_sort(nums)`, которая возвращает **новый** отсортированный по возрастанию список. Исходный список не меняйте. `sorted()` и `sort()` не используйте.
+
+      **Что уже есть:** заготовка функции с копией списка.
+
+      **Пример:** `bubble_sort([5, 1, 4, 2])` возвращает:
+
+      ```text
+      [1, 2, 4, 5]
+      ```
+
+      **Как проверим:** вызовем функцию для разных списков, в том числе с повторами.
+    starter: |
+      def bubble_sort(nums):
+          result = list(nums)
+          # Меняйте соседей местами, пока список не отсортирован
+          pass
+    solution: |
+      def bubble_sort(nums):
+          result = list(nums)
+          for end in range(len(result) - 1, 0, -1):
+              for i in range(end):
+                  if result[i] > result[i + 1]:
+                      result[i], result[i + 1] = result[i + 1], result[i]
+          return result
+    hints:
+      - Что происходит с наибольшим элементом после одного прохода по списку с обменами соседей?
+      - Внешний цикл задаёт границу end, внутренний сравнивает result[i] и result[i + 1] и меняет их местами.
+      - 'Обмен: a[0], a[1] = a[1], a[0]'
+    tests:
+      - description: "[5, 1, 4, 2]"
+        input: { nums: [5, 1, 4, 2] }
+        expected: [1, 2, 4, 5]
+        visible: true
+      - description: С повторами
+        input: { nums: [3, 1, 3, 1] }
+        expected: [1, 1, 3, 3]
+      - description: Обратный порядок
+        input: { nums: [9, 7, 5, 3, 1] }
+        expected: [1, 3, 5, 7, 9]
+
+  - slug: t4
+    title: Двоичный поиск
+    difficulty: hard
+    mode: function
+    description: |
+      Список `nums` отсортирован по возрастанию, числа в нём разные. Напишите функцию `binary_search(nums, target)`, которая находит индекс `target` двоичным поиском или возвращает `-1`.
+
+      **Что уже есть:** заготовка функции с границами поиска.
+
+      **Пример:** `binary_search([2, 4, 6, 8, 10], 8)` возвращает:
+
+      ```text
+      3
+      ```
+
+      **Как проверим:** вызовем функцию для чисел в начале, середине, конце и для отсутствующих.
+    starter: |
+      def binary_search(nums, target):
+          left, right = 0, len(nums) - 1
+          # Сужайте границы, пока left <= right
+          pass
+    solution: |
+      def binary_search(nums, target):
+          left, right = 0, len(nums) - 1
+          while left <= right:
+              middle = (left + right) // 2
+              if nums[middle] == target:
+                  return middle
+              if nums[middle] < target:
+                  left = middle + 1
+              else:
+                  right = middle - 1
+          return -1
+    hints:
+      - Если средний элемент меньше искомого, в какой половине искать дальше?
+      - Пока left <= right, берите middle = (left + right) // 2. При совпадении верните middle, иначе сдвигайте left или right за middle.
+      - 'Пример из теории: left = middle + 1 или right = middle - 1'
+    tests:
+      - description: Найдено 8
+        input: { nums: [2, 4, 6, 8, 10], target: 8 }
+        expected: 3
+        visible: true
+      - description: Первый элемент
+        input: { nums: [2, 4, 6, 8, 10], target: 2 }
+        expected: 0
+      - description: Нет числа
+        input: { nums: [1, 3, 5], target: 4 }
+        expected: -1
+      - description: Пустой список
+        input: { nums: [], target: 1 }
+        expected: -1
+
+  - slug: t5
+    title: Сортировка слиянием
+    difficulty: hard
+    mode: function
+    description: |
+      Напишите рекурсивную функцию `merge_sort(nums)`: список из 0–1 элемента уже отсортирован; иначе разделите его пополам, отсортируйте половины тем же `merge_sort` и слейте их в один отсортированный список.
+
+      **Что уже есть:** заготовка функции. `sorted()` и `sort()` не используйте.
+
+      **Пример:** `merge_sort([8, 3, 5, 1, 9, 2])` возвращает:
+
+      ```text
+      [1, 2, 3, 5, 8, 9]
+      ```
+
+      **Как проверим:** вызовем функцию для разных списков.
+    starter: |
+      def merge_sort(nums):
+          # Базовый случай, деление пополам, слияние
+          pass
+    solution: |
+      def merge_sort(nums):
+          if len(nums) <= 1:
+              return nums
+          middle = len(nums) // 2
+          left = merge_sort(nums[:middle])
+          right = merge_sort(nums[middle:])
+          result = []
+          i = j = 0
+          while i < len(left) and j < len(right):
+              if left[i] <= right[j]:
+                  result.append(left[i])
+                  i += 1
+              else:
+                  result.append(right[j])
+                  j += 1
+          return result + left[i:] + right[j:]
+    hints:
+      - Что вернуть для списка из одного элемента? Как из двух отсортированных половин получить один список?
+      - Разделите nums срезами [:middle] и [middle:], отсортируйте каждую половину рекурсивно, затем слейте двумя индексами и допишите остатки срезами.
+      - 'Слияние уже было в модуле «Алгоритмы на списках»: while i < len(a) and j < len(b): ...'
+    tests:
+      - description: Шесть чисел
+        input: { nums: [8, 3, 5, 1, 9, 2] }
+        expected: [1, 2, 3, 5, 8, 9]
+        visible: true
+      - description: Один элемент
+        input: { nums: [4] }
+        expected: [4]
+      - description: Повторы и отрицательные
+        input: { nums: [0, -3, 2, -3, 1] }
+        expected: [-3, -3, 0, 1, 2]
