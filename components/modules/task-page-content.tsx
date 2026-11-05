@@ -51,7 +51,7 @@ export function TaskPageContent({
 }: TaskPageContentProps) {
   const { theme } = useTheme();
   const router = useRouter();
-  const { user, refreshProfile } = useAuth();
+  const { refreshProfile } = useAuth();
   const { toast } = useToast();
   const { pyodide, loading: pyodideLoading, error: pyodideError, executeCode } = usePyodide();
   const [mounted, setMounted] = useState(false);
@@ -293,7 +293,9 @@ export function TaskPageContent({
         }
 
         // Сохраняем попытку в БД и начисляем XP
-        if (user) {
+        // The server identifies the user by the session cookie; the client-side
+        // auth state may still be loading and must not block saving the attempt.
+        {
           // Вычисляем время решения (от открытия до проверки)
           let solvingTimeMs: number | null = null;
           if (typeof window !== "undefined") {

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { KatanaLogo } from "@/components/brand-logo";
+import { useAuth } from "@/components/auth/auth-provider";
 import { OAuthButtons } from "@/components/oauth-buttons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,6 +25,7 @@ export function LoginForm() {
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { refreshProfile } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -78,6 +80,7 @@ export function LoginForm() {
         description: "Продолжаем с того места, где вы остановились",
       });
 
+      await refreshProfile();
       router.push("/modules");
       router.refresh();
     } catch (error) {

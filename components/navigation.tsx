@@ -1,6 +1,6 @@
 "use client";
 
-import { Menu, X } from "lucide-react";
+import { Menu, User as UserIcon, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -136,7 +136,8 @@ export function Navigation() {
       }
     }
 
-    return "U";
+    const fallback = (user?.name || user?.email || "").trim();
+    return fallback ? fallback[0].toUpperCase() : "";
   }
 
   const links: NavLink[] = [
@@ -206,7 +207,7 @@ export function Navigation() {
                         key={`${profile?.id || user?.id || "default"}-${profile?.display_name || user?.email || ""}`}
                         className="bg-primary text-sm font-semibold text-primary-foreground"
                       >
-                        {getInitials()}
+                        {getInitials() || <UserIcon className="h-5 w-5" aria-hidden="true" />}
                       </AvatarFallback>
                     </Avatar>
                   </Button>

@@ -483,7 +483,9 @@ export function ModuleUnifiedPage({
         }
 
         // Сохраняем попытку и начисляем XP
-        if (user) {
+        // The server identifies the user by the session cookie; the client-side
+        // auth state may still be loading and must not block saving the attempt.
+        {
           // Вычисляем время решения (от открытия до проверки)
           let solvingTimeMs: number | null = null;
           if (typeof window !== "undefined") {

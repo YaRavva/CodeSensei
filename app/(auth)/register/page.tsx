@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { KatanaLogo } from "@/components/brand-logo";
+import { useAuth } from "@/components/auth/auth-provider";
 import { OAuthButtons } from "@/components/oauth-buttons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -30,6 +31,7 @@ export default function RegisterPage() {
   const [nameError, setNameError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { refreshProfile } = useAuth();
   const { toast } = useToast();
 
   async function handleRegister(e: React.FormEvent) {
@@ -77,6 +79,7 @@ export default function RegisterPage() {
         description: "Прогресс будет сохраняться автоматически",
       });
 
+      await refreshProfile();
       router.push("/modules");
       router.refresh();
     } catch (error) {

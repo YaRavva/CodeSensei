@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import type { UserProfile } from "@/types/db";
 
 export interface AuthUser {
@@ -67,46 +68,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const pathname = usePathname();
+  const userRef = useRef<AuthUser | null>(null);
+  userRef.current = user;
 
-  useEffect(() => {
-    let mounted = true;
-
-    async function loadSession() {
-      try {
-        const session = await fetchSession();
-
-        if (!mounted) return;
-
-        setUser(session?.user ?? null);
-        setProfile(session?.profile ?? null);
-      } catch (error) {
-        console.error("[AuthProvider] Ошибка загрузки сессии:", error);
-        if (mounted) {
-          setUser(null);
-          setProfile(null);
-        }
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
-      }
-    }
-
-    loadSession();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  async function refreshProfile() {
+  const loadSession = useCallback(async () => {
     try {
       const session = await fetchSession();
       setUser(session?.user ?? null);
       setProfile(session?.profile ?? null);
     } catch (error) {
-      console.error("[AuthProvider] Ошибка обновления профиля:", error);
+      console.error("[AuthProvider] Ошибка загрузки сессии:", error);
+    } finally {
+      setLoading(false);
     }
+  }, []);
+
+  // The provider lives in the root layout and is not remounted by client-side
+  // navigation. After an email login/registration the router only changes the
+  // path, so the session is reloaded whenever the path changes while the
+  // client still considers the visitor anonymous.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reload on path change
+  useEffect(() => {
+    if (!userRef.current) {
+      void loadSession();
+    }
+  }, [pathname, loadSession]);
+
+  async function refreshProfile() {
+    await loadSession();
   }
 
   async function signOut() {
