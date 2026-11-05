@@ -1,0 +1,303 @@
+id: m14_errors
+topic: Читаем сообщения об ошибках и защищаем программу через try/except.
+theory: |
+  Ошибки — нормальная часть программирования. Важно уметь их читать и делать программу устойчивой: если пользователь ввёл не число, программа не должна «падать».
+
+  ## Как читать ошибку
+
+  Сообщение заканчивается строкой с **типом** и **описанием** ошибки:
+
+  - `NameError` — нет такой переменной (опечатка в имени?);
+  - `TypeError` — действие не подходит типу: `"5" + 3`;
+  - `ValueError` — неподходящее значение: `int("abc")`;
+  - `ZeroDivisionError` — деление на ноль;
+  - `IndexError` — индекс за пределами списка;
+  - `KeyError` — нет такого ключа в словаре.
+
+  ## try и except
+
+  Код, который может сломаться, пишут в `try`. Если внутри возникла ошибка указанного типа, выполняется блок `except`, и программа продолжает работу.
+
+  ```python
+  text = "abc"
+  try:
+      number = int(text)
+      print("Число:", number)
+  except ValueError:
+      print("Это не число")
+  print("Программа работает дальше")
+  ```
+
+  Результат:
+
+  ```text
+  Это не число
+  Программа работает дальше
+  ```
+
+  Указывайте конкретный тип ошибки: `except ValueError:`. Пустой `except:` прячет и опечатки в коде.
+
+  ## Несколько except
+
+  ```python
+  def safe_get(items, index):
+      try:
+          return 10 / items[index]
+      except IndexError:
+          return "нет элемента"
+      except ZeroDivisionError:
+          return "делить на ноль нельзя"
+
+  print(safe_get([5, 0], 0))
+  print(safe_get([5, 0], 1))
+  print(safe_get([5, 0], 7))
+  ```
+
+  Результат:
+
+  ```text
+  2.0
+  делить на ноль нельзя
+  нет элемента
+  ```
+
+  ## Своя ошибка: raise
+
+  `raise` сообщает об ошибке, если данные неправильные. `isinstance(x, int)` проверяет тип значения.
+
+  ```python
+  def set_age(age):
+      if not isinstance(age, int) or age < 0:
+          raise ValueError("Возраст должен быть целым неотрицательным числом")
+      return age
+
+  try:
+      set_age(-5)
+  except ValueError as error:
+      print("Ошибка:", error)
+  ```
+
+  Результат:
+
+  ```text
+  Ошибка: Возраст должен быть целым неотрицательным числом
+  ```
+tasks:
+  - slug: t1
+    title: Безопасное деление
+    difficulty: easy
+    mode: function
+    description: |
+      Напишите функцию `safe_div(a, b)`, которая возвращает `a / b`, а при делении на ноль — строку `деление на ноль`.
+
+      **Что уже есть:** заготовка функции.
+
+      **Пример:** `safe_div(10, 4)` возвращает `2.5`, а `safe_div(1, 0)`:
+
+      ```text
+      деление на ноль
+      ```
+
+      **Как проверим:** вызовем функцию с нулём и без.
+    starter: |
+      def safe_div(a, b):
+          # Поделите a на b, перехватите ZeroDivisionError
+          pass
+    solution: |
+      def safe_div(a, b):
+          try:
+              return a / b
+          except ZeroDivisionError:
+              return "деление на ноль"
+    hints:
+      - Какой тип ошибки возникает при делении на ноль?
+      - Поместите return a / b в try, а в except ZeroDivisionError верните строку.
+      - 'Пример: try: return int(s) except ValueError: return 0'
+    tests:
+      - description: safe_div(10, 4)
+        input: { a: 10, b: 4 }
+        expected: 2.5
+        visible: true
+      - description: Деление на ноль
+        input: { a: 1, b: 0 }
+        expected: деление на ноль
+
+  - slug: t2
+    title: Число из строки
+    difficulty: easy
+    mode: function
+    description: |
+      Напишите функцию `to_number(text)`: она превращает строку в целое число, а если это не число — возвращает `0`.
+
+      **Что уже есть:** заготовка функции.
+
+      **Пример:** `to_number("42")` возвращает `42`, а `to_number("сорок")`:
+
+      ```text
+      0
+      ```
+
+      **Как проверим:** вызовем функцию для чисел и не чисел.
+    starter: |
+      def to_number(text):
+          # Попробуйте int(text), при ValueError верните 0
+          pass
+    solution: |
+      def to_number(text):
+          try:
+              return int(text)
+          except ValueError:
+              return 0
+    hints:
+      - Какая ошибка возникает при int("сорок")?
+      - try — return int(text), except ValueError — return 0.
+      - 'Пример: try: return float(s) except ValueError: return -1'
+    tests:
+      - description: Строка 42
+        input: { text: "42" }
+        expected: 42
+        visible: true
+      - description: Не число
+        input: { text: сорок }
+        expected: 0
+      - description: Отрицательное число
+        input: { text: "-7" }
+        expected: -7
+
+  - slug: t3
+    title: Элемент по номеру
+    difficulty: medium
+    mode: function
+    description: |
+      Напишите функцию `get_item(items, index)`: она возвращает элемент списка с индексом `index`, а если такого индекса нет — строку `нет элемента`.
+
+      **Что уже есть:** заготовка функции.
+
+      **Пример:** `get_item(["a", "b"], 5)` возвращает:
+
+      ```text
+      нет элемента
+      ```
+
+      **Как проверим:** вызовем функцию с правильными, отрицательными и слишком большими индексами.
+    starter: |
+      def get_item(items, index):
+          # Верните элемент или «нет элемента»
+          pass
+    solution: |
+      def get_item(items, index):
+          try:
+              return items[index]
+          except IndexError:
+              return "нет элемента"
+    hints:
+      - Что происходит, если обратиться к индексу за пределами списка?
+      - Оберните items[index] в try и перехватите IndexError.
+      - 'Для словаря: try: return d[key] except KeyError: return "нет ключа"'
+    tests:
+      - description: Слишком большой индекс
+        input: { items: [a, b], index: 5 }
+        expected: нет элемента
+        visible: true
+      - description: Обычный индекс
+        input: { items: [a, b, c], index: 1 }
+        expected: b
+      - description: Отрицательный индекс
+        input: { items: [a, b, c], index: -1 }
+        expected: c
+
+  - slug: t4
+    title: Проверка возраста
+    difficulty: medium
+    mode: function
+    description: |
+      Напишите функцию `parse_age(text)`. Если `text` — не целое число, верните `не число`. Если число меньше 0 или больше 120, верните `неверный возраст`. Иначе верните возраст числом.
+
+      **Что уже есть:** заготовка функции.
+
+      **Пример:** `parse_age("14")` возвращает `14`, а `parse_age("двести")`:
+
+      ```text
+      не число
+      ```
+
+      **Как проверим:** вызовем функцию для всех трёх случаев.
+    starter: |
+      def parse_age(text):
+          # Превратите text в число, затем проверьте диапазон
+          pass
+    solution: |
+      def parse_age(text):
+          try:
+              age = int(text)
+          except ValueError:
+              return "не число"
+          if age < 0 or age > 120:
+              return "неверный возраст"
+          return age
+    hints:
+      - Какую проверку нужно сделать первой — тип или диапазон?
+      - В try только age = int(text), в except ValueError — return "не число". Диапазон проверьте обычным if после try.
+      - 'Пример: try: n = int(s) except ValueError: return 0, затем if n > 10: return 10'
+    tests:
+      - description: "14"
+        input: { text: "14" }
+        expected: 14
+        visible: true
+      - description: Не число
+        input: { text: двести }
+        expected: не число
+      - description: Слишком много
+        input: { text: "150" }
+        expected: неверный возраст
+      - description: Отрицательный
+        input: { text: "-1" }
+        expected: неверный возраст
+
+  - slug: t5
+    title: Сумма из строки с ошибками
+    difficulty: hard
+    mode: function
+    description: |
+      В строке `text` записаны значения через запятую, некоторые — не числа. Напишите функцию `sum_numbers(text)`, которая возвращает кортеж: сумму целых чисел и количество значений, которые не удалось превратить в число.
+
+      **Что уже есть:** заготовка функции. Пробелы вокруг значений нужно убрать.
+
+      **Пример:** `sum_numbers("5, 7, abc, 10")` возвращает:
+
+      ```text
+      (22, 1)
+      ```
+
+      **Как проверим:** вызовем функцию для строк с ошибками и без.
+    starter: |
+      def sum_numbers(text):
+          total = 0
+          bad = 0
+          # Разбейте строку по запятым и обработайте каждое значение
+          pass
+    solution: |
+      def sum_numbers(text):
+          total = 0
+          bad = 0
+          for part in text.split(","):
+              try:
+                  total += int(part.strip())
+              except ValueError:
+                  bad += 1
+          return total, bad
+    hints:
+      - Как получить отдельные значения из строки и что делать с тем, что не превращается в число?
+      - Разбейте text.split(","), уберите пробелы через strip(). В try прибавляйте int(...) к total, в except ValueError увеличивайте bad. Верните total, bad.
+      - 'Подсчёт ошибок: try: n = int(x) except ValueError: errors += 1'
+    tests:
+      - description: "5, 7, abc, 10"
+        input: { text: "5, 7, abc, 10" }
+        expected: [22, 1]
+        visible: true
+      - description: Без ошибок
+        input: { text: "1,2,3" }
+        expected: [6, 0]
+      - description: Только ошибки
+        input: { text: "a, b" }
+        expected: [0, 2]

@@ -1,0 +1,294 @@
+id: m13_tuples_sets
+topic: Возвращаем несколько значений кортежем и убираем повторы множеством.
+theory: |
+  Кортеж и множество — ещё два способа хранить несколько значений. Кортеж — неизменяемый список, множество — набор **без повторов**.
+
+  ## Кортежи
+
+  Кортеж пишут в круглых скобках. Его элементы нельзя менять, зато его удобно использовать, чтобы вернуть из функции несколько значений.
+
+  ```python
+  point = (3, 5)
+  print(point[0], len(point))
+
+  def min_max(nums):
+      return min(nums), max(nums)
+
+  low, high = min_max([4, 1, 9])
+  print(low, high)
+  ```
+
+  Результат:
+
+  ```text
+  3 2
+  1 9
+  ```
+
+  Запись `low, high = ...` — **распаковка**: значения кортежа раскладываются по переменным.
+
+  ## Множества
+
+  Множество пишут в фигурных скобках или получают через `set()`. Повторы в нём исчезают, порядок не гарантирован.
+
+  ```python
+  names = ["Аня", "Борис", "Аня"]
+  unique = set(names)
+  print(len(unique))
+  unique.add("Вика")
+  print("Вика" in unique)
+  print(sorted(unique))
+  ```
+
+  Результат:
+
+  ```text
+  2
+  True
+  ['Аня', 'Борис', 'Вика']
+  ```
+
+  ## Операции с множествами
+
+  - `a & b` — общие элементы (пересечение);
+  - `a | b` — все элементы обоих множеств (объединение);
+  - `a - b` — элементы `a`, которых нет в `b` (разность).
+
+  ```python
+  math_club = {"Аня", "Борис", "Вика"}
+  chess_club = {"Борис", "Глеб"}
+  print(sorted(math_club & chess_club))
+  print(sorted(math_club - chess_club))
+  ```
+
+  Результат:
+
+  ```text
+  ['Борис']
+  ['Аня', 'Вика']
+  ```
+
+  ## enumerate() и zip()
+
+  `enumerate()` даёт номер и элемент, `zip()` идёт по двум спискам одновременно.
+
+  ```python
+  for i, name in enumerate(["Аня", "Борис"], 1):
+      print(i, name)
+  for name, grade in zip(["Аня", "Борис"], [5, 4]):
+      print(name, grade)
+  ```
+
+  Результат:
+
+  ```text
+  1 Аня
+  2 Борис
+  Аня 5
+  Борис 4
+  ```
+tasks:
+  - slug: t1
+    title: Уникальные посетители
+    difficulty: easy
+    mode: function
+    description: |
+      Напишите функцию `unique_count(names)`: она возвращает, сколько **разных** людей зашло в библиотеку.
+
+      **Что уже есть:** заготовка функции. `names` — список имён, имена могут повторяться.
+
+      **Пример:** `unique_count(["Аня", "Борис", "Аня"])` возвращает:
+
+      ```text
+      2
+      ```
+
+      **Как проверим:** вызовем функцию для списков с повторами и без.
+    starter: |
+      def unique_count(names):
+          # Уберите повторы и посчитайте
+          pass
+    solution: |
+      def unique_count(names):
+          return len(set(names))
+    hints:
+      - Какая структура данных сама убирает повторы?
+      - Превратите список в множество через set() и возьмите len().
+      - 'Разные буквы в слове: len(set("мама")) → 2'
+    tests:
+      - description: Аня дважды
+        input: { names: [Аня, Борис, Аня] }
+        expected: 2
+        visible: true
+      - description: Без повторов
+        input: { names: [Глеб, Дина, Ева] }
+        expected: 3
+      - description: Пустой список
+        input: { names: [] }
+        expected: 0
+
+  - slug: t2
+    title: Минимум и максимум
+    difficulty: easy
+    mode: function
+    description: |
+      Напишите функцию `min_max(nums)`, которая возвращает кортеж из двух значений: наименьшего и наибольшего числа списка.
+
+      **Что уже есть:** заготовка функции. В списке хотя бы одно число.
+
+      **Пример:** `min_max([4, 1, 9])` возвращает:
+
+      ```text
+      (1, 9)
+      ```
+
+      **Как проверим:** вызовем функцию для разных списков, в том числе из одного числа.
+    starter: |
+      def min_max(nums):
+          # Верните наименьшее и наибольшее через запятую
+          pass
+    solution: |
+      def min_max(nums):
+          return min(nums), max(nums)
+    hints:
+      - Как вернуть из функции два значения сразу?
+      - Напишите return min(nums), max(nums) — Python соберёт кортеж.
+      - 'Пример: def first_last(items): return items[0], items[-1]'
+    tests:
+      - description: "[4, 1, 9]"
+        input: { nums: [4, 1, 9] }
+        expected: [1, 9]
+        visible: true
+      - description: Одно число
+        input: { nums: [7] }
+        expected: [7, 7]
+      - description: Отрицательные
+        input: { nums: [-3, -10, 2] }
+        expected: [-10, 2]
+
+  - slug: t3
+    title: Общие друзья
+    difficulty: medium
+    mode: function
+    description: |
+      Напишите функцию `common_friends(a, b)`: она возвращает **отсортированный список** друзей, которые есть в обоих списках.
+
+      **Что уже есть:** заготовка функции. `a` и `b` — списки имён.
+
+      **Пример:** `common_friends(["Аня", "Борис", "Вика"], ["Вика", "Глеб", "Аня"])` возвращает:
+
+      ```text
+      ['Аня', 'Вика']
+      ```
+
+      **Как проверим:** вызовем функцию, в том числе когда общих друзей нет.
+    starter: |
+      def common_friends(a, b):
+          # Найдите пересечение множеств и отсортируйте
+          pass
+    solution: |
+      def common_friends(a, b):
+          return sorted(set(a) & set(b))
+    hints:
+      - Какая операция над множествами даёт общие элементы?
+      - Превратите оба списка в множества, возьмите пересечение через & и отсортируйте через sorted().
+      - 'Элементы a, которых нет в b: sorted(set(a) - set(b))'
+    tests:
+      - description: Два общих друга
+        input: { a: [Аня, Борис, Вика], b: [Вика, Глеб, Аня] }
+        expected: [Аня, Вика]
+        visible: true
+      - description: Нет общих
+        input: { a: [Аня], b: [Борис] }
+        expected: []
+      - description: Повторы в списках
+        input: { a: [Ева, Ева, Дина], b: [Ева] }
+        expected: [Ева]
+
+  - slug: t4
+    title: Ведомость
+    difficulty: medium
+    mode: function
+    description: |
+      Напишите функцию `report(names, grades)`, которая возвращает список строк вида `1. Аня — 5`: номер по порядку, имя и оценка.
+
+      **Что уже есть:** заготовка функции. Списки одинаковой длины.
+
+      **Пример:** `report(["Аня", "Борис"], [5, 4])` возвращает:
+
+      ```text
+      ['1. Аня — 5', '2. Борис — 4']
+      ```
+
+      **Как проверим:** вызовем функцию для разных списков, в том числе пустых.
+    starter: |
+      def report(names, grades):
+          lines = []
+          # Пройдите по двум спискам сразу и пронумеруйте строки
+          pass
+    solution: |
+      def report(names, grades):
+          lines = []
+          for i, (name, grade) in enumerate(zip(names, grades), 1):
+              lines.append(f"{i}. {name} — {grade}")
+          return lines
+    hints:
+      - Как пройти по двум спискам одновременно и при этом знать номер строки?
+      - zip(names, grades) даёт пары, а enumerate(…, 1) нумерует их с единицы. Распакуйте как i, (name, grade).
+      - 'Нумерация списка: for i, item in enumerate(items, 1): print(i, item)'
+    tests:
+      - description: Два ученика
+        input: { names: [Аня, Борис], grades: [5, 4] }
+        expected: ["1. Аня — 5", "2. Борис — 4"]
+        visible: true
+      - description: Пустые списки
+        input: { names: [], grades: [] }
+        expected: []
+      - description: Три ученика
+        input: { names: [Вика, Глеб, Дина], grades: [3, 5, 4] }
+        expected: ["1. Вика — 3", "2. Глеб — 5", "3. Дина — 4"]
+
+  - slug: t5
+    title: Первый повтор
+    difficulty: hard
+    mode: function
+    description: |
+      Напишите функцию `first_repeat(items)`, которая возвращает первый элемент, встретившийся **второй раз**. Если повторов нет — пустую строку `""`.
+
+      **Что уже есть:** заготовка функции.
+
+      **Пример:** в `["кот", "пёс", "ёж", "пёс", "кот"]` первым повторяется «пёс»:
+
+      ```text
+      пёс
+      ```
+
+      **Как проверим:** вызовем функцию для разных списков, в том числе без повторов.
+    starter: |
+      def first_repeat(items):
+          seen = set()
+          # Запоминайте увиденные элементы
+          pass
+    solution: |
+      def first_repeat(items):
+          seen = set()
+          for item in items:
+              if item in seen:
+                  return item
+              seen.add(item)
+          return ""
+    hints:
+      - Что нужно помнить, пока идёте по списку, чтобы заметить повтор?
+      - Храните уже увиденные элементы в множестве seen. Если item уже в seen — сразу return item, иначе seen.add(item).
+      - 'Проверка «уже был»: if x in seen: … else: seen.add(x)'
+    tests:
+      - description: Повторяется «пёс»
+        input: { items: [кот, пёс, ёж, пёс, кот] }
+        expected: пёс
+        visible: true
+      - description: Без повторов
+        input: { items: [а, б, в] }
+        expected: ""
+      - description: Повтор сразу
+        input: { items: [x, x, y] }
+        expected: x
