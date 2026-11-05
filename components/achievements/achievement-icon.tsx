@@ -25,7 +25,7 @@ import { useState } from "react";
 /**
  * Реестр lucide-иконок, сопоставимый с icon_name в БД.
  * Новые достижения хранят имена компонентов lucide (см. scripts/appwrite/seed.mjs),
- * legacy-данные (мигрированные с Supabase) - строки с эмодзи.
+ * старые записи - строки с эмодзи.
  */
 const ICON_MAP: Record<string, LucideIcon> = {
   Award,

@@ -1,6 +1,6 @@
 # Appwrite backend
 
-CodeSensei использует self-hosted Appwrite 1.9.x (TablesDB) вместо Supabase.
+CodeSensei использует self-hosted Appwrite 1.9.x (TablesDB).
 Все обращения к базе идут только с сервера (Next.js server components и route
 handlers) через серверный SDK с API-ключом. Браузер никогда не получает ключ и
 не работает с Appwrite напрямую.
@@ -131,7 +131,7 @@ Tailscale/docker-endpoint дал бы приватный IP. Если `APPWRITE_
 
 ## Деплой сайта (Appwrite Sites)
 
-Прод-версия — Appwrite Site `codesensei`, а не Vercel. Конфигурация сайта лежит
+Прод-версия — Appwrite Site `codesensei`. Конфигурация сайта лежит
 в `appwrite.config.json` (framework `nextjs`, adapter `ssr`, runtime `node-22`).
 
 ### Авторизация CLI

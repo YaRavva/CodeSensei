@@ -80,9 +80,9 @@ async function moveUserRows(
 /**
  * Links an OAuth/email user to an existing profile with the same email.
  *
- * Appwrite sign-in can produce a different user ID than the ID imported from
- * Supabase. Re-keying the profile and all user-owned rows keeps progress and
- * attempts attached to the account.
+ * A sign-in method (email or OAuth) can produce a different Appwrite user ID
+ * for the same person. Re-keying the profile and all user-owned rows keeps
+ * progress and attempts attached to the account.
  */
 async function reconcileByEmail(
   user: Pick<Models.User, "$id" | "email" | "name">,

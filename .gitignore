@@ -34,9 +34,6 @@ yarn-error.log*
 # appwrite CLI session/config
 .appwrite/
 
-# vercel
-.vercel
-
 # typescript
 *.tsbuildinfo
 next-env.d.ts

@@ -18,7 +18,6 @@ Most end-user UI copy and documentation are in **Russian**; when generating user
 ## Key documentation
 
 - `docs/PRD.md` – product requirements, XP system, delivery phases
-- `docs/DATABASE_SCHEMA.md` – historical PostgreSQL schema; the live schema is Appwrite
 - `docs/APPWRITE.md` – Appwrite setup, tables, permissions, auth architecture
 - `docs/IMPROVED_AI_PROMPTS.md` – prompts and conventions for AI-generated content
 - `docs/README.md` – entrypoint into the documentation set
@@ -113,7 +112,7 @@ Student solutions run fully in the browser via Pyodide (CDN `v314.0.7`):
   with JSON test inputs and compares results.
 
 Test cases are stored as JSON strings in `tasks.test_cases` (see
-`docs/DATABASE_SCHEMA.md` for the format). Admins edit them in
+`docs/PRD.md` for the format). Admins edit them in
 `components/admin/test-cases-editor.tsx`.
 
 ### XP, levels, progress and achievements
