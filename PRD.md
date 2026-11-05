@@ -1,9 +1,9 @@
 # Product Requirements Document (PRD)
 ## CodeSensei — интерактивный Python-тренажёр для школьников
 
-**Версия:** 2.0
+**Версия:** 2.1
 **Дата:** ноябрь 2026
-**Статус:** Утверждено. Заменяет версию 1.x.
+**Статус:** Утверждено. Единый документ проекта: заменяет версию 1.x и все документы из `docs/`.
 
 > Версия 2.0 фиксирует аудит кода и контента и утверждённый план доработок:
 > обучение «с нуля», учебная программа как данные, стандарт сложности заданий,
@@ -413,8 +413,175 @@ Worker `prompt()` недоступен. Это неприемлемо.
 ---
 
 ## 14. Документация
-- `docs/PRD.md` — этот документ (источник требований).
-- `docs/APPWRITE.md` — настройка Appwrite, таблицы, права, авторизация.
-- `docs/IMPROVED_AI_PROMPTS.md` — промпты (приводятся в соответствие с разделами 6 и 8).
-- `docs/MANAGING_ACHIEVEMENTS.md` — управление достижениями.
-- `WARP.md`, `AGENTS.md` — правила для разработчиков и AI-агентов.
+- `PRD.md` (корень репозитория) — **единственный документ проекта**: требования,
+  архитектура, эксплуатация, деплой. Отдельные документы в `docs/` не ведутся.
+- `AGENTS.md` — правила для AI-агентов (блок Next.js генерирует `next dev`).
+- `.dsh/skills/*/SKILL.md` — навыки агента: `cpd` (commit → push → deploy),
+  `appwrite-sites-deploy` (процедура деплоя на Appwrite Sites).
+- При изменении ключевых потоков (auth, XP, AI, контент) этот документ
+  обновляется в том же коммите.
+
+---
+
+## 15. Архитектура кода
+
+### 15.1 Структура приложения
+- `app/layout.tsx` — корневой layout, `<html lang="ru">`, `ClientLayout`.
+- `app/(auth)/*` — вход, регистрация, восстановление пароля.
+- `app/(dashboard)/dashboard`, `leaderboard`, `achievements` — кабинет, рейтинг, достижения.
+- `app/modules` — каталог модулей, страница модуля, страница задания.
+- `app/(admin)/admin/*` — админка (CRUD модулей и заданий, AI-генерация).
+- `app/profile` — профиль.
+- `app/api/*` — все обращения к данным.
+- `proxy.ts` — проверка cookie сессии и редирект на `/login` для закрытых разделов.
+
+### 15.2 Работа с Appwrite
+Все обращения к базе — только на сервере, API-ключ не попадает в браузер.
+- `lib/appwrite/config.ts` — переменные окружения, имя cookie, ID таблиц.
+- `lib/appwrite/client.ts` — админ-клиент (API-ключ) и клиент сессии.
+- `lib/appwrite/db.ts` — типизированные помощники (`getRowOrNull`, `listRows`, `countRows`…).
+- `lib/appwrite/mappers.ts` — строка Appwrite → объект приложения (разбор JSON-колонок).
+- Репозитории: `users`, `modules`, `tasks`, `attempts`, `progress`, `achievements`,
+  `xp-events`, `hint-events`, `ai-logs`.
+- `lib/utils/auth.ts` — `requireAuth()` / `requireAdmin()` для server components;
+  `lib/appwrite/api.ts` — проверки для route handlers.
+- `lib/xp/award-task.ts` — начисление XP за задание только по серверным данным.
+- `lib/stats/user-stats.ts` — общая статистика кабинета и рейтинга.
+- `lib/utils/achievements.ts` — проверка условий достижений.
+
+### 15.3 API
+- `POST /api/auth/login|register|logout`, `GET /api/auth/me`, `GET /api/auth/oauth/{provider}`,
+  `GET /api/auth/oauth/callback`, `POST /api/auth/password-reset`.
+- `GET/POST /api/tasks/attempts` — попытки; `POST /api/tasks/award-xp` — XP по `taskId`.
+- `POST /api/tasks/evaluate`, `POST /api/ai/*` — обратная связь, подсказки, генерация.
+- `PATCH /api/profile`, `GET /api/achievements`.
+- `/api/admin/modules[/:id[/tasks]]`, `/api/admin/tasks/:id` — админский CRUD.
+
+### 15.4 Выполнение Python
+- `hooks/use-pyodide.ts` — загрузка Pyodide (CDN `v314.0.7`), перехват stdout,
+  `input()` через подготовленный ввод (раздел 7.2).
+- `lib/utils/test-runner.ts` — сборка тестового скрипта, подстановка входных
+  данных и `stdin`, сравнение результата.
+- `components/editor/*` — Monaco, поле «Ввод программы», вывод и результаты тестов.
+
+---
+
+## 16. Эксплуатация
+
+### 16.1 Переменные окружения
+`.env.local` (в `.gitignore`, в git не попадает):
+
+```dotenv
+APPWRITE_ENDPOINT=https://appwrite.ravva.su/v1
+APPWRITE_PROJECT_ID=...
+APPWRITE_DATABASE_ID=codesensei
+APPWRITE_API_KEY=...
+# необязательно: публичный endpoint для OAuth-редиректов
+# APPWRITE_OAUTH_ENDPOINT=https://appwrite.ravva.su/v1
+NEXT_PUBLIC_APPWRITE_ENDPOINT=https://appwrite.ravva.su/v1
+NEXT_PUBLIC_APPWRITE_PROJECT_ID=...
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
+OMNIROUTE_BASE_URL=...
+OMNIROUTE_API_KEY=...
+OMNIROUTE_MODEL=...
+# необязательно: OMNIROUTE_MAX_OUTPUT_TOKENS=8192, OMNIROUTE_MAX_INPUT_CHARS=100000
+```
+
+Права API-ключа: `databases.read/write`, `tables.read/write`, `rows.read/write`,
+`users.read/write`, `sessions.write`; для деплоя — `sites.read/write`.
+
+На сервере сайт **не читает** `.env.local`: те же переменные заданы как
+переменные Appwrite Site `codesensei` (секретные, значения не читаются через API).
+При смене ключа обновляется и переменная сайта, затем выполняется деплой.
+
+### 16.2 Команды
+
+```bash
+pnpm install          # зависимости (локально)
+pnpm dev              # dev-сервер (управляет пользователь)
+pnpm typecheck        # tsc --noEmit
+pnpm build            # продакшн-сборка
+pnpm lint             # Biome
+pnpm appwrite:setup   # база, таблицы, колонки, индексы (идемпотентно, только добавляет)
+pnpm appwrite:seed    # достижения ach_* (upsert), демо-контент (только если пусто)
+```
+
+На сервере зависимости ставит `npm install --legacy-peer-deps` по
+`package-lock.json`, поэтому lock-файл держится в соответствии с `package.json`
+(`npm install --package-lock-only --legacy-peer-deps`).
+
+### 16.3 Модель данных
+База `codesensei` (TablesDB). Таблицы без клиентских прав, доступ только по ключу.
+
+| Таблица | Назначение |
+|---|---|
+| `users` | профиль (id = Appwrite user id), роль, XP, уровень |
+| `modules` | учебные модули |
+| `tasks` | задания: тесты и подсказки — JSON-строки |
+| `user_progress` | прогресс по модулю, уникальный индекс `(user_id, module_id)` |
+| `task_attempts` | попытки решения |
+| `achievements` | справочник достижений |
+| `user_achievements` | выданные достижения, уникальный индекс `(user_id, achievement_id)` |
+| `xp_events` | журнал начислений XP, уникальный индекс `(user_id, source_type, source_id)` |
+| `hint_events` | журнал AI-подсказок (лимиты, влияние на XP) |
+| `ai_generation_logs` | учёт AI-генераций |
+
+Особенности Appwrite 1.9: JSON-поля хранятся строками в `mediumtext` и
+разбираются в `mappers.ts`; колонки `varchar/text/mediumtext/enum/email`
+создаются отдельными вызовами; `created_at/updated_at` берутся из
+`$createdAt/$updatedAt`, кроме доменных дат.
+
+### 16.4 Аутентификация и роли
+- Сервер создаёт сессию через SDK и кладёт секрет в HttpOnly cookie
+  `a_session_<PROJECT_ID>`; профиль создаётся при первом входе (`ensureUserProfile`).
+- OAuth Google/GitHub: `/api/auth/oauth/{provider}` → провайдер → callback Appwrite
+  → `/api/auth/oauth/callback` (`userId`, `secret`) → сессия → `ensureUserProfile()`;
+  `reconcileByEmail()` переносит данные, если у OAuth-аккаунта новый ID.
+  Callback у провайдеров: `https://appwrite.ravva.su/v1/account/sessions/oauth2/callback/{google|github}/<PROJECT_ID>`.
+  OAuth ходит через **публичный** endpoint (`APPWRITE_OAUTH_ENDPOINT` или
+  `NEXT_PUBLIC_APPWRITE_ENDPOINT`).
+- Восстановление пароля требует SMTP в Appwrite.
+- Роль — `users.role` (`student | teacher | admin`), меняется в Appwrite Console.
+
+### 16.5 Деплой (Appwrite Sites)
+Подробная процедура — навык `.dsh/skills/appwrite-sites-deploy/SKILL.md`. Кратко:
+1. `pnpm typecheck` и `pnpm build` без ошибок; сломанную сборку не деплоим.
+2. Staging только из исходников (`scripts/prepare-stage.mjs`): `app`, `components`,
+   `hooks`, `lib`, `types`, `public`, `scripts/appwrite`, `package.json`,
+   `package-lock.json`, `next.config.ts`, `postcss.config.js`, `tailwind.config.ts`,
+   `tsconfig.json`, `components.json`, `appwrite.config.json`, `proxy.ts`,
+   `next-env.d.ts`. **Без** `node_modules`, `.next`, `.env*`, `.git`
+   (архив ≈ 230 КБ). Без `postcss.config.js` стили на проде ломаются.
+3. `appwrite sites create-deployment --site-id codesensei --activate true --code <staging>`
+   (или SDK `sites.createDeployment`). Сборка на сервере ≈ 2–3 мин.
+4. Проверка: `/`, `/login`, `/register` → 200; закрытые разделы → редирект на `/login`.
+5. Откат: `appwrite sites update-site-deployment --site-id codesensei --deployment-id <id>`.
+
+Домен: `https://codesensei.ravva.su`. Сайт должен обращаться к Appwrite через
+`https://appwrite.ravva.su/v1` (Tailscale-адрес из контейнера недоступен).
+
+Правило работы: после каждого изменения кода — commit и push в `main`;
+деплой — по команде пользователя (навык `cpd`).
+
+---
+
+## 17. Управление достижениями
+- Хранятся в таблице `achievements`; изменения в БД видны сразу, без деплоя.
+- Стандартный набор — `scripts/appwrite/seed.mjs` (ID `ach_*`, upsert).
+- `icon_name`: эмодзи (рендер через Twemoji, запасной — нативный эмодзи) или имя
+  иконки Lucide (`Award`, `BookCheck`, `BookOpen`, `Brain`, `Crown`, `Flame`,
+  `GraduationCap`, `Lightbulb`, `Medal`, `Moon`, `Rocket`, `Sparkles`, `Star`,
+  `Sunrise`, `Target`, `Trophy`, `Zap`); пустое значение → 🏆.
+- Поля: `title`, `description`, `icon_name`, `xp_reward`, `condition_type`,
+  `condition_value` (JSON), `is_active`.
+
+---
+
+## 18. UI: Tailwind CSS 4 + shadcn/ui
+- Токены темы — в `app/globals.css` (`:root`, `.dark`, `@theme inline`), цвета в
+  `oklch(...)`; тёмная тема — класс `dark` на `<html>` (`ThemeProvider`, `ThemeToggle`).
+- Компоненты shadcn — в `components/ui/*` (`pnpm dlx shadcn@latest add ...`).
+- Только токен-классы (`bg-background`, `bg-card`, `bg-primary`, `text-muted-foreground`,
+  `border-border`); запрещены hex/rgb в классах, `hsl(var(--...))`, ручной фон страницы,
+  shadcn-токены в `theme.extend.colors`.
+- Проверять страницы в светлой и тёмной темах.

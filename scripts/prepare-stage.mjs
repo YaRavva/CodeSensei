@@ -1,8 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const repo = 'C:/Users/Ravva/CodeSensei';
-const stage = 'C:/Users/Ravva/CodeSensei-deploy';
+// Repo = current directory; staging = STAGE_DIR or ../CodeSensei-deploy next to the repo.
+const repo = process.cwd();
+const stage = process.env.STAGE_DIR || path.resolve(repo, '..', 'CodeSensei-deploy');
 
 function copyRecursiveSync(src, dest) {
   if (!fs.existsSync(src)) return;
@@ -33,7 +34,7 @@ for (const d of dirs) {
   copyRecursiveSync(path.join(repo, d), path.join(stage, d));
 }
 
-const scriptDirs = ['appwrite', 'migrate'];
+const scriptDirs = ['appwrite'];
 for (const s of scriptDirs) {
   console.log(`Copying script dir: ${s}`);
   copyRecursiveSync(path.join(repo, 'scripts', s), path.join(stage, 'scripts', s));
@@ -48,8 +49,7 @@ const files = [
   'tsconfig.json',
   'appwrite.config.json',
   'proxy.ts',
-  'biome.json',
-  'components.json',
+    'components.json',
   'next-env.d.ts'
 ];
 

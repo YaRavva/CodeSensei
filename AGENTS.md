@@ -11,4 +11,6 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 ## Deployment & Long-Running Tasks Rule
 - Never block the user waiting synchronously for long-running commands like remote Appwrite deployments.
 - Always execute long-running builds or deployments asynchronously using `background_command` or report the process initiation so the user can verify completion independently.
-- Commit, push и deploy выполняются строго по прямой команде пользователя.
+- После каждого изменения кода — commit и push в `main` (секреты и `.env*` не коммитить).
+- Deploy — по команде пользователя, по навыку `.dsh/skills/appwrite-sites-deploy`.
+- Требования, архитектура и эксплуатация — в едином `PRD.md`; новые документы в `docs/` не создавать.
