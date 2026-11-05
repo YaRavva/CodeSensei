@@ -8,6 +8,7 @@ import {
   OMNIROUTE_MAX_OUTPUT_TOKENS,
   OmnirouteError,
 } from "@/lib/ai/omniroute";
+import { checkHintLimit, logHintEvent } from "@/lib/appwrite/hint-events";
 import { getTask } from "@/lib/appwrite/tasks";
 import { getAuthContext } from "@/lib/utils/auth";
 import { buildHintPrompt, parseHintResponse } from "@/lib/prompts";
@@ -22,6 +23,12 @@ export async function POST(req: NextRequest) {
     if (!taskId) return NextResponse.json({ error: "taskId is required" }, { status: 400 });
 
     const task = await getTask(String(taskId));
+    if (!task) return NextResponse.json({ error: "Задание не найдено" }, { status: 404 });
+
+    const limit = await checkHintLimit(context.user.$id, task.id);
+    if (!limit.allowed) {
+      return NextResponse.json({ error: limit.error }, { status: 429 });
+    }
 
     const typedTask = task as { title: string; description: string; task_type?: string } | null;
     const taskType = typedTask?.task_type === "function" || typedTask?.task_type === "class"
@@ -57,6 +64,9 @@ export async function POST(req: NextRequest) {
       }
       throw error;
     }
+
+    // A hint counts as used once it was delivered; it lowers the XP for the task.
+    await logHintEvent(context.user.$id, task.id);
 
     const parsed = parseHintResponse(content);
     return NextResponse.json({ success: true, hint: parsed });

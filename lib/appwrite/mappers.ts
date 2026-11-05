@@ -1,4 +1,5 @@
 import type { AppwriteRow } from "@/lib/appwrite/db";
+import { calculateLevel } from "@/lib/utils/levels";
 import type {
   Achievement,
   AiGenerationLog,
@@ -48,7 +49,9 @@ export function toUserProfile(row: Row): UserProfile {
     role: (data.role as string) || "student",
     avatar_url: (data.avatar_url as string | null) ?? null,
     total_xp: Number(data.total_xp ?? 0),
-    current_level: Number(data.current_level ?? 1),
+    // The level is always derived from XP so every page shows the same value,
+    // even if the stored column is stale.
+    current_level: calculateLevel(Number(data.total_xp ?? 0)),
     created_at: data.created_at as string,
     last_active_at: (data.last_active_at as string | null) ?? null,
   };

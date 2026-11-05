@@ -6,6 +6,7 @@ import {
   hasSuccessfulAttempt,
   listAttemptsForTasks,
 } from "@/lib/appwrite/attempts";
+import { hasUsedHint } from "@/lib/appwrite/hint-events";
 import { getTask } from "@/lib/appwrite/tasks";
 import type { Json } from "@/types/db";
 
@@ -51,9 +52,11 @@ export async function POST(request: Request) {
   }
 
   const isSuccessful = Boolean(body.isSuccessful);
-  const [attemptNumber, hadSuccess] = await Promise.all([
+  // Hint usage comes from server-side hint events, not from the request.
+  const [attemptNumber, hadSuccess, usedAiHint] = await Promise.all([
     countTaskAttempts(auth.userId, taskId),
     hasSuccessfulAttempt(auth.userId, taskId),
+    hasUsedHint(auth.userId, taskId),
   ]);
 
   const attempt = await createTaskAttempt({
@@ -62,7 +65,7 @@ export async function POST(request: Request) {
     code_solution: code,
     test_results: (body.testResults ?? {}) as Json,
     is_successful: isSuccessful,
-    used_ai_hint: Boolean(body.usedAiHint),
+    used_ai_hint: usedAiHint,
     execution_time_ms: body.executionTimeMs == null ? null : Number(body.executionTimeMs),
     solving_time_ms: body.solvingTimeMs == null ? null : Number(body.solvingTimeMs),
     error_message: body.errorMessage == null ? null : String(body.errorMessage),

@@ -44,6 +44,8 @@ export const TABLES = {
   achievements: "achievements",
   userAchievements: "user_achievements",
   aiLogs: "ai_generation_logs",
+  xpEvents: "xp_events",
+  hintEvents: "hint_events",
 } as const;
 
 export function assertAppwriteConfig(): void {

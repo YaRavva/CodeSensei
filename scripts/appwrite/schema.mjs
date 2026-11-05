@@ -198,6 +198,42 @@ export const tables = [
     ],
   },
   {
+    id: "xp_events",
+    name: "XP events",
+    columns: [
+      { key: "user_id", ...ID, required: true },
+      // "task" | "achievement" | "adjustment"
+      { key: "source_type", ...SHORT, required: true },
+      { key: "source_id", ...SHORT, required: true },
+      { key: "amount", ...INT, required: true },
+      { key: "details", ...TEXT, required: false },
+      { key: "created_at", type: "datetime", required: true },
+    ],
+    indexes: [
+      {
+        // One award per task/achievement per user: makes XP awards idempotent.
+        key: "idx_xp_events_unique",
+        type: "unique",
+        columns: ["user_id", "source_type", "source_id"],
+      },
+      { key: "idx_xp_events_user", type: "key", columns: ["user_id", "created_at"] },
+      { key: "idx_xp_events_created", type: "key", columns: ["created_at"] },
+    ],
+  },
+  {
+    id: "hint_events",
+    name: "AI hint events",
+    columns: [
+      { key: "user_id", ...ID, required: true },
+      { key: "task_id", ...ID, required: true },
+      { key: "created_at", type: "datetime", required: true },
+    ],
+    indexes: [
+      { key: "idx_hint_events_user_task", type: "key", columns: ["user_id", "task_id", "created_at"] },
+      { key: "idx_hint_events_user", type: "key", columns: ["user_id", "created_at"] },
+    ],
+  },
+  {
     id: "ai_generation_logs",
     name: "AI generation logs",
     columns: [
