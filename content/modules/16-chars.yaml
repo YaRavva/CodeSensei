@@ -1,0 +1,257 @@
+id: m10a_chars
+topic: У каждого символа есть числовой код — ord() и chr(), сдвиг букв и шифр Цезаря.
+theory: |
+  Компьютер хранит символы как числа. У каждого символа есть **код** в таблице Unicode: у `A` — 65, у `a` — 97, у пробела — 32.
+
+  ## ord и chr
+
+  `ord(символ)` возвращает код символа, `chr(код)` — символ по коду.
+
+  ```python
+  print(ord("A"), ord("a"), ord("b"))
+  print(chr(66), chr(122))
+  ```
+
+  Результат:
+
+  ```text
+  65 97 98
+  B z
+  ```
+
+  ## Буквы идут подряд
+
+  Латинские буквы `a`…`z` стоят в таблице подряд, поэтому с кодами можно считать: номер буквы в алфавите — `ord(c) - ord("a") + 1`, а следующая буква — `chr(ord(c) + 1)`.
+
+  ```python
+  c = "d"
+  print(ord(c) - ord("a") + 1)
+  print(chr(ord(c) + 1))
+  print("a" <= c <= "z")
+  ```
+
+  Результат:
+
+  ```text
+  4
+  e
+  True
+  ```
+
+  Строки сравниваются по кодам символов, поэтому `"a" <= c <= "z"` проверяет, что `c` — строчная латинская буква.
+
+  ## Сдвиг по кругу
+
+  Чтобы после `z` снова шла `a`, используют остаток от деления на 26 — число букв в алфавите.
+
+  ```python
+  c = "y"
+  shift = 3
+  position = (ord(c) - ord("a") + shift) % 26
+  print(chr(ord("a") + position))
+  ```
+
+  Результат:
+
+  ```text
+  b
+  ```
+tasks:
+  - slug: t1
+    title: Код символа
+    difficulty: easy
+    mode: variable
+    description: |
+      Сохраните в `result` код символа `ch`.
+
+      **Что уже есть:** переменная `ch` — один символ.
+
+      **Пример:** для `ch = "A"` в `result`:
+
+      ```text
+      65
+      ```
+
+      **Как проверим:** посмотрим `result` для букв, цифр и знаков.
+    starter: |
+      ch = "A"  # при проверке подставим другой символ
+      # Узнайте код символа
+    solution: |
+      result = ord(ch)
+    hints:
+      - Какая функция превращает символ в число?
+      - Запишите result = ord(ch).
+      - 'Пример: ord("a") даёт 97'
+    tests:
+      - description: A
+        input: { ch: A }
+        expected: 65
+        visible: true
+      - description: Цифра 0
+        input: { ch: "0" }
+        expected: 48
+      - description: Пробел
+        input: { ch: " " }
+        expected: 32
+
+  - slug: t2
+    title: Следующая буква
+    difficulty: easy
+    mode: variable
+    description: |
+      Сохраните в `result` символ, который идёт в таблице кодов сразу после `ch`.
+
+      **Что уже есть:** переменная `ch`. При проверке это не `z`.
+
+      **Пример:** для `ch = "c"` в `result`:
+
+      ```text
+      d
+      ```
+
+      **Как проверим:** посмотрим `result` для разных символов.
+    starter: |
+      ch = "c"  # при проверке подставим другой символ
+      # Код + 1, затем обратно в символ
+    solution: |
+      result = chr(ord(ch) + 1)
+    hints:
+      - Как получить код следующего символа и как превратить его обратно в символ?
+      - Возьмите ord(ch) + 1 и передайте в chr().
+      - 'Пример: chr(ord("x") - 1) даёт w'
+    tests:
+      - description: c
+        input: { ch: c }
+        expected: d
+        visible: true
+      - description: A
+        input: { ch: A }
+        expected: B
+      - description: "5"
+        input: { ch: "5" }
+        expected: "6"
+
+  - slug: t3
+    title: Номера букв
+    difficulty: medium
+    mode: variable
+    description: |
+      Сохраните в `result` список номеров букв слова `word` в латинском алфавите: `a` — 1, `b` — 2, …, `z` — 26.
+
+      **Что уже есть:** слово `word` из строчных латинских букв.
+
+      **Пример:** для `word = "cab"` в `result`:
+
+      ```text
+      [3, 1, 2]
+      ```
+
+      **Как проверим:** посмотрим `result` для разных слов.
+    starter: |
+      word = "cab"  # при проверке подставим другое слово
+      # Для каждой буквы вычислите её номер через ord
+    solution: |
+      result = []
+      for c in word:
+          result.append(ord(c) - ord("a") + 1)
+    hints:
+      - Если коды букв идут подряд, как из кода буквы получить её номер?
+      - Номер — ord(c) - ord("a") + 1. Добавляйте его в result для каждой буквы.
+      - 'Пример из теории: ord("d") - ord("a") + 1 даёт 4'
+    tests:
+      - description: cab
+        input: { word: cab }
+        expected: [3, 1, 2]
+        visible: true
+      - description: z
+        input: { word: z }
+        expected: [26]
+      - description: python
+        input: { word: python }
+        expected: [16, 25, 20, 8, 15, 14]
+
+  - slug: t4
+    title: Большие буквы без upper()
+    difficulty: medium
+    mode: variable
+    description: |
+      Сохраните в `result` строку `text`, в которой все строчные латинские буквы заменены заглавными. Метод `upper()` не используйте. Остальные символы не меняйте.
+
+      **Что уже есть:** строка `text`. Код заглавной буквы на 32 меньше кода строчной.
+
+      **Пример:** для `text = "Hi, bob!"` в `result`:
+
+      ```text
+      HI, BOB!
+      ```
+
+      **Как проверим:** посмотрим `result` для разных строк.
+    starter: |
+      text = "Hi, bob!"  # при проверке подставим другую строку
+      # Собирайте новую строку символ за символом
+    solution: |
+      result = ""
+      for c in text:
+          if "a" <= c <= "z":
+              result += chr(ord(c) - 32)
+          else:
+              result += c
+    hints:
+      - Как проверить, что символ — строчная латинская буква, и как получить её заглавную пару?
+      - Для c с "a" <= c <= "z" добавляйте chr(ord(c) - 32), иначе добавляйте c без изменений.
+      - 'Пример: chr(ord("b") - 32) даёт B'
+    tests:
+      - description: Hi, bob!
+        input: { text: "Hi, bob!" }
+        expected: HI, BOB!
+        visible: true
+      - description: Уже заглавные
+        input: { text: ABC }
+        expected: ABC
+      - description: С цифрами
+        input: { text: "room 42b" }
+        expected: ROOM 42B
+
+  - slug: t5
+    title: Шифр Цезаря
+    difficulty: hard
+    mode: variable
+    description: |
+      Зашифруйте строку `text` шифром Цезаря: каждую строчную латинскую букву сдвиньте на `shift` позиций вперёд по алфавиту по кругу (после `z` идёт `a`). Остальные символы не меняйте. Результат сохраните в `result`.
+
+      **Что уже есть:** строка `text` и сдвиг `shift` от 0 до 25.
+
+      **Пример:** для `text = "hello, xyz"` и `shift = 3` в `result`:
+
+      ```text
+      khoor, abc
+      ```
+
+      **Как проверим:** посмотрим `result` для разных строк и сдвигов.
+    starter: |
+      text = "hello, xyz"  # при проверке подставим другие данные
+      shift = 3
+      # Номер буквы + сдвиг, остаток от деления на 26
+    solution: |
+      result = ""
+      for c in text:
+          if "a" <= c <= "z":
+              position = (ord(c) - ord("a") + shift) % 26
+              result += chr(ord("a") + position)
+          else:
+              result += c
+    hints:
+      - Как сделать, чтобы после z снова начиналась a?
+      - Для буквы посчитайте position = (ord(c) - ord("a") + shift) % 26 и добавьте chr(ord("a") + position). Остальные символы добавляйте как есть.
+      - 'Пример из теории: (ord("y") - ord("a") + 3) % 26 даёт 1, это буква b'
+    tests:
+      - description: hello, xyz
+        input: { text: "hello, xyz", shift: 3 }
+        expected: khoor, abc
+        visible: true
+      - description: Сдвиг 0
+        input: { text: abc, shift: 0 }
+        expected: abc
+      - description: Сдвиг 13
+        input: { text: "python 3", shift: 13 }
+        expected: clguba 3

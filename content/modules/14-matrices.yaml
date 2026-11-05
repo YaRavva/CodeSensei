@@ -1,0 +1,279 @@
+id: m09b_matrices
+topic: Список списков как таблица — строки, столбцы, обход двумя циклами.
+theory: |
+  Таблицу удобно хранить как **список списков**: каждый внутренний список — одна строка. Такие списки называют двумерными, или матрицами.
+
+  ## Строки и элементы
+
+  `table[i]` — строка с номером `i`, `table[i][j]` — элемент в строке `i` и столбце `j`. Нумерация, как обычно, с нуля.
+
+  ```python
+  table = [
+      [1, 2, 3],
+      [4, 5, 6],
+  ]
+  print(table[1])
+  print(table[1][2])
+  print(len(table), len(table[0]))
+  ```
+
+  Результат:
+
+  ```text
+  [4, 5, 6]
+  6
+  2 3
+  ```
+
+  `len(table)` — число строк, `len(table[0])` — число столбцов.
+
+  ## Обход таблицы
+
+  Внешний цикл идёт по строкам, внутренний — по элементам строки.
+
+  ```python
+  marks = [[5, 4], [3, 5], [4, 4]]
+  for row in marks:
+      line = ""
+      for mark in row:
+          line += str(mark) + " "
+      print(line)
+  ```
+
+  Результат:
+
+  ```text
+  5 4
+  3 5
+  4 4
+  ```
+
+  ## Обход по индексам
+
+  Если нужны номера строки и столбца — перебирайте индексы.
+
+  ```python
+  grid = [[0, 1], [1, 0]]
+  for i in range(len(grid)):
+      for j in range(len(grid[i])):
+          if grid[i][j] == 1:
+              print("единица в", i, j)
+  ```
+
+  Результат:
+
+  ```text
+  единица в 0 1
+  единица в 1 0
+  ```
+tasks:
+  - slug: t1
+    title: Сумма всей таблицы
+    difficulty: easy
+    mode: variable
+    description: |
+      Посчитайте сумму всех чисел таблицы `table` и сохраните её в `result`.
+
+      **Что уже есть:** таблица `table` — список строк с числами.
+
+      **Пример:** для `[[1, 2], [3, 4]]` в `result`:
+
+      ```text
+      10
+      ```
+
+      **Как проверим:** посмотрим `result` для таблиц разного размера.
+    starter: |
+      table = [[1, 2], [3, 4]]  # при проверке подставим другую таблицу
+      # Обойдите все строки и все числа в них
+    solution: |
+      result = 0
+      for row in table:
+          for x in row:
+              result += x
+    hints:
+      - Сколько циклов нужно, чтобы добраться до каждого числа?
+      - Внешний цикл по строкам row, внутренний — по числам x в строке, result += x.
+      - 'Пример из теории: for row in marks: for mark in row: ...'
+    tests:
+      - description: 2 × 2
+        input: { table: [[1, 2], [3, 4]] }
+        expected: 10
+        visible: true
+      - description: Одна строка
+        input: { table: [[5, 5, 5]] }
+        expected: 15
+      - description: С отрицательными
+        input: { table: [[1, -1], [2, -2], [3, 0]] }
+        expected: 3
+
+  - slug: t2
+    title: Суммы по строкам
+    difficulty: easy
+    mode: variable
+    description: |
+      Сохраните в `result` список сумм каждой строки таблицы `table`.
+
+      **Что уже есть:** таблица `table`.
+
+      **Пример:** для `[[1, 2, 3], [4, 5, 6]]` в `result`:
+
+      ```text
+      [6, 15]
+      ```
+
+      **Как проверим:** посмотрим `result` для разных таблиц.
+    starter: |
+      table = [[1, 2, 3], [4, 5, 6]]  # при проверке подставим другую таблицу
+      # Для каждой строки добавьте её сумму в result
+    solution: |
+      result = []
+      for row in table:
+          result.append(sum(row))
+    hints:
+      - Строка таблицы — обычный список. Какая функция считает сумму списка?
+      - Начните с result = [], для каждой строки row добавьте sum(row).
+      - 'Пример: lengths.append(len(word))'
+    tests:
+      - description: 2 строки
+        input: { table: [[1, 2, 3], [4, 5, 6]] }
+        expected: [6, 15]
+        visible: true
+      - description: 3 строки
+        input: { table: [[0], [10], [-5]] }
+        expected: [0, 10, -5]
+      - description: Оценки
+        input: { table: [[5, 4, 5], [3, 3]] }
+        expected: [14, 6]
+
+  - slug: t3
+    title: Самая высокая точка
+    difficulty: medium
+    mode: variable
+    description: |
+      В таблице `heights` записаны высоты участков карты. Найдите наибольшую высоту и сохраните в `result` её координаты — список `[строка, столбец]`. Если наибольших несколько, нужна первая при обходе строк сверху вниз и слева направо.
+
+      **Что уже есть:** таблица `heights`.
+
+      **Пример:** для `[[3, 8, 1], [9, 2, 9]]` в `result`:
+
+      ```text
+      [1, 0]
+      ```
+
+      **Как проверим:** посмотрим `result` для разных карт.
+    starter: |
+      heights = [[3, 8, 1], [9, 2, 9]]  # при проверке подставим другую карту
+      # Обходите таблицу по индексам и запоминайте координаты лучшей клетки
+    solution: |
+      result = [0, 0]
+      for i in range(len(heights)):
+          for j in range(len(heights[i])):
+              if heights[i][j] > heights[result[0]][result[1]]:
+                  result = [i, j]
+    hints:
+      - Что нужно хранить, чтобы потом сравнивать с текущей клеткой, — значение или координаты?
+      - Начните с result = [0, 0]. Перебирайте i и j по индексам; если heights[i][j] больше высоты в клетке result, запишите result = [i, j].
+      - 'Пример из теории: for i in range(len(grid)): for j in range(len(grid[i])): ...'
+    tests:
+      - description: Две вершины
+        input: { heights: [[3, 8, 1], [9, 2, 9]] }
+        expected: [1, 0]
+        visible: true
+      - description: В углу
+        input: { heights: [[1, 2], [3, 4]] }
+        expected: [1, 1]
+      - description: Одна строка
+        input: { heights: [[5, 7, 6]] }
+        expected: [0, 1]
+
+  - slug: t4
+    title: Повернуть таблицу
+    difficulty: medium
+    mode: variable
+    description: |
+      Сохраните в `result` транспонированную таблицу: строки `table` становятся столбцами. Элемент `table[i][j]` должен оказаться в `result[j][i]`.
+
+      **Что уже есть:** таблица `table`, все строки одной длины.
+
+      **Пример:** для `[[1, 2, 3], [4, 5, 6]]` в `result`:
+
+      ```text
+      [[1, 4], [2, 5], [3, 6]]
+      ```
+
+      **Как проверим:** посмотрим `result` для разных таблиц.
+    starter: |
+      table = [[1, 2, 3], [4, 5, 6]]  # при проверке подставим другую таблицу
+      # Для каждого столбца j соберите новую строку
+    solution: |
+      result = []
+      for j in range(len(table[0])):
+          column = []
+          for row in table:
+              column.append(row[j])
+          result.append(column)
+    hints:
+      - Из каких элементов состоит первая строка результата?
+      - Внешний цикл по номерам столбцов j, внутри соберите column из row[j] каждой строки и добавьте column в result.
+      - 'Пример сбора столбца: for row in table: column.append(row[0])'
+    tests:
+      - description: 2 × 3
+        input: { table: [[1, 2, 3], [4, 5, 6]] }
+        expected: [[1, 4], [2, 5], [3, 6]]
+        visible: true
+      - description: Одна строка
+        input: { table: [[7, 8]] }
+        expected: [[7], [8]]
+      - description: Квадрат
+        input: { table: [[1, 2], [3, 4]] }
+        expected: [[1, 3], [2, 4]]
+
+  - slug: t5
+    title: Крестики-нолики
+    difficulty: hard
+    mode: variable
+    description: |
+      Поле 3 × 3 записано в `board`: в клетках `X`, `O` или `.`. Сохраните в `result` победителя — `X` или `O`, если у него три в ряд по строке, столбцу или диагонали. Если победителя нет, `result = "ничья"`.
+
+      **Что уже есть:** поле `board`. Победитель на поле не больше одного.
+
+      **Пример:** для поля `[["X", "O", "."], ["X", "O", "."], ["X", ".", "O"]]` в `result`:
+
+      ```text
+      X
+      ```
+
+      **Как проверим:** подставим победы по строке, столбцу, диагонали и поле без победителя.
+    starter: |
+      board = [["X", "O", "."], ["X", "O", "."], ["X", ".", "O"]]  # при проверке подставим другое поле
+      # Соберите все 8 линий и проверьте каждую
+    solution: |
+      result = "ничья"
+      lines = []
+      for i in range(3):
+          lines.append(board[i])
+          lines.append([board[0][i], board[1][i], board[2][i]])
+      lines.append([board[0][0], board[1][1], board[2][2]])
+      lines.append([board[0][2], board[1][1], board[2][0]])
+      for line in lines:
+          if line[0] != "." and line[0] == line[1] and line[1] == line[2]:
+              result = line[0]
+    hints:
+      - Сколько всего линий, в которых можно собрать три в ряд? Как проверить одну линию?
+      - Соберите в список lines 3 строки, 3 столбца и 2 диагонали. Линия выигрышная, если её первый символ не "." и все три символа равны.
+      - 'Пример столбца: [board[0][1], board[1][1], board[2][1]]'
+    tests:
+      - description: Столбец X
+        input: { board: [[X, O, .], [X, O, .], [X, ., O]] }
+        expected: X
+        visible: true
+      - description: Диагональ O
+        input: { board: [[O, X, X], [., O, X], [X, ., O]] }
+        expected: O
+      - description: Строка O
+        input: { board: [[X, X, .], [O, O, O], [X, ., X]] }
+        expected: O
+      - description: Нет победителя
+        input: { board: [[X, O, X], [X, O, O], [O, X, X]] }
+        expected: ничья

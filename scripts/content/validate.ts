@@ -30,6 +30,8 @@ const LIMITS = {
 const EXTRA_LINES = { linear: 0, function: 1, class: 4 } as const;
 const ORDER = { easy: 0, medium: 1, hard: 2 } as const;
 
+const orderOf = (id: string) => getCurriculumModule(id)?.order ?? 0;
+
 type Py = Awaited<ReturnType<typeof loadPyodide>>;
 
 function logicLines(code: string, type: "linear" | "function" | "class"): number {
@@ -100,8 +102,8 @@ async function validateTask(py: Py, module: ContentModule, task: ContentTask, er
 
   const tests = toTestCases(module, task.slug);
   if (tests.length < 2 && !(module.id === "m01_print")) errors.push(`${where}: нужно 2–4 теста`);
-  if (task.mode === "stdout" && /\bresult\s*=/.test(task.solution) && curriculum.order < 8) {
-    errors.push(`${where}: переменная result используется раньше модуля 8`);
+  if (task.mode === "stdout" && /\bresult\s*=/.test(task.solution) && curriculum.order < orderOf("m08_for")) {
+    errors.push(`${where}: переменная result используется раньше модуля «Цикл for»`);
   }
 
   const solved = await runTestSuite(task.solution, tests, py, type);
@@ -116,7 +118,7 @@ async function validateTask(py: Py, module: ContentModule, task: ContentTask, er
   if (type === "linear" && /^\s*def\s/m.test(task.solution)) errors.push(`${where}: def в линейном задании`);
 
   const lines = logicLines(task.solution, type);
-  const loopBonus = task.difficulty === "easy" && curriculum.order >= 5 ? 1 : 0;
+  const loopBonus = task.difficulty === "easy" && curriculum.order >= orderOf("m05_if") ? 1 : 0;
   if (lines > LIMITS[task.difficulty].lines + loopBonus + (type === "class" ? 6 : 0)) {
     errors.push(`${where}: решение ${lines} строк — много для ${task.difficulty} (≤ ${LIMITS[task.difficulty].lines})`);
   }

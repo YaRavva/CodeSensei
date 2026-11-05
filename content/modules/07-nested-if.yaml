@@ -1,0 +1,299 @@
+id: m06a_nested_if
+topic: Условие внутри условия, логические значения True и False, двойные сравнения.
+theory: |
+  Иногда решение принимается по шагам: сначала проверяем одно, а потом — внутри — другое. Для этого условия **вкладывают** друг в друга.
+
+  ## Условие внутри условия
+
+  Вложенный `if` пишется с дополнительным отступом. Он выполняется, только если сработало внешнее условие.
+
+  ```python
+  age = 15
+  has_ticket = True
+  if age >= 12:
+      if has_ticket:
+          print("Проходите")
+      else:
+          print("Купите билет")
+  else:
+      print("Фильм 12+")
+  ```
+
+  Результат:
+
+  ```text
+  Проходите
+  ```
+
+  ## Логические значения
+
+  Сравнение — это значение типа `bool`: `True` (истина) или `False` (ложь). Его можно вывести или сохранить в переменной и использовать в `if`.
+
+  ```python
+  temp = 25
+  is_warm = temp > 20
+  print(is_warm)
+  print(temp == 30)
+  if is_warm:
+      print("Можно без куртки")
+  ```
+
+  Результат:
+
+  ```text
+  True
+  False
+  Можно без куртки
+  ```
+
+  ## Двойное сравнение
+
+  Проверку «число между» можно записать коротко: `10 <= x <= 20` — то же, что `x >= 10 and x <= 20`.
+
+  ```python
+  x = 14
+  print(10 <= x <= 20)
+  print(1 <= x <= 9)
+  ```
+
+  Результат:
+
+  ```text
+  True
+  False
+  ```
+tasks:
+  - slug: t1
+    title: Число в диапазоне
+    difficulty: easy
+    mode: stdout
+    description: |
+      Выведите `True`, если число `x` лежит от 10 до 99 включительно (то есть двузначное положительное), иначе `False`.
+
+      **Что уже есть:** переменная `x`.
+
+      **Пример:** при `x = 42` вывод:
+
+      ```text
+      True
+      ```
+
+      **Как проверим:** подставим числа внутри диапазона, на его границах и за ними.
+    starter: |
+      x = 42  # при проверке подставим другое число
+      # Выведите результат двойного сравнения
+    solution: |
+      print(10 <= x <= 99)
+    hints:
+      - Результат сравнения уже является True или False. Нужен ли здесь if?
+      - Запишите двойное сравнение 10 <= x <= 99 прямо внутри print().
+      - 'Пример: print(1 <= day <= 7) выведет True для дня недели'
+    tests:
+      - description: "42"
+        input: { x: 42 }
+        expected: "True"
+        visible: true
+      - description: Граница 99
+        input: { x: 99 }
+        expected: "True"
+      - description: "100"
+        input: { x: 100 }
+        expected: "False"
+      - description: "9"
+        input: { x: 9 }
+        expected: "False"
+
+  - slug: t2
+    title: Идём гулять?
+    difficulty: easy
+    mode: stdout
+    description: |
+      Выведите `гуляем`, если температура `temp` не ниже 15 градусов и дождя нет (`rain` равно `False`). Иначе выведите `дома`.
+
+      **Что уже есть:** переменные `temp` (число) и `rain` (`True` или `False`).
+
+      **Пример:** при `temp = 20` и `rain = False` вывод:
+
+      ```text
+      гуляем
+      ```
+
+      **Как проверим:** подставим разные температуры и погоду.
+    starter: |
+      temp = 20  # при проверке подставим другие значения
+      rain = False
+      # Выведите гуляем или дома
+    solution: |
+      if temp >= 15 and not rain:
+          print("гуляем")
+      else:
+          print("дома")
+    hints:
+      - rain уже содержит True или False. Как проверить, что дождя нет?
+      - Объедините условия temp >= 15 и not rain через and.
+      - 'Пример: if is_open and not is_holiday: print("работаем")'
+    tests:
+      - description: Тепло и сухо
+        input: { temp: 20, rain: false }
+        expected: гуляем
+        visible: true
+      - description: Тепло, но дождь
+        input: { temp: 25, rain: true }
+        expected: дома
+      - description: Холодно
+        input: { temp: 10, rain: false }
+        expected: дома
+      - description: Ровно 15
+        input: { temp: 15, rain: false }
+        expected: гуляем
+
+  - slug: t3
+    title: Наибольшее из трёх
+    difficulty: medium
+    mode: stdout
+    description: |
+      Выведите наибольшее из трёх чисел `a`, `b` и `c`. Функцию `max()` не используйте — сравнивайте числа условиями.
+
+      **Что уже есть:** переменные `a`, `b`, `c`.
+
+      **Пример:** при `a = 4`, `b = 9`, `c = 7` вывод:
+
+      ```text
+      9
+      ```
+
+      **Как проверим:** подставим разные тройки, в том числе с одинаковыми числами.
+    starter: |
+      a = 4  # при проверке подставим другие числа
+      b = 9
+      c = 7
+      # Найдите наибольшее число
+    solution: |
+      if a >= b:
+          if a >= c:
+              print(a)
+          else:
+              print(c)
+      else:
+          if b >= c:
+              print(b)
+          else:
+              print(c)
+    hints:
+      - Сначала сравните a и b. Кого из победителя этой пары нужно сравнить с c?
+      - Внешний if a >= b, внутри него сравните a с c; в else сравните b с c.
+      - 'Пример для двух чисел: if a >= b: print(a) else: print(b)'
+    tests:
+      - description: 4, 9, 7
+        input: { a: 4, b: 9, c: 7 }
+        expected: "9"
+        visible: true
+      - description: Наибольшее первое
+        input: { a: 10, b: 2, c: 3 }
+        expected: "10"
+      - description: Наибольшее последнее
+        input: { a: 1, b: 2, c: 3 }
+        expected: "3"
+      - description: Одинаковые
+        input: { a: 5, b: 5, c: 5 }
+        expected: "5"
+
+  - slug: t4
+    title: Вход на сайт
+    difficulty: medium
+    mode: stdout
+    description: |
+      Проверьте логин и пароль. Если логин не `admin`, выведите `нет такого пользователя`. Если логин верный, но пароль не `qwerty`, выведите `неверный пароль`. Если всё верно — `добро пожаловать`.
+
+      **Что уже есть:** переменные `login` и `password`.
+
+      **Пример:** при `login = "admin"` и `password = "123"` вывод:
+
+      ```text
+      неверный пароль
+      ```
+
+      **Как проверим:** подставим все три случая.
+    starter: |
+      login = "admin"  # при проверке подставим другие значения
+      password = "123"
+      # Сначала проверьте логин, внутри — пароль
+    solution: |
+      if login == "admin":
+          if password == "qwerty":
+              print("добро пожаловать")
+          else:
+              print("неверный пароль")
+      else:
+          print("нет такого пользователя")
+    hints:
+      - Какую проверку нужно сделать первой, чтобы понять, есть ли вообще такой пользователь?
+      - Внешний if проверяет login == "admin". Внутри него второй if проверяет пароль.
+      - 'Пример из теории: if age >= 12: if has_ticket: ... else: ...'
+    tests:
+      - description: Неверный пароль
+        input: { login: admin, password: "123" }
+        expected: неверный пароль
+        visible: true
+      - description: Всё верно
+        input: { login: admin, password: qwerty }
+        expected: добро пожаловать
+      - description: Чужой логин
+        input: { login: guest, password: qwerty }
+        expected: нет такого пользователя
+
+  - slug: t5
+    title: Сколько корней у уравнения
+    difficulty: hard
+    mode: stdout
+    description: |
+      Для уравнения `a·x² + b·x + c = 0` выведите число корней: `2`, `1` или `0`. Если `a = 0`, уравнение линейное: при `b ≠ 0` корень один; при `b = 0` и `c = 0` выведите `бесконечно`, а при `b = 0` и `c ≠ 0` — `0`.
+
+      **Что уже есть:** переменные `a`, `b`, `c`. Дискриминант: `d = b * b - 4 * a * c`.
+
+      **Пример:** при `a = 1`, `b = -3`, `c = 2` вывод:
+
+      ```text
+      2
+      ```
+
+      **Как проверим:** подставим квадратные и линейные уравнения.
+    starter: |
+      a = 1  # при проверке подставим другие коэффициенты
+      b = -3
+      c = 2
+      # Сначала разберите случай a == 0, потом посчитайте дискриминант
+    solution: |
+      if a == 0:
+          if b != 0:
+              print(1)
+          elif c == 0:
+              print("бесконечно")
+          else:
+              print(0)
+      else:
+          d = b * b - 4 * a * c
+          if d > 0:
+              print(2)
+          elif d == 0:
+              print(1)
+          else:
+              print(0)
+    hints:
+      - На какие два больших случая делится задача и что проверить внутри каждого?
+      - Внешний if a == 0. Внутри — проверки b и c. В else посчитайте d и сравните его с нулём.
+      - 'Пример знака числа: if d > 0: ... elif d == 0: ... else: ...'
+    tests:
+      - description: Два корня
+        input: { a: 1, b: -3, c: 2 }
+        expected: "2"
+        visible: true
+      - description: Один корень
+        input: { a: 1, b: 2, c: 1 }
+        expected: "1"
+      - description: Нет корней
+        input: { a: 2, b: 1, c: 5 }
+        expected: "0"
+      - description: Линейное, 0 = 0
+        input: { a: 0, b: 0, c: 0 }
+        expected: бесконечно
