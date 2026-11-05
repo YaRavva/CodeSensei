@@ -50,13 +50,22 @@ export async function getUserAchievementsDetailed(
 
   const byId = new Map(achievements.map((achievement) => [achievement.id, achievement]));
 
+  // Older duplicated definitions may still be linked to users: show each
+  // achievement title once.
+  const seenTitles = new Set<string>();
   return earned
     .map((userAchievement) => {
       const achievement = byId.get(userAchievement.achievement_id);
       if (!achievement) return null;
       return { ...achievement, earned_at: userAchievement.earned_at };
     })
-    .filter((item): item is Achievement & { earned_at: string } => item !== null);
+    .filter((item): item is Achievement & { earned_at: string } => {
+      if (item === null) return false;
+      const key = item.title.trim().toLowerCase();
+      if (seenTitles.has(key)) return false;
+      seenTitles.add(key);
+      return true;
+    });
 }
 
 export async function getAchievementsForUsers(
@@ -76,7 +85,9 @@ export async function getAchievementsForUsers(
     const achievement = byId.get(row.achievement_id);
     if (!achievement) continue;
     if (!result[row.user_id]) result[row.user_id] = [];
-    result[row.user_id].push(achievement);
+    const list = result[row.user_id];
+    const key = achievement.title.trim().toLowerCase();
+    if (!list.some((item) => item.title.trim().toLowerCase() === key)) list.push(achievement);
   }
 
   return result;
