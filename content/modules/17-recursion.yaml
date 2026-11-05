@@ -1,0 +1,293 @@
+id: m17_recursion
+topic: Функция, которая вызывает сама себя, — рекурсия, базовый случай и шаг.
+theory: |
+  **Рекурсия** — это когда функция вызывает саму себя для более простой версии задачи. Так удобно решать задачи, которые сами состоят из похожих частей.
+
+  ## Базовый случай и шаг
+
+  У любой рекурсивной функции есть две части:
+
+  - **базовый случай** — простая ситуация, где ответ известен сразу и новый вызов не нужен;
+  - **шаг** — функция вызывает себя с данными поменьше и использует результат.
+
+  Без базового случая функция будет вызывать себя бесконечно, и Python остановит программу ошибкой `RecursionError`.
+
+  ```python
+  def count_up(n):
+      if n == 0:
+          return
+      count_up(n - 1)
+      print(n)
+
+  count_up(3)
+  ```
+
+  Результат:
+
+  ```text
+  1
+  2
+  3
+  ```
+
+  ## Рекурсия возвращает значение
+
+  Сумма чисел от 1 до `n` — это `n` плюс сумма чисел от 1 до `n - 1`.
+
+  ```python
+  def total(n):
+      if n == 0:
+          return 0
+      return n + total(n - 1)
+
+  print(total(4))
+  ```
+
+  Результат:
+
+  ```text
+  10
+  ```
+
+  Вызовы идут так: `total(4)` → `4 + total(3)` → `4 + 3 + total(2)` → … → `4 + 3 + 2 + 1 + 0`.
+
+  ## Рекурсия по строке и списку
+
+  Строку или список можно уменьшать срезом: первый элемент отдельно, остальное — рекурсивно.
+
+  ```python
+  def count_a(text):
+      if text == "":
+          return 0
+      rest = count_a(text[1:])
+      if text[0] == "а":
+          return rest + 1
+      return rest
+
+  print(count_a("банан"))
+  ```
+
+  Результат:
+
+  ```text
+  2
+  ```
+tasks:
+  - slug: t1
+    title: Факториал
+    difficulty: easy
+    mode: function
+    description: |
+      Напишите рекурсивную функцию `factorial(n)`. Факториал `n` — это произведение `1 * 2 * … * n`, а факториал 0 равен 1.
+
+      **Что уже есть:** заготовка функции.
+
+      **Пример:** `factorial(5)` возвращает:
+
+      ```text
+      120
+      ```
+
+      **Как проверим:** вызовем функцию для 0, 1 и больших чисел.
+    starter: |
+      def factorial(n):
+          # Базовый случай: n == 0. Шаг: n * factorial(n - 1)
+          pass
+    solution: |
+      def factorial(n):
+          if n == 0:
+              return 1
+          return n * factorial(n - 1)
+    hints:
+      - Чему равен факториал 0 и как факториал n связан с факториалом n - 1?
+      - "Если n == 0, верните 1. Иначе верните n * factorial(n - 1)."
+      - 'Пример похожей рекурсии: return n + total(n - 1)'
+    tests:
+      - description: factorial(5)
+        input: { n: 5 }
+        expected: 120
+        visible: true
+      - description: factorial(0)
+        input: { n: 0 }
+        expected: 1
+      - description: factorial(1)
+        input: { n: 1 }
+        expected: 1
+      - description: factorial(10)
+        input: { n: 10 }
+        expected: 3628800
+
+  - slug: t2
+    title: Обратный отсчёт
+    difficulty: easy
+    mode: function
+    description: |
+      Напишите рекурсивную функцию `countdown(n)`, которая возвращает список чисел от `n` до 1. Для `n = 0` — пустой список.
+
+      **Что уже есть:** заготовка функции.
+
+      **Пример:** `countdown(4)` возвращает:
+
+      ```text
+      [4, 3, 2, 1]
+      ```
+
+      **Как проверим:** вызовем функцию для разных `n`, в том числе 0.
+    starter: |
+      def countdown(n):
+          # Базовый случай: n == 0 → []
+          pass
+    solution: |
+      def countdown(n):
+          if n == 0:
+              return []
+          return [n] + countdown(n - 1)
+    hints:
+      - Чем список для n отличается от списка для n - 1?
+      - "Если n == 0, верните []. Иначе склейте [n] и countdown(n - 1)."
+      - 'Склейка списков: [1] + [2, 3] даёт [1, 2, 3]'
+    tests:
+      - description: countdown(4)
+        input: { n: 4 }
+        expected: [4, 3, 2, 1]
+        visible: true
+      - description: countdown(1)
+        input: { n: 1 }
+        expected: [1]
+      - description: countdown(0)
+        input: { n: 0 }
+        expected: []
+
+  - slug: t3
+    title: Сумма цифр
+    difficulty: medium
+    mode: function
+    description: |
+      Напишите рекурсивную функцию `digit_sum(n)`, которая возвращает сумму цифр неотрицательного целого числа `n`. Не превращайте число в строку — используйте `%` и `//`.
+
+      **Что уже есть:** заготовка функции.
+
+      **Пример:** `digit_sum(1234)` возвращает:
+
+      ```text
+      10
+      ```
+
+      **Как проверим:** вызовем функцию для однозначных и многозначных чисел.
+    starter: |
+      def digit_sum(n):
+          # Последняя цифра — n % 10, остальное число — n // 10
+          pass
+    solution: |
+      def digit_sum(n):
+          if n < 10:
+              return n
+          return n % 10 + digit_sum(n // 10)
+    hints:
+      - Как отделить последнюю цифру от остального числа и когда остановиться?
+      - "Если n < 10, ответ — само n. Иначе верните n % 10 + digit_sum(n // 10)."
+      - 'Пример: 527 % 10 даёт 7, а 527 // 10 даёт 52'
+    tests:
+      - description: digit_sum(1234)
+        input: { n: 1234 }
+        expected: 10
+        visible: true
+      - description: Однозначное число
+        input: { n: 7 }
+        expected: 7
+      - description: С нулями
+        input: { n: 9005 }
+        expected: 14
+      - description: Ноль
+        input: { n: 0 }
+        expected: 0
+
+  - slug: t4
+    title: Слово наоборот
+    difficulty: medium
+    mode: function
+    description: |
+      Напишите рекурсивную функцию `reverse(text)`, которая возвращает строку `text` задом наперёд. Не используйте срез `[::-1]` — переставляйте символы рекурсией.
+
+      **Что уже есть:** заготовка функции.
+
+      **Пример:** `reverse("кот")` возвращает:
+
+      ```text
+      ток
+      ```
+
+      **Как проверим:** вызовем функцию для разных строк, в том числе пустой.
+    starter: |
+      def reverse(text):
+          # Перевёрнутый остаток text[1:] + первый символ
+          pass
+    solution: |
+      def reverse(text):
+          if text == "":
+              return ""
+          return reverse(text[1:]) + text[0]
+    hints:
+      - Если переверну всё, кроме первой буквы, куда поставить первую букву?
+      - "Базовый случай — пустая строка. Шаг: reverse(text[1:]) + text[0]."
+      - 'Пример: для "абв" остаток "бв" перевернётся в "вб", затем добавим "а"'
+    tests:
+      - description: кот
+        input: { text: кот }
+        expected: ток
+        visible: true
+      - description: Пустая строка
+        input: { text: "" }
+        expected: ""
+      - description: Длинное слово
+        input: { text: Python }
+        expected: nohtyP
+
+  - slug: t5
+    title: Сумма вложенных списков
+    difficulty: hard
+    mode: function
+    description: |
+      В списке `items` лежат числа и другие списки, которые тоже могут содержать списки. Напишите функцию `deep_sum(items)`, которая возвращает сумму всех чисел на любой глубине.
+
+      **Что уже есть:** заготовка функции. `isinstance(x, list)` проверяет, что `x` — список.
+
+      **Пример:** `deep_sum([1, [2, 3], [4, [5]]])` возвращает:
+
+      ```text
+      15
+      ```
+
+      **Как проверим:** вызовем функцию для плоских и глубоко вложенных списков.
+    starter: |
+      def deep_sum(items):
+          total = 0
+          # Для списка вызывайте deep_sum, число просто прибавляйте
+          pass
+    solution: |
+      def deep_sum(items):
+          total = 0
+          for item in items:
+              if isinstance(item, list):
+                  total += deep_sum(item)
+              else:
+                  total += item
+          return total
+    hints:
+      - Что делать с элементом, если это число, а что — если это снова список?
+      - "Пройдите циклом по items. Если isinstance(item, list), прибавьте deep_sum(item), иначе прибавьте item. В конце верните total."
+      - 'Пример проверки: if isinstance(x, list): ... else: ...'
+    tests:
+      - description: "[1, [2, 3], [4, [5]]]"
+        input: { items: [1, [2, 3], [4, [5]]] }
+        expected: 15
+        visible: true
+      - description: Плоский список
+        input: { items: [1, 2, 3] }
+        expected: 6
+      - description: Глубокая вложенность
+        input: { items: [[[[10]]], 1] }
+        expected: 11
+      - description: Пустые списки
+        input: { items: [[], [[]]] }
+        expected: 0

@@ -1,0 +1,271 @@
+id: m15_comprehensions
+topic: Короткая запись для создания списков и словарей — генераторы (comprehensions).
+theory: |
+  Часто список строят так: создают пустой, проходят циклом и добавляют элементы через `append`. Python позволяет записать это одной строкой — **генератором списка**.
+
+  ## Генератор списка
+
+  Запись `[выражение for x in последовательность]` создаёт новый список: для каждого `x` вычисляется выражение.
+
+  ```python
+  squares = []
+  for x in range(1, 6):
+      squares.append(x * x)
+  print(squares)
+
+  short = [x * x for x in range(1, 6)]
+  print(short)
+  ```
+
+  Результат:
+
+  ```text
+  [1, 4, 9, 16, 25]
+  [1, 4, 9, 16, 25]
+  ```
+
+  ## Генератор с условием
+
+  В конце можно добавить `if`: в список попадут только подходящие элементы.
+
+  ```python
+  numbers = [3, 8, 1, 10, 7]
+  big = [n for n in numbers if n > 5]
+  print(big)
+  ```
+
+  Результат:
+
+  ```text
+  [8, 10, 7]
+  ```
+
+  ## Условное выражение
+
+  `A if условие else B` — это значение: `A`, если условие истинно, иначе `B`. Его удобно использовать внутри генератора.
+
+  ```python
+  marks = [5, 2, 4]
+  words = ["хорошо" if m >= 4 else "плохо" for m in marks]
+  print(words)
+  ```
+
+  Результат:
+
+  ```text
+  ['хорошо', 'плохо', 'хорошо']
+  ```
+
+  ## Генератор словаря
+
+  В фигурных скобках с двоеточием получается словарь: `{ключ: значение for ...}`.
+
+  ```python
+  fruits = ["яблоко", "киви"]
+  lengths = {f: len(f) for f in fruits}
+  print(lengths)
+  ```
+
+  Результат:
+
+  ```text
+  {'яблоко': 6, 'киви': 4}
+  ```
+tasks:
+  - slug: t1
+    title: Квадраты чисел
+    difficulty: easy
+    mode: function
+    description: |
+      Напишите функцию `squares(n)`, которая возвращает список квадратов чисел от 1 до `n` включительно. Используйте генератор списка.
+
+      **Что уже есть:** заготовка функции.
+
+      **Пример:** `squares(4)` возвращает:
+
+      ```text
+      [1, 4, 9, 16]
+      ```
+
+      **Как проверим:** вызовем функцию с разными `n`.
+    starter: |
+      def squares(n):
+          # Верните [... for i in range(...)]
+          pass
+    solution: |
+      def squares(n):
+          return [i * i for i in range(1, n + 1)]
+    hints:
+      - Какие числа нужно перебрать и что сделать с каждым?
+      - Перебирайте range(1, n + 1), а в начале генератора пишите i * i.
+      - 'Пример: [i + 1 for i in range(3)] даёт [1, 2, 3]'
+    tests:
+      - description: squares(4)
+        input: { n: 4 }
+        expected: [1, 4, 9, 16]
+        visible: true
+      - description: squares(1)
+        input: { n: 1 }
+        expected: [1]
+      - description: squares(6)
+        input: { n: 6 }
+        expected: [1, 4, 9, 16, 25, 36]
+
+  - slug: t2
+    title: Только чётные
+    difficulty: easy
+    mode: function
+    description: |
+      Напишите функцию `evens(nums)`, которая возвращает новый список только из чётных чисел списка `nums`, сохраняя порядок.
+
+      **Что уже есть:** заготовка функции.
+
+      **Пример:** `evens([1, 2, 3, 4, 6])` возвращает:
+
+      ```text
+      [2, 4, 6]
+      ```
+
+      **Как проверим:** вызовем функцию для разных списков, в том числе без чётных чисел.
+    starter: |
+      def evens(nums):
+          # Генератор списка с условием if
+          pass
+    solution: |
+      def evens(nums):
+          return [x for x in nums if x % 2 == 0]
+    hints:
+      - Как проверить, что число чётное, и куда поставить это условие в генераторе?
+      - 'Условие пишется в конце: [x for x in nums if ...]. Чётное число делится на 2 без остатка.'
+      - 'Пример: [w for w in words if len(w) > 3]'
+    tests:
+      - description: "[1, 2, 3, 4, 6]"
+        input: { nums: [1, 2, 3, 4, 6] }
+        expected: [2, 4, 6]
+        visible: true
+      - description: Нет чётных
+        input: { nums: [1, 3, 5] }
+        expected: []
+      - description: С нулём и отрицательными
+        input: { nums: [0, -2, 7, 8] }
+        expected: [0, -2, 8]
+
+  - slug: t3
+    title: Длины слов
+    difficulty: medium
+    mode: function
+    description: |
+      Напишите функцию `word_lengths(text)`, которая возвращает словарь: ключ — слово из строки `text`, значение — его длина. Слова разделены пробелами.
+
+      **Что уже есть:** заготовка функции.
+
+      **Пример:** `word_lengths("кот и пёс")` возвращает:
+
+      ```text
+      {'кот': 3, 'и': 1, 'пёс': 3}
+      ```
+
+      **Как проверим:** вызовем функцию для разных строк.
+    starter: |
+      def word_lengths(text):
+          # Генератор словаря {слово: длина ...}
+          pass
+    solution: |
+      def word_lengths(text):
+          return {word: len(word) for word in text.split()}
+    hints:
+      - Как получить список слов и как записать генератор словаря?
+      - "Слова даёт text.split(). Генератор словаря выглядит как {ключ: значение for word in ...}."
+      - 'Пример: {n: n * 2 for n in [1, 2]} даёт {1: 2, 2: 4}'
+    tests:
+      - description: кот и пёс
+        input: { text: кот и пёс }
+        expected: { кот: 3, и: 1, пёс: 3 }
+        visible: true
+      - description: Одно слово
+        input: { text: Python }
+        expected: { Python: 6 }
+      - description: Три слова
+        input: { text: мама мыла раму }
+        expected: { мама: 4, мыла: 4, раму: 4 }
+
+  - slug: t4
+    title: Сдал или не сдал
+    difficulty: medium
+    mode: function
+    description: |
+      Напишите функцию `labels(grades)`. Для каждой оценки из списка `grades` в результат попадает `сдал`, если оценка 3 или выше, иначе `не сдал`. Используйте генератор и условное выражение.
+
+      **Что уже есть:** заготовка функции.
+
+      **Пример:** `labels([5, 2, 3])` возвращает:
+
+      ```text
+      ['сдал', 'не сдал', 'сдал']
+      ```
+
+      **Как проверим:** вызовем функцию для разных списков оценок.
+    starter: |
+      def labels(grades):
+          # ["..." if ... else "..." for g in grades]
+          pass
+    solution: |
+      def labels(grades):
+          return ["сдал" if g >= 3 else "не сдал" for g in grades]
+    hints:
+      - Чем условное выражение A if условие else B отличается от фильтра в конце генератора?
+      - В начале генератора поставьте "сдал" if g >= 3 else "не сдал", а затем for g in grades.
+      - 'Пример: ["+" if n > 0 else "-" for n in nums]'
+    tests:
+      - description: "[5, 2, 3]"
+        input: { grades: [5, 2, 3] }
+        expected: [сдал, не сдал, сдал]
+        visible: true
+      - description: Все двойки
+        input: { grades: [2, 2] }
+        expected: [не сдал, не сдал]
+      - description: Пустой список
+        input: { grades: [] }
+        expected: []
+      - description: Все сдали
+        input: { grades: [4, 3, 5] }
+        expected: [сдал, сдал, сдал]
+
+  - slug: t5
+    title: Таблица умножения
+    difficulty: hard
+    mode: function
+    description: |
+      Напишите функцию `table(n)`, которая возвращает таблицу умножения размера `n` на `n` как список строк таблицы. В строке номер `i` (от 1) стоят произведения `i * 1`, `i * 2`, …, `i * n`.
+
+      **Что уже есть:** заготовка функции. Используйте генератор внутри генератора.
+
+      **Пример:** `table(3)` возвращает:
+
+      ```text
+      [[1, 2, 3], [2, 4, 6], [3, 6, 9]]
+      ```
+
+      **Как проверим:** вызовем функцию для разных `n`.
+    starter: |
+      def table(n):
+          # Внешний генератор — строки, внутренний — числа в строке
+          pass
+    solution: |
+      def table(n):
+          return [[i * j for j in range(1, n + 1)] for i in range(1, n + 1)]
+    hints:
+      - Сначала напишите генератор для одной строки таблицы при фиксированном i. Как повторить его для всех i?
+      - Одна строка — [i * j for j in range(1, n + 1)]. Оберните её во внешний генератор for i in range(1, n + 1).
+      - 'Пример: [[0 for j in range(2)] for i in range(3)] даёт [[0, 0], [0, 0], [0, 0]]'
+    tests:
+      - description: table(3)
+        input: { n: 3 }
+        expected: [[1, 2, 3], [2, 4, 6], [3, 6, 9]]
+        visible: true
+      - description: table(1)
+        input: { n: 1 }
+        expected: [[1]]
+      - description: table(4)
+        input: { n: 4 }
+        expected: [[1, 2, 3, 4], [2, 4, 6, 8], [3, 6, 9, 12], [4, 8, 12, 16]]

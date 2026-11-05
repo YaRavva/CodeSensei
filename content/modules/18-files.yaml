@@ -1,0 +1,292 @@
+id: m18_files
+topic: Чтение и запись текстовых файлов через open и with.
+theory: |
+  Данные в переменных пропадают, когда программа завершается. Чтобы сохранить их надолго или прочитать готовые данные, используют **файлы**.
+
+  ## Запись в файл
+
+  `open(имя, "w", encoding="utf-8")` открывает файл для записи (старое содержимое стирается). Конструкция `with` сама закроет файл, когда блок закончится. Метод `write` записывает строку — перевод строки `\n` нужно добавлять самому.
+
+  ```python
+  with open("notes.txt", "w", encoding="utf-8") as file:
+      file.write("первая строка\n")
+      file.write("вторая строка\n")
+  print("Файл записан")
+  ```
+
+  Результат:
+
+  ```text
+  Файл записан
+  ```
+
+  ## Чтение файла
+
+  Режим `"r"` (его можно не писать) открывает файл для чтения. `read()` возвращает весь текст одной строкой, а `splitlines()` делит текст на строки без символов `\n`.
+
+  ```python
+  with open("notes.txt", "w", encoding="utf-8") as file:
+      file.write("яблоко\nгруша\n")
+
+  with open("notes.txt", encoding="utf-8") as file:
+      text = file.read()
+
+  lines = text.splitlines()
+  print(lines)
+  print(len(lines))
+  ```
+
+  Результат:
+
+  ```text
+  ['яблоко', 'груша']
+  2
+  ```
+
+  ## Обработка строк файла
+
+  Строки файла — это обычные строки: их можно разбивать `split`, превращать в числа и считать.
+
+  ```python
+  with open("marks.txt", "w", encoding="utf-8") as file:
+      file.write("5\n4\n3\n")
+
+  total = 0
+  with open("marks.txt", encoding="utf-8") as file:
+      for line in file.read().splitlines():
+          total += int(line)
+  print(total)
+  ```
+
+  Результат:
+
+  ```text
+  12
+  ```
+
+  Всегда указывайте `encoding="utf-8"`, иначе русские буквы могут прочитаться неправильно.
+tasks:
+  - slug: t1
+    title: Прочитать файл
+    difficulty: easy
+    mode: function
+    description: |
+      Напишите функцию `read_text(filename)`, которая открывает файл с именем `filename` и возвращает весь его текст.
+
+      **Что уже есть:** заготовка функции. При проверке файл будет создан заранее.
+
+      **Пример:** если в файле `hello.txt` записано `Привет, файл!`, то `read_text("hello.txt")` возвращает:
+
+      ```text
+      Привет, файл!
+      ```
+
+      **Как проверим:** создадим файлы с разным текстом и вызовем функцию.
+    starter: |
+      def read_text(filename):
+          # with open(filename, encoding="utf-8") as file: ...
+          pass
+    solution: |
+      def read_text(filename):
+          with open(filename, encoding="utf-8") as file:
+              return file.read()
+    hints:
+      - Какая функция открывает файл и какой метод возвращает весь текст?
+      - "Откройте файл через with open(filename, encoding=\"utf-8\") as file и верните file.read()."
+      - 'Пример: with open("a.txt", encoding="utf-8") as f: data = f.read()'
+    tests:
+      - description: hello.txt
+        input: { filename: hello.txt }
+        files: { hello.txt: "Привет, файл!" }
+        expected: Привет, файл!
+        visible: true
+      - description: Несколько строк
+        input: { filename: poem.txt }
+        files: { poem.txt: "Мороз и солнце\nДень чудесный\n" }
+        expected: "Мороз и солнце\nДень чудесный\n"
+
+  - slug: t2
+    title: Сколько строк
+    difficulty: easy
+    mode: function
+    description: |
+      Напишите функцию `count_lines(filename)`, которая возвращает количество строк в файле.
+
+      **Что уже есть:** заготовка функции. Файл создаётся при проверке.
+
+      **Пример:** если в файле `list.txt` три строки `молоко`, `хлеб`, `сыр`, то `count_lines("list.txt")` возвращает:
+
+      ```text
+      3
+      ```
+
+      **Как проверим:** создадим файлы с разным числом строк.
+    starter: |
+      def count_lines(filename):
+          # Прочитайте текст и разделите его на строки
+          pass
+    solution: |
+      def count_lines(filename):
+          with open(filename, encoding="utf-8") as file:
+              return len(file.read().splitlines())
+    hints:
+      - Как получить список строк из текста файла?
+      - Прочитайте файл через read(), разделите splitlines() и верните len(...).
+      - 'Пример: len("a\nb".splitlines()) даёт 2'
+    tests:
+      - description: Три строки
+        input: { filename: list.txt }
+        files: { list.txt: "молоко\nхлеб\nсыр\n" }
+        expected: 3
+        visible: true
+      - description: Одна строка
+        input: { filename: one.txt }
+        files: { one.txt: "только одна" }
+        expected: 1
+      - description: Пустой файл
+        input: { filename: empty.txt }
+        files: { empty.txt: "" }
+        expected: 0
+
+  - slug: t3
+    title: Сумма чисел из файла
+    difficulty: medium
+    mode: function
+    description: |
+      В файле в каждой строке записано целое число, некоторые строки могут быть пустыми. Напишите функцию `sum_file(filename)`, которая возвращает сумму всех чисел, пропуская пустые строки.
+
+      **Что уже есть:** заготовка функции.
+
+      **Пример:** если в файле `numbers.txt` строки `10`, пустая, `-3`, `5`, то `sum_file("numbers.txt")` возвращает:
+
+      ```text
+      12
+      ```
+
+      **Как проверим:** создадим файлы с пустыми строками и без них.
+    starter: |
+      def sum_file(filename):
+          total = 0
+          # Прочитайте строки и сложите числа
+          pass
+    solution: |
+      def sum_file(filename):
+          total = 0
+          with open(filename, encoding="utf-8") as file:
+              for line in file.read().splitlines():
+                  if line.strip() != "":
+                      total += int(line)
+          return total
+    hints:
+      - Как пройти по строкам файла и как узнать, что строка пустая?
+      - "Перебирайте file.read().splitlines(). Если line.strip() не пустая, прибавьте int(line) к total. В конце верните total."
+      - 'Пример: if line.strip() != "": ...'
+    tests:
+      - description: С пустой строкой
+        input: { filename: numbers.txt }
+        files: { numbers.txt: "10\n\n-3\n5\n" }
+        expected: 12
+        visible: true
+      - description: Без пустых строк
+        input: { filename: a.txt }
+        files: { a.txt: "1\n2\n3" }
+        expected: 6
+      - description: Только пустые строки
+        input: { filename: b.txt }
+        files: { b.txt: "\n\n" }
+        expected: 0
+
+  - slug: t4
+    title: Сохранить список
+    difficulty: medium
+    mode: function
+    description: |
+      Напишите функцию `save_list(filename, items)`, которая записывает каждый элемент списка `items` в файл `filename` отдельной строкой (после каждой строки — `\n`) и возвращает количество записанных строк.
+
+      **Что уже есть:** заготовка функции.
+
+      **Пример:** `save_list("shop.txt", ["хлеб", "сыр"])` возвращает `2`, а в файле `shop.txt` оказывается:
+
+      ```text
+      хлеб
+      сыр
+      ```
+
+      **Как проверим:** вызовем функцию и проверим и результат, и содержимое файла.
+    starter: |
+      def save_list(filename, items):
+          # Откройте файл в режиме "w" и запишите строки
+          pass
+    solution: |
+      def save_list(filename, items):
+          with open(filename, "w", encoding="utf-8") as file:
+              for item in items:
+                  file.write(item + "\n")
+          return len(items)
+    hints:
+      - В каком режиме нужно открыть файл и как отделить строки друг от друга?
+      - "Откройте файл с режимом \"w\", в цикле вызывайте file.write(item + \"\\n\"), после блока with верните len(items)."
+      - 'Пример: file.write("строка\n")'
+    tests:
+      - description: Два товара
+        input: { filename: shop.txt, items: [хлеб, сыр] }
+        output_files: { shop.txt: "хлеб\nсыр\n" }
+        expected: 2
+        visible: true
+      - description: Один элемент
+        input: { filename: one.txt, items: [задача] }
+        output_files: { one.txt: "задача\n" }
+        expected: 1
+      - description: Пустой список
+        input: { filename: empty.txt, items: [] }
+        output_files: { empty.txt: "" }
+        expected: 0
+
+  - slug: t5
+    title: Журнал оценок
+    difficulty: hard
+    mode: function
+    description: |
+      В файле журнала каждая строка выглядит как `имя;оценка;оценка;…`. Напишите функцию `averages(filename)`, которая возвращает словарь: имя ученика → средняя оценка, округлённая до 1 знака.
+
+      **Что уже есть:** заготовка функции. Количество оценок у учеников может быть разным.
+
+      **Пример:** если в файле `journal.txt` строки `Аня;5;4;5` и `Борис;3;4`, то `averages("journal.txt")` возвращает:
+
+      ```text
+      {'Аня': 4.7, 'Борис': 3.5}
+      ```
+
+      **Как проверим:** создадим разные журналы и вызовем функцию.
+    starter: |
+      def averages(filename):
+          result = {}
+          # Для каждой строки: split(";"), имя — первый элемент, оценки — остальные
+          pass
+    solution: |
+      def averages(filename):
+          result = {}
+          with open(filename, encoding="utf-8") as file:
+              for line in file.read().splitlines():
+                  parts = line.split(";")
+                  marks = [int(m) for m in parts[1:]]
+                  result[parts[0]] = round(sum(marks) / len(marks), 1)
+          return result
+    hints:
+      - Как разделить строку журнала на имя и оценки и как посчитать среднее?
+      - "parts = line.split(\";\"), имя — parts[0], оценки — [int(m) for m in parts[1:]]. Среднее — sum / len, округлите round(..., 1)."
+      - 'Пример: "a;1;2".split(";") даёт [''a'', ''1'', ''2'']'
+    tests:
+      - description: Аня и Борис
+        input: { filename: journal.txt }
+        files: { journal.txt: "Аня;5;4;5\nБорис;3;4\n" }
+        expected: { Аня: 4.7, Борис: 3.5 }
+        visible: true
+      - description: Одна оценка
+        input: { filename: j2.txt }
+        files: { j2.txt: "Вика;5" }
+        expected: { Вика: 5 }
+      - description: Три ученика
+        input: { filename: j3.txt }
+        files: { j3.txt: "Гена;2;3\nДина;4;4;5;5\nЕва;3\n" }
+        expected: { Гена: 2.5, Дина: 4.5, Ева: 3 }

@@ -1,0 +1,273 @@
+id: m16_lambda
+topic: Сортировка по своему правилу, короткие функции lambda, map, filter, any и all.
+theory: |
+  Функции в Python можно передавать в другие функции как обычные значения. Это удобно для сортировки и обработки списков.
+
+  ## Сортировка по ключу
+
+  У `sorted` есть параметр `key` — функция, которая для каждого элемента возвращает «то, по чему сравнивать». `reverse=True` сортирует по убыванию.
+
+  ```python
+  words = ["арбуз", "кот", "слон"]
+  print(sorted(words, key=len))
+  print(sorted(words, key=len, reverse=True))
+  ```
+
+  Результат:
+
+  ```text
+  ['кот', 'слон', 'арбуз']
+  ['арбуз', 'слон', 'кот']
+  ```
+
+  ## lambda — функция в одну строку
+
+  `lambda x: выражение` — короткая функция без имени. Она удобна, когда функция нужна один раз, например как `key`.
+
+  ```python
+  pupils = [["Аня", 5], ["Борис", 3], ["Вика", 4]]
+  best = sorted(pupils, key=lambda p: p[1], reverse=True)
+  print(best)
+  ```
+
+  Результат:
+
+  ```text
+  [['Аня', 5], ['Вика', 4], ['Борис', 3]]
+  ```
+
+  Если ключ — кортеж, сравнение идёт по первому элементу, а при равенстве — по второму: `key=lambda p: (-p[1], p[0])`.
+
+  ## map и filter
+
+  `map(f, items)` применяет функцию к каждому элементу, `filter(f, items)` оставляет элементы, для которых функция вернула `True`. Результат превращают в список через `list`.
+
+  ```python
+  nums = [1, 2, 3, 4]
+  print(list(map(lambda x: x * 10, nums)))
+  print(list(filter(lambda x: x % 2 == 1, nums)))
+  ```
+
+  Результат:
+
+  ```text
+  [10, 20, 30, 40]
+  [1, 3]
+  ```
+
+  ## any и all
+
+  `all(...)` истинно, если все значения истинны, `any(...)` — если хотя бы одно.
+
+  ```python
+  marks = [5, 4, 3]
+  print(all(m >= 3 for m in marks))
+  print(any(m == 5 for m in marks))
+  ```
+
+  Результат:
+
+  ```text
+  True
+  True
+  ```
+tasks:
+  - slug: t1
+    title: От короткого к длинному
+    difficulty: easy
+    mode: function
+    description: |
+      Напишите функцию `by_length(words)`, которая возвращает слова из списка `words`, отсортированные по длине от короткого к длинному. Слова одинаковой длины остаются в исходном порядке.
+
+      **Что уже есть:** заготовка функции.
+
+      **Пример:** `by_length(["яблоко", "кот", "груша"])` возвращает:
+
+      ```text
+      ['кот', 'груша', 'яблоко']
+      ```
+
+      **Как проверим:** вызовем функцию для разных списков.
+    starter: |
+      def by_length(words):
+          # sorted(..., key=...)
+          pass
+    solution: |
+      def by_length(words):
+          return sorted(words, key=len)
+    hints:
+      - По какому признаку нужно сравнивать слова и какая функция его вычисляет?
+      - Передайте в sorted параметр key=len — тогда слова сравниваются по длине.
+      - 'Пример: sorted(nums, key=abs) сортирует числа по модулю'
+    tests:
+      - description: яблоко, кот, груша
+        input: { words: [яблоко, кот, груша] }
+        expected: [кот, груша, яблоко]
+        visible: true
+      - description: Одинаковые длины
+        input: { words: [бык, кот, я] }
+        expected: [я, бык, кот]
+      - description: Один элемент
+        input: { words: [слово] }
+        expected: [слово]
+
+  - slug: t2
+    title: Все положительные
+    difficulty: easy
+    mode: function
+    description: |
+      Напишите функцию `all_positive(nums)`, которая возвращает `True`, если все числа в списке `nums` больше нуля, и `False` в остальных случаях.
+
+      **Что уже есть:** заготовка функции.
+
+      **Пример:** `all_positive([3, 1, 7])` возвращает:
+
+      ```text
+      True
+      ```
+
+      **Как проверим:** вызовем функцию для списков с нулём, отрицательными и только положительными числами.
+    starter: |
+      def all_positive(nums):
+          # Используйте all(...)
+          pass
+    solution: |
+      def all_positive(nums):
+          return all(x > 0 for x in nums)
+    hints:
+      - Какая встроенная функция проверяет, что условие верно для всех элементов?
+      - Внутри all запишите генератор x > 0 for x in nums.
+      - 'Пример: any(w == "да" for w in words)'
+    tests:
+      - description: "[3, 1, 7]"
+        input: { nums: [3, 1, 7] }
+        expected: true
+        visible: true
+      - description: Есть отрицательное
+        input: { nums: [3, -1, 7] }
+        expected: false
+      - description: Есть ноль
+        input: { nums: [0, 5] }
+        expected: false
+
+  - slug: t3
+    title: Таблица лидеров
+    difficulty: medium
+    mode: function
+    description: |
+      В списке `players` каждый игрок записан как `[имя, очки]`. Напишите функцию `ranking(players)`, которая возвращает список имён от большего числа очков к меньшему.
+
+      **Что уже есть:** заготовка функции. Очки у игроков разные.
+
+      **Пример:** `ranking([["Аня", 30], ["Борис", 50], ["Вика", 40]])` возвращает:
+
+      ```text
+      ['Борис', 'Вика', 'Аня']
+      ```
+
+      **Как проверим:** вызовем функцию для разных списков игроков.
+    starter: |
+      def ranking(players):
+          # Отсортируйте по очкам (lambda), затем соберите имена
+          pass
+    solution: |
+      def ranking(players):
+          ordered = sorted(players, key=lambda p: p[1], reverse=True)
+          return [p[0] for p in ordered]
+    hints:
+      - Как указать sorted, что сравнивать нужно второй элемент каждого игрока, и как получить порядок по убыванию?
+      - "key=lambda p: p[1] и reverse=True. Затем генератором соберите p[0] из отсортированного списка."
+      - 'Пример: sorted(pairs, key=lambda p: p[0])'
+    tests:
+      - description: Аня, Борис, Вика
+        input: { players: [[Аня, 30], [Борис, 50], [Вика, 40]] }
+        expected: [Борис, Вика, Аня]
+        visible: true
+      - description: Два игрока
+        input: { players: [[Гена, 1], [Дина, 2]] }
+        expected: [Дина, Гена]
+      - description: Один игрок
+        input: { players: [[Ева, 10]] }
+        expected: [Ева]
+
+  - slug: t4
+    title: Скидка на всё
+    difficulty: medium
+    mode: function
+    description: |
+      Напишите функцию `discounted(prices, percent)`, которая возвращает новый список цен со скидкой `percent` процентов. Каждую цену округлите до 2 знаков. Используйте `map` и `lambda`.
+
+      **Что уже есть:** заготовка функции.
+
+      **Пример:** `discounted([100, 250, 99.9], 10)` возвращает:
+
+      ```text
+      [90.0, 225.0, 89.91]
+      ```
+
+      **Как проверим:** вызовем функцию с разными ценами и скидками.
+    starter: |
+      def discounted(prices, percent):
+          # list(map(lambda p: ..., prices))
+          pass
+    solution: |
+      def discounted(prices, percent):
+          return list(map(lambda p: round(p * (100 - percent) / 100, 2), prices))
+    hints:
+      - Как посчитать цену со скидкой для одной цены? Затем примените это ко всем.
+      - "Цена со скидкой: p * (100 - percent) / 100. Оберните в round(..., 2) внутри lambda и передайте в map."
+      - 'Пример: list(map(lambda x: x * 2, nums))'
+    tests:
+      - description: Скидка 10%
+        input: { prices: [100, 250, 99.9], percent: 10 }
+        expected: [90.0, 225.0, 89.91]
+        visible: true
+      - description: Скидка 50%
+        input: { prices: [10, 3], percent: 50 }
+        expected: [5.0, 1.5]
+      - description: Пустой список
+        input: { prices: [], percent: 20 }
+        expected: []
+      - description: Скидка 0%
+        input: { prices: [7.5], percent: 0 }
+        expected: [7.5]
+
+  - slug: t5
+    title: Рейтинг класса
+    difficulty: hard
+    mode: function
+    description: |
+      В списке `students` каждый ученик записан как `[имя, балл]`. Напишите функцию `class_rating(students)`, которая возвращает строки вида `имя: балл`, отсортированные по баллу от большего к меньшему, а при равных баллах — по имени по алфавиту.
+
+      **Что уже есть:** заготовка функции.
+
+      **Пример:** `class_rating([["Вика", 90], ["Аня", 95], ["Борис", 90]])` возвращает:
+
+      ```text
+      ['Аня: 95', 'Борис: 90', 'Вика: 90']
+      ```
+
+      **Как проверим:** вызовем функцию для списков с одинаковыми и разными баллами.
+    starter: |
+      def class_rating(students):
+          # Ключ сортировки — кортеж (-балл, имя)
+          pass
+    solution: |
+      def class_rating(students):
+          ordered = sorted(students, key=lambda s: (-s[1], s[0]))
+          return [f"{s[0]}: {s[1]}" for s in ordered]
+    hints:
+      - Как отсортировать сразу по двум признакам, если один нужен по убыванию, а другой по возрастанию?
+      - "Используйте key=lambda s: (-s[1], s[0]): минус переворачивает порядок баллов, имя сравнивается при равенстве. Затем соберите строки через f-строку."
+      - 'Пример: sorted(items, key=lambda x: (x[1], x[0]))'
+    tests:
+      - description: Равные баллы
+        input: { students: [[Вика, 90], [Аня, 95], [Борис, 90]] }
+        expected: ["Аня: 95", "Борис: 90", "Вика: 90"]
+        visible: true
+      - description: Все баллы разные
+        input: { students: [[Гена, 70], [Дина, 80]] }
+        expected: ["Дина: 80", "Гена: 70"]
+      - description: Все баллы равны
+        input: { students: [[Яна, 50], [Ева, 50], [Лев, 50]] }
+        expected: ["Ева: 50", "Лев: 50", "Яна: 50"]

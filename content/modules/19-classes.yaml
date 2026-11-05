@@ -1,0 +1,380 @@
+id: m19_classes
+topic: Свои типы данных — классы, объекты, атрибуты и методы.
+theory: |
+  **Класс** — это описание нового типа данных: какие у него есть данные (**атрибуты**) и что он умеет (**методы**). **Объект** — конкретный экземпляр класса, как конкретный кот по описанию «кот».
+
+  ## Класс и конструктор
+
+  Метод `__init__` вызывается при создании объекта. Первый параметр `self` — это сам объект: через него сохраняют атрибуты.
+
+  ```python
+  class Dog:
+      def __init__(self, name):
+          self.name = name
+
+      def bark(self):
+          return self.name + ": гав!"
+
+  rex = Dog("Рекс")
+  print(rex.name)
+  print(rex.bark())
+  ```
+
+  Результат:
+
+  ```text
+  Рекс
+  Рекс: гав!
+  ```
+
+  ## Объект хранит состояние
+
+  Методы могут менять атрибуты. У каждого объекта свои значения.
+
+  ```python
+  class Piggy:
+      def __init__(self):
+          self.money = 0
+
+      def put(self, amount):
+          self.money += amount
+
+  a = Piggy()
+  b = Piggy()
+  a.put(50)
+  a.put(20)
+  b.put(5)
+  print(a.money, b.money)
+  ```
+
+  Результат:
+
+  ```text
+  70 5
+  ```
+
+  ## Объекты в списке
+
+  Объекты можно хранить в списках и обрабатывать в цикле.
+
+  ```python
+  class Book:
+      def __init__(self, title, pages):
+          self.title = title
+          self.pages = pages
+
+  shelf = [Book("Сказки", 120), Book("Атлас", 64)]
+  total = 0
+  for book in shelf:
+      total += book.pages
+  print(total)
+  ```
+
+  Результат:
+
+  ```text
+  184
+  ```
+tasks:
+  - slug: t1
+    title: Говорящий кот
+    difficulty: easy
+    mode: class
+    description: |
+      Допишите метод `say` класса `Cat`: он возвращает строку `имя: мяу`, где имя хранится в атрибуте `self.name`.
+
+      **Что уже есть:** класс с конструктором и строки, которые создают кота и сохраняют ответ в `result`.
+
+      **Пример:** для `name = "Мурка"` в `result` окажется:
+
+      ```text
+      Мурка: мяу
+      ```
+
+      **Как проверим:** подставим другие имена в `name` и проверим `result`.
+    starter: |
+      class Cat:
+          def __init__(self, name):
+              self.name = name
+
+          def say(self):
+              # Верните строку с именем кота
+              pass
+
+      name = "Мурка"  # при проверке подставим другие имена
+      cat = Cat(name)
+      result = cat.say()
+    solution: |
+      class Cat:
+          def __init__(self, name):
+              self.name = name
+
+          def say(self):
+              return f"{self.name}: мяу"
+
+      name = "Мурка"
+      cat = Cat(name)
+      result = cat.say()
+    hints:
+      - Где внутри метода хранится имя кота?
+      - "Используйте self.name и верните f-строку f\"{self.name}: мяу\"."
+      - 'Пример из теории: return self.name + ": гав!"'
+    tests:
+      - description: Мурка
+        input: { name: Мурка }
+        expected: "Мурка: мяу"
+        visible: true
+      - description: Барсик
+        input: { name: Барсик }
+        expected: "Барсик: мяу"
+
+  - slug: t2
+    title: Площадь прямоугольника
+    difficulty: easy
+    mode: class
+    description: |
+      Допишите класс `Rectangle`: конструктор сохраняет ширину и высоту, а метод `area` возвращает площадь.
+
+      **Что уже есть:** заготовка класса и строки, которые создают прямоугольник и сохраняют площадь в `result`.
+
+      **Пример:** для `width = 3` и `height = 5` в `result` окажется:
+
+      ```text
+      15
+      ```
+
+      **Как проверим:** подставим другие размеры и проверим `result`.
+    starter: |
+      class Rectangle:
+          def __init__(self, width, height):
+              # Сохраните размеры в self.width и self.height
+              pass
+
+          def area(self):
+              # Верните площадь
+              pass
+
+      width = 3  # при проверке подставим другие размеры
+      height = 5
+      result = Rectangle(width, height).area()
+    solution: |
+      class Rectangle:
+          def __init__(self, width, height):
+              self.width = width
+              self.height = height
+
+          def area(self):
+              return self.width * self.height
+
+      width = 3
+      height = 5
+      result = Rectangle(width, height).area()
+    hints:
+      - Как сохранить параметры конструктора, чтобы их увидел другой метод?
+      - В __init__ запишите self.width = width и self.height = height, а в area верните self.width * self.height.
+      - 'Пример: self.name = name в конструкторе Dog'
+    tests:
+      - description: 3 на 5
+        input: { width: 3, height: 5 }
+        expected: 15
+        visible: true
+      - description: Квадрат
+        input: { width: 4, height: 4 }
+        expected: 16
+      - description: Дробные стороны
+        input: { width: 2.5, height: 2 }
+        expected: 5.0
+
+  - slug: t3
+    title: Счётчик нажатий
+    difficulty: medium
+    mode: class
+    description: |
+      Напишите класс `Counter`. При создании счётчик равен 0, метод `click()` увеличивает его на 1, метод `value()` возвращает текущее значение.
+
+      **Что уже есть:** строки, которые нажимают счётчик `times` раз и сохраняют значение в `result`.
+
+      **Пример:** для `times = 3` в `result` окажется:
+
+      ```text
+      3
+      ```
+
+      **Как проверим:** подставим разные `times`, в том числе 0.
+    starter: |
+      class Counter:
+          # Напишите __init__, click и value
+          pass
+
+      times = 3  # при проверке подставим другие числа
+      counter = Counter()
+      for _ in range(times):
+          counter.click()
+      result = counter.value()
+    solution: |
+      class Counter:
+          def __init__(self):
+              self.count = 0
+
+          def click(self):
+              self.count += 1
+
+          def value(self):
+              return self.count
+
+      times = 3
+      counter = Counter()
+      for _ in range(times):
+          counter.click()
+      result = counter.value()
+    hints:
+      - Какой атрибут должен хранить число нажатий и где его создать?
+      - В __init__ задайте self.count = 0, в click увеличивайте self.count += 1, в value верните self.count.
+      - 'Пример из теории: self.money = 0 и self.money += amount'
+    tests:
+      - description: 3 нажатия
+        input: { times: 3 }
+        expected: 3
+        visible: true
+      - description: Без нажатий
+        input: { times: 0 }
+        expected: 0
+      - description: 10 нажатий
+        input: { times: 10 }
+        expected: 10
+
+  - slug: t4
+    title: Банковский счёт
+    difficulty: medium
+    mode: class
+    description: |
+      Напишите класс `Account` с атрибутом `balance` (сначала 0) и методами `deposit(amount)` — пополнить, и `withdraw(amount)` — снять, только если денег хватает (иначе баланс не меняется).
+
+      **Что уже есть:** строки, которые выполняют операции из списка `operations` и сохраняют баланс в `result`. Операция `["+", 100]` — пополнение, `["-", 30]` — снятие.
+
+      **Пример:** для `operations = [["+", 100], ["-", 30], ["-", 500]]` в `result` окажется:
+
+      ```text
+      70
+      ```
+
+      **Как проверим:** подставим другие списки операций.
+    starter: |
+      class Account:
+          def __init__(self):
+              self.balance = 0
+
+          def deposit(self, amount):
+              pass
+
+          def withdraw(self, amount):
+              # Снимайте, только если хватает денег
+              pass
+
+      operations = [["+", 100], ["-", 30], ["-", 500]]  # при проверке подставим другие
+      account = Account()
+      for kind, amount in operations:
+          if kind == "+":
+              account.deposit(amount)
+          else:
+              account.withdraw(amount)
+      result = account.balance
+    solution: |
+      class Account:
+          def __init__(self):
+              self.balance = 0
+
+          def deposit(self, amount):
+              self.balance += amount
+
+          def withdraw(self, amount):
+              if amount <= self.balance:
+                  self.balance -= amount
+
+      operations = [["+", 100], ["-", 30], ["-", 500]]
+      account = Account()
+      for kind, amount in operations:
+          if kind == "+":
+              account.deposit(amount)
+          else:
+              account.withdraw(amount)
+      result = account.balance
+    hints:
+      - Как метод может изменить баланс и что проверить перед снятием?
+      - В deposit увеличьте self.balance на amount. В withdraw сначала проверьте amount <= self.balance и только тогда уменьшайте.
+      - 'Пример: if amount <= self.money: self.money -= amount'
+    tests:
+      - description: Снятие сверх баланса
+        input: { operations: [["+", 100], ["-", 30], ["-", 500]] }
+        expected: 70
+        visible: true
+      - description: Только пополнения
+        input: { operations: [["+", 10], ["+", 15]] }
+        expected: 25
+      - description: Второе снятие не проходит
+        input: { operations: [["+", 50], ["-", 20], ["-", 40]] }
+        expected: 30
+      - description: Снятие с пустого счёта
+        input: { operations: [["-", 5], ["+", 5]] }
+        expected: 5
+
+  - slug: t5
+    title: Корзина магазина
+    difficulty: hard
+    mode: class
+    description: |
+      Напишите класс `Cart`. Метод `add(name, price, qty)` добавляет товар, `total()` возвращает общую стоимость всех товаров, `count()` — общее количество штук.
+
+      **Что уже есть:** строки, которые добавляют товары из списка `items` (каждый — `[название, цена, количество]`) и сохраняют в `result` список `[стоимость, штук]`.
+
+      **Пример:** для `items = [["хлеб", 40, 2], ["сыр", 250, 1]]` в `result` окажется:
+
+      ```text
+      [330, 3]
+      ```
+
+      **Как проверим:** подставим разные корзины, в том числе пустую.
+    starter: |
+      class Cart:
+          # Храните товары в списке, напишите add, total и count
+          pass
+
+      items = [["хлеб", 40, 2], ["сыр", 250, 1]]  # при проверке подставим другие
+      cart = Cart()
+      for name, price, qty in items:
+          cart.add(name, price, qty)
+      result = [cart.total(), cart.count()]
+    solution: |
+      class Cart:
+          def __init__(self):
+              self.items = []
+
+          def add(self, name, price, qty):
+              self.items.append([name, price, qty])
+
+          def total(self):
+              return sum(price * qty for name, price, qty in self.items)
+
+          def count(self):
+              return sum(qty for name, price, qty in self.items)
+
+      items = [["хлеб", 40, 2], ["сыр", 250, 1]]
+      cart = Cart()
+      for name, price, qty in items:
+          cart.add(name, price, qty)
+      result = [cart.total(), cart.count()]
+    hints:
+      - Какие данные нужно хранить в объекте, чтобы потом посчитать и стоимость, и количество?
+      - В __init__ создайте self.items = []. В add добавляйте [name, price, qty]. В total суммируйте price * qty, в count — qty.
+      - 'Пример: sum(b.pages for b in shelf)'
+    tests:
+      - description: Хлеб и сыр
+        input: { items: [[хлеб, 40, 2], [сыр, 250, 1]] }
+        expected: [330, 3]
+        visible: true
+      - description: Пустая корзина
+        input: { items: [] }
+        expected: [0, 0]
+      - description: Один товар много штук
+        input: { items: [[тетрадь, 15, 10]] }
+        expected: [150, 10]
