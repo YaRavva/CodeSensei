@@ -4,6 +4,7 @@ import { getTask } from "@/lib/appwrite/tasks";
 import { checkAndAwardAchievements } from "@/lib/utils/achievements";
 import { getAuthContext } from "@/lib/utils/auth";
 import { awardTaskXp } from "@/lib/xp/award-task";
+import { canAccessTask } from "@/lib/security/task-access";
 
 /**
  * Awards XP for a solved task. Only `taskId` is read from the request: attempt
@@ -26,7 +27,7 @@ export async function POST(request: NextRequest) {
     }
 
     const task = await getTask(taskId);
-    if (!task) {
+    if (!task || !(await canAccessTask(userId, context.profile.role, task))) {
       return NextResponse.json({ error: "Task not found" }, { status: 404 });
     }
 

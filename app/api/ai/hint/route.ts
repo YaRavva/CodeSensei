@@ -12,6 +12,8 @@ import { checkHintLimit, logHintEvent } from "@/lib/appwrite/hint-events";
 import { getTask } from "@/lib/appwrite/tasks";
 import { getAuthContext } from "@/lib/utils/auth";
 import { buildHintPrompt, parseHintResponse } from "@/lib/prompts";
+import { MAX_CODE_LENGTH } from "@/lib/security/rate-limit";
+import { canAccessTask } from "@/lib/security/task-access";
 
 export async function POST(req: NextRequest) {
   try {
@@ -23,7 +25,12 @@ export async function POST(req: NextRequest) {
     if (!taskId) return NextResponse.json({ error: "taskId is required" }, { status: 400 });
 
     const task = await getTask(String(taskId));
-    if (!task) return NextResponse.json({ error: "Задание не найдено" }, { status: 404 });
+    if (!task || !(await canAccessTask(context.user.$id, context.profile.role, task))) {
+      return NextResponse.json({ error: "Задание не найдено" }, { status: 404 });
+    }
+    if (typeof code === "string" && code.length > MAX_CODE_LENGTH) {
+      return NextResponse.json({ error: "Код слишком длинный" }, { status: 400 });
+    }
 
     const limit = await checkHintLimit(context.user.$id, task.id);
     if (!limit.allowed) {
@@ -39,12 +46,12 @@ export async function POST(req: NextRequest) {
       taskTitle: typedTask?.title ?? "Без названия",
       taskDescription: typedTask?.description ?? "",
       taskType,
-      studentCode: code ?? "",
+      studentCode: typeof code === "string" ? code : "",
     });
 
     if (!isOmnirouteConfigured()) {
       return NextResponse.json(
-        { error: "Omniroute не настроен: задайте OMNIROUTE_BASE_URL и OMNIROUTE_API_KEY" },
+        { error: "AI-подсказки временно недоступны" },
         { status: 500 }
       );
     }
@@ -60,7 +67,8 @@ export async function POST(req: NextRequest) {
       content = completion.content.trim();
     } catch (error) {
       if (error instanceof OmnirouteError) {
-        return NextResponse.json({ error: error.message, details: error.details }, { status: 502 });
+        console.error("Hint AI error:", error.message, error.details);
+        return NextResponse.json({ error: "AI-сервис временно недоступен" }, { status: 502 });
       }
       throw error;
     }
@@ -71,9 +79,7 @@ export async function POST(req: NextRequest) {
     const parsed = parseHintResponse(content);
     return NextResponse.json({ success: true, hint: parsed });
   } catch (e) {
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Unknown error" },
-      { status: 500 }
-    );
+    console.error("Hint failed:", e);
+    return NextResponse.json({ error: "Не удалось получить подсказку" }, { status: 500 });
   }
 }

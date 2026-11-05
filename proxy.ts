@@ -17,8 +17,47 @@ function isProtected(pathname: string): boolean {
   );
 }
 
+const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+
+/** CSRF guard: state-changing API calls must come from our own origin. */
+function isCrossSiteApiWrite(request: NextRequest): boolean {
+  if (!request.nextUrl.pathname.startsWith("/api/")) return false;
+  if (SAFE_METHODS.has(request.method)) return false;
+
+  if (request.headers.get("sec-fetch-site") === "cross-site") return true;
+
+  const origin = request.headers.get("origin");
+  if (!origin) return false;
+
+  let originHost: string;
+  try {
+    originHost = new URL(origin).host;
+  } catch {
+    return true;
+  }
+
+  const allowed = new Set<string>();
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  if (siteUrl) {
+    try {
+      allowed.add(new URL(siteUrl).host);
+    } catch {
+      // ignore malformed env
+    }
+  }
+  for (const header of ["x-forwarded-host", "host"]) {
+    const value = request.headers.get(header)?.split(",")[0]?.trim();
+    if (value) allowed.add(value);
+  }
+  return !allowed.has(originHost);
+}
+
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  if (isCrossSiteApiWrite(request)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
   const hasSession = Boolean(request.cookies.get(SESSION_COOKIE)?.value);
 
   if (!hasSession && isProtected(pathname)) {

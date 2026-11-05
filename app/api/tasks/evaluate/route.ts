@@ -11,6 +11,14 @@ import {
 import { getTask } from "@/lib/appwrite/tasks";
 import { getAuthContext } from "@/lib/utils/auth";
 import { buildEvaluationPrompt, parseEvaluationResponse } from "@/lib/prompts";
+import { HOUR, hit, MAX_CODE_LENGTH, MAX_TEXT_LENGTH, tooManyRequests } from "@/lib/security/rate-limit";
+import { canAccessTask } from "@/lib/security/task-access";
+
+function clip(value: unknown): string | undefined {
+  if (value == null) return undefined;
+  const text = typeof value === "string" ? value : JSON.stringify(value);
+  return text.slice(0, MAX_TEXT_LENGTH);
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -22,15 +30,25 @@ export async function POST(req: NextRequest) {
     if (!taskId || typeof code !== "string") {
       return NextResponse.json({ error: "taskId and code are required" }, { status: 400 });
     }
+    if (code.length > MAX_CODE_LENGTH) {
+      return NextResponse.json({ error: "Код слишком длинный" }, { status: 400 });
+    }
+
+    // Each evaluation is a paid AI call.
+    const limit = hit(`evaluate:user:${context.user.$id}`, 60, HOUR);
+    if (!limit.ok) return tooManyRequests(limit.retryAfterSec);
 
     if (!isOmnirouteConfigured()) {
       return NextResponse.json(
-        { error: "Omniroute не настроен: задайте OMNIROUTE_BASE_URL и OMNIROUTE_API_KEY" },
+        { error: "AI-проверка временно недоступна" },
         { status: 500 }
       );
     }
 
     const task = await getTask(String(taskId));
+    if (!task || !(await canAccessTask(context.user.$id, context.profile.role, task))) {
+      return NextResponse.json({ error: "Задание не найдено" }, { status: 404 });
+    }
 
     const typedTask = task as { title: string; description: string; task_type?: string } | null;
     const taskType = typedTask?.task_type === "function" || typedTask?.task_type === "class"
@@ -42,8 +60,8 @@ export async function POST(req: NextRequest) {
       taskDescription: typedTask?.description ?? "",
       taskType,
       studentCode: code,
-      runtimeOutput,
-      testSummary,
+      runtimeOutput: clip(runtimeOutput),
+      testSummary: clip(testSummary),
     });
 
     let content = "";
@@ -57,7 +75,8 @@ export async function POST(req: NextRequest) {
       content = completion.content.trim();
     } catch (error) {
       if (error instanceof OmnirouteError) {
-        return NextResponse.json({ error: error.message, details: error.details }, { status: 502 });
+        console.error("Evaluate AI error:", error.message, error.details);
+        return NextResponse.json({ error: "AI-сервис временно недоступен" }, { status: 502 });
       }
       throw error;
     }
@@ -72,9 +91,7 @@ export async function POST(req: NextRequest) {
       passed,
     });
   } catch (e) {
-    return NextResponse.json(
-      { error: e instanceof Error ? e.message : "Unknown error" },
-      { status: 500 }
-    );
+    console.error("Evaluate failed:", e);
+    return NextResponse.json({ error: "Не удалось проверить решение" }, { status: 500 });
   }
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { AppwriteException, ID, type Models } from "node-appwrite";
-import { getAdminAccount, getSessionAccount } from "@/lib/appwrite/client";
+import { getAdminAccount, getAdminUsers, getSessionAccount } from "@/lib/appwrite/client";
+import { clientIp, HOUR, hit, MINUTE, tooManyRequests } from "@/lib/security/rate-limit";
 import { sessionCookieOptions } from "@/lib/appwrite/session";
 import { ensureUserProfile } from "@/lib/appwrite/users";
 
@@ -27,12 +28,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Укажите email и пароль" }, { status: 400 });
   }
 
+  if (email.length > 254 || password.length > 256 || (displayName?.length ?? 0) > 100) {
+    return NextResponse.json({ error: "Слишком длинные данные" }, { status: 400 });
+  }
+
   if (password.length < 8) {
     return NextResponse.json(
       { error: "Пароль должен содержать минимум 8 символов" },
       { status: 400 }
     );
   }
+
+  const ip = clientIp(request);
+  const limit = hit(`register:ip:${ip}`, 5, HOUR);
+  if (!limit.ok) return tooManyRequests(limit.retryAfterSec);
+  const burst = hit(`register:burst:${ip}`, 2, MINUTE);
+  if (!burst.ok) return tooManyRequests(burst.retryAfterSec);
 
   try {
     const userId = ID.unique();
@@ -45,13 +56,7 @@ export async function POST(request: Request) {
 
     // Автоматически подтверждаем email без отправки письма (так как нет SMTP)
     try {
-      const { Client, Users } = await import("node-appwrite");
-      const client = new Client()
-        .setEndpoint(process.env.APPWRITE_ENDPOINT || "https://appwrite.ravva.su/v1")
-        .setProject(process.env.APPWRITE_PROJECT_ID || "6adc4f50003202881547")
-        .setKey(process.env.APPWRITE_API_KEY || "");
-      const users = new Users(client);
-      await users.updateEmailVerification(userId, true);
+      await getAdminUsers().updateEmailVerification({ userId, emailVerification: true });
     } catch (verifyErr) {
       console.warn("Auto-verification warning:", verifyErr);
     }
@@ -84,7 +89,11 @@ export async function POST(request: Request) {
       const message =
         error.code === 409
           ? "Пользователь с таким email уже существует"
-          : error.message || "Не удалось зарегистрироваться";
+          : error.type === "password_recently_used" || error.type === "password_personal_data"
+            ? error.message
+            : error.code === 400
+              ? "Проверьте email и пароль"
+              : "Не удалось зарегистрироваться";
       return NextResponse.json({ error: message }, { status });
     }
 

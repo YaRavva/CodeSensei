@@ -3,6 +3,7 @@ import { AppwriteException, type Models } from "node-appwrite";
 import { getAdminAccount, getSessionAccount } from "@/lib/appwrite/client";
 import { sessionCookieOptions } from "@/lib/appwrite/session";
 import { ensureUserProfile } from "@/lib/appwrite/users";
+import { clientIp, hitAll, MINUTE, tooManyRequests } from "@/lib/security/rate-limit";
 
 interface LoginBody {
   email?: string;
@@ -24,6 +25,13 @@ export async function POST(request: Request) {
   if (!email || !password) {
     return NextResponse.json({ error: "Укажите email и пароль" }, { status: 400 });
   }
+
+  // API-key calls bypass Appwrite abuse limits: throttle brute force here.
+  const limit = hitAll([
+    { key: `login:ip:${clientIp(request)}`, limit: 30, windowMs: 15 * MINUTE },
+    { key: `login:email:${email}`, limit: 10, windowMs: 15 * MINUTE },
+  ]);
+  if (!limit.ok) return tooManyRequests(limit.retryAfterSec);
 
   try {
     const session = await getAdminAccount().createEmailPasswordSession({ email, password });
@@ -51,7 +59,7 @@ export async function POST(request: Request) {
       const message =
         error.code === 401
           ? "Неверный email или пароль"
-          : error.message || "Не удалось выполнить вход";
+          : "Не удалось выполнить вход";
       return NextResponse.json({ error: message }, { status });
     }
 
