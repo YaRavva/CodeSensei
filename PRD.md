@@ -677,3 +677,12 @@ pnpm appwrite:seed    # достижения ach_* (upsert), демо-конте
   `border-border`); запрещены hex/rgb в классах, `hsl(var(--...))`, ручной фон страницы,
   shadcn-токены в `theme.extend.colors`.
 - Проверять страницы в светлой и тёмной темах.
+- Визуальные правила — навык `landing-page-design` (elayadesign/ai-design-skills):
+  одна гарнитура Manrope (+ Geist Mono для кода и чисел), шкала Tailwind, отступы
+  2–96px, плоские фоны, иконки Phosphor, базовая кривая `cubic-bezier(0.22,1,0.36,1)`.
+- Именованные текстовые стили (`heading-1…6`, `title-1…5`, `body-1…6`,
+  `button-lg/md/sm/xsm`, `caption-1…5`) заданы один раз через `@utility` в
+  `app/globals.css`; в новом коде использовать их вместо пары «размер + насыщенность».
+- Живой справочник — страница `/design` (`components/design/design-system.tsx`,
+  noindex): токены с текущими значениями темы, типографика, отступы, радиусы,
+  иконки, движение, компоненты, состояния и продуктовые блоки.
