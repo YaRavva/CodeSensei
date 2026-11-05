@@ -244,3 +244,12 @@
     transform: none;
   }
 }
+/* Полоса прокрутки видна всегда: страница не сдвигается, когда контент становится
+   длиннее экрана. Диалоги и выпадающие списки (react-remove-scroll) не добавляют
+   отступ справа — полоса и так на месте. */
+html {
+  overflow-y: scroll;
+}
+html body[data-scroll-locked] {
+  margin-right: 0 !important;
+}

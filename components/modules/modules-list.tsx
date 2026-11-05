@@ -1,6 +1,6 @@
 "use client";
 
-import { Code2 } from "lucide-react";
+import { Code2, Lock } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ModuleCard } from "@/components/modules/module-card";
@@ -21,6 +21,10 @@ interface ModulesListProps {
   modules: Module[];
   userProgress: UserProgress[];
   tasksCountMap?: Record<string, number>;
+  /** Modules of the "Дополнительно" section. */
+  extraModuleIds?: string[];
+  /** Core modules left before "Дополнительно" opens (0 — open). */
+  coreLeft?: number;
 }
 
 type ModuleStatus = "not_started" | "in_progress" | "completed";
@@ -42,12 +46,18 @@ function getModuleStatus(moduleId: string, userProgress: UserProgress[]): Module
   return progressEntry.status;
 }
 
-export function ModulesList({ modules, userProgress, tasksCountMap = {} }: ModulesListProps) {
+export function ModulesList({
+  modules,
+  userProgress,
+  tasksCountMap = {},
+  extraModuleIds = [],
+  coreLeft = 0,
+}: ModulesListProps) {
   const [filter, setFilter] = useState<{
     status?: ModuleStatus;
     level?: number;
   }>({});
-  const [sortOption, setSortOption] = useState<SortOption>("level");
+  const [sortOption, setSortOption] = useState<SortOption>("order");
 
   const statusValue = filter.status ?? "all";
   const levelValue = filter.level ? String(filter.level) : "all";
@@ -187,16 +197,47 @@ export function ModulesList({ modules, userProgress, tasksCountMap = {} }: Modul
         </div>
       </div>
 
-      {/* Список модулей */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {sortedModules.map((module) => {
-          const status = getModuleStatus(module.id, userProgress);
-          const tasksCount = tasksCountMap[module.id] || 0;
-          return (
-            <ModuleCard key={module.id} module={module} status={status} tasksCount={tasksCount} />
-          );
-        })}
-      </div>
+      {/* Список модулей: основная часть и «Дополнительно» */}
+      {[
+        { key: "core", items: sortedModules.filter((m) => !extraModuleIds.includes(m.id)) },
+        { key: "extra", items: sortedModules.filter((m) => extraModuleIds.includes(m.id)) },
+      ].map(({ key, items }) =>
+        items.length === 0 ? null : (
+          <section key={key} className="space-y-4" aria-labelledby={`section-${key}`}>
+            {extraModuleIds.length > 0 && (
+              <div className="flex flex-wrap items-end justify-between gap-2 border-b pb-3">
+                <div>
+                  <h2 id={`section-${key}`} className="text-xl font-semibold">
+                    {key === "core" ? "Основная часть" : "Дополнительно"}
+                  </h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {key === "core"
+                      ? "Модули по порядку: от первой программы до обработки ошибок."
+                      : "Генераторы, lambda, рекурсия, файлы и классы — для тех, кто прошёл основную часть."}
+                  </p>
+                </div>
+                {key === "extra" && coreLeft > 0 && (
+                  <span className="inline-flex items-center gap-2 rounded-full border bg-muted/40 px-3 py-1 text-xs font-medium text-muted-foreground">
+                    <Lock className="size-3.5" aria-hidden="true" />
+                    Откроется после основной части · осталось модулей: {coreLeft}
+                  </span>
+                )}
+              </div>
+            )}
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {items.map((module) => (
+                <ModuleCard
+                  key={module.id}
+                  module={module}
+                  status={getModuleStatus(module.id, userProgress)}
+                  tasksCount={tasksCountMap[module.id] || 0}
+                  locked={key === "extra" && coreLeft > 0}
+                />
+              ))}
+            </div>
+          </section>
+        )
+      )}
 
       {sortedModules.length === 0 && (
         <div className="text-center py-12">

@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, Clock, Rocket } from "lucide-react";
+import { CheckCircle2, Clock, Lock, Rocket } from "lucide-react";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkBreaks from "remark-breaks";
@@ -17,6 +17,8 @@ interface ModuleCardProps {
   module: Module;
   status: ModuleStatus;
   tasksCount?: number;
+  /** Module is not open yet ("Дополнительно" before the core part is done). */
+  locked?: boolean;
 }
 
 const statusConfig: Record<ModuleStatus, { label: string; icon: typeof Clock; tone: string }> = {
@@ -37,7 +39,7 @@ const statusConfig: Record<ModuleStatus, { label: string; icon: typeof Clock; to
   },
 };
 
-export function ModuleCard({ module, status, tasksCount }: ModuleCardProps) {
+export function ModuleCard({ module, status, tasksCount, locked = false }: ModuleCardProps) {
   const statusInfo = statusConfig[status];
   const StatusIcon = statusInfo.icon;
   const isCompleted = status === "completed";
@@ -118,11 +120,18 @@ export function ModuleCard({ module, status, tasksCount }: ModuleCardProps) {
           </div>
         )}
         <div className="mt-auto pt-1">
-          <Button asChild className="w-full">
-            <Link href={`/modules/${module.id}`}>
-              {status === "not_started" ? "Начать изучение" : "Продолжить"}
-            </Link>
-          </Button>
+          {locked ? (
+            <Button className="w-full" variant="outline" disabled>
+              <Lock className="size-4" aria-hidden="true" />
+              Откроется после основной части
+            </Button>
+          ) : (
+            <Button asChild className="w-full">
+              <Link href={`/modules/${module.id}`}>
+                {status === "not_started" ? "Начать изучение" : "Продолжить"}
+              </Link>
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>

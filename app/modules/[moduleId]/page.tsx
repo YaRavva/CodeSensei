@@ -3,16 +3,22 @@ import { ModuleUnifiedPage } from "@/components/modules/module-unified-page";
 import { listAttemptsForTasks } from "@/lib/appwrite/attempts";
 import { getPublishedModule, listPublishedModules } from "@/lib/appwrite/modules";
 import { listTasksByModule, toPublicTask } from "@/lib/appwrite/tasks";
+import { coreModulesLeft, isExtraModule, isStaffRole } from "@/lib/course-access";
+import { listUserProgress } from "@/lib/appwrite/progress";
 import { requireAuth } from "@/lib/utils/auth";
 import type { Json } from "@/types/db";
 
 export default async function ModulePage({ params }: { params: Promise<{ moduleId: string }> }) {
-  const { user } = await requireAuth();
+  const { user, profile } = await requireAuth();
   const { moduleId } = await params;
 
   const module = await getPublishedModule(moduleId);
   if (!module) {
     redirect("/modules");
+  }
+  // "Дополнительно" opens after the core part (PRD 3.2).
+  if (isExtraModule(moduleId) && !isStaffRole(profile.role)) {
+    if (coreModulesLeft(await listUserProgress(user.$id)) > 0) redirect("/modules");
   }
 
   const [tasks, published] = await Promise.all([listTasksByModule(moduleId), listPublishedModules()]);
