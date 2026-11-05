@@ -11,7 +11,9 @@
     "format": "biome format --write .",
     "typecheck": "tsc --noEmit",
     "appwrite:setup": "node --env-file-if-exists=.env.local scripts/appwrite/setup.mjs",
-    "appwrite:seed": "node --env-file-if-exists=.env.local scripts/appwrite/seed.mjs"
+    "appwrite:seed": "node --env-file-if-exists=.env.local scripts/appwrite/seed.mjs",
+    "content:validate": "node --import tsx scripts/content/validate.ts",
+    "content:sync": "node --env-file=.env.local --import tsx scripts/content/sync.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^6.0.0",

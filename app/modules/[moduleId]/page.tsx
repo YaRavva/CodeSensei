@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { ModuleUnifiedPage } from "@/components/modules/module-unified-page";
 import { listAttemptsForTasks } from "@/lib/appwrite/attempts";
 import { getPublishedModule } from "@/lib/appwrite/modules";
-import { listTasksByModule } from "@/lib/appwrite/tasks";
+import { listTasksByModule, toPublicTask } from "@/lib/appwrite/tasks";
 import { requireAuth } from "@/lib/utils/auth";
 import type { Json } from "@/types/db";
 
@@ -60,7 +60,7 @@ export default async function ModulePage({ params }: { params: Promise<{ moduleI
   return (
     <ModuleUnifiedPage
       module={module}
-      tasks={tasks}
+      tasks={tasks.map(toPublicTask)}
       completedTaskIds={completedTaskIds}
       moduleProgress={progress}
       userProgress={userProgress}

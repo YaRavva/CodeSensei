@@ -116,3 +116,8 @@ export async function countTasks(moduleId: string): Promise<number> {
   ]);
   return rows.length;
 }
+
+/** Task as sent to the student's browser: no reference solution, no static hints. */
+export function toPublicTask(task: Task): Task {
+  return { ...task, solution_code: null, hints: null };
+}

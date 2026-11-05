@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
 import { TaskPageContent } from "@/components/modules/task-page-content";
 import { getLastAttempt } from "@/lib/appwrite/attempts";
-import { getModule } from "@/lib/appwrite/modules";
-import { getTaskInModule, listTaskSummariesByModule } from "@/lib/appwrite/tasks";
+import { getModule, getPublishedModule } from "@/lib/appwrite/modules";
+import { getTaskInModule, listTaskSummariesByModule, toPublicTask } from "@/lib/appwrite/tasks";
 import { requireAuth } from "@/lib/utils/auth";
 
 export default async function TaskPage({
@@ -11,9 +11,11 @@ export default async function TaskPage({
   params: Promise<{ moduleId: string; taskId: string }>;
 }) {
   const { moduleId, taskId } = await params;
-  const { user } = await requireAuth();
+  const { user, profile } = await requireAuth();
+  const isStaff = profile.role === "admin" || profile.role === "teacher";
 
-  const module = await getModule(moduleId);
+  // Students only see published modules; staff can preview drafts.
+  const module = isStaff ? await getModule(moduleId) : await getPublishedModule(moduleId);
   if (!module) notFound();
 
   const task = await getTaskInModule(taskId, moduleId);
@@ -30,7 +32,7 @@ export default async function TaskPage({
   return (
     <TaskPageContent
       module={module}
-      task={task}
+      task={toPublicTask(task)}
       prevTask={prevTask}
       nextTask={nextTask}
       lastAttempt={lastAttempt}
