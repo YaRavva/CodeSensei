@@ -42,7 +42,7 @@ function inputToPythonArgs(input: Record<string, unknown>): string {
     .join(", ");
 }
 
-function containsForbiddenFunctionDefinition(code: string, taskType: "linear" | "function" | "class"): boolean {
+export function containsForbiddenFunctionDefinition(code: string, taskType: "linear" | "function" | "class"): boolean {
   if (taskType === "function") return false;
 
   let classIndent: number | null = null;
@@ -89,7 +89,7 @@ function removeTopLevelInputAssignments(code: string, inputNames: string[]): str
     .join("\n");
 }
 
-function simplifyPythonError(error: unknown): string {
+export function simplifyPythonError(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
   const lines = message.split("\n").map((line) => line.trim()).filter(Boolean);
   const last = lines.at(-1) || message;
@@ -97,24 +97,16 @@ function simplifyPythonError(error: unknown): string {
   return match ? `${last.split(":")[0]}: ${match[1]}` : last;
 }
 
-export async function runTestCase(
+/**
+ * Builds the Python program that runs one test case. Shared by the browser
+ * runner below and the server-side sandbox (lib/sandbox/python-sandbox.ts),
+ * so both check solutions identically.
+ */
+export function buildTestProgram(
   userCode: string,
   testCase: TestCase,
-  pyodide: any,
   taskType: "linear" | "function" | "class" = "linear"
-): Promise<TestResult> {
-  const startTime = Date.now();
-
-  try {
-    if (containsForbiddenFunctionDefinition(userCode, taskType)) {
-      return {
-        testCaseId: testCase.id,
-        passed: false,
-        error: "В этом задании нельзя объявлять функции. Уберите строку с def и используйте линейный код.",
-        executionTime: 0,
-      };
-    }
-
+): string {
     const input = testCase.input || {};
     const inputAssignment = Object.entries(input)
       .map(([key, value]) => `_test_ns[${valueToPython(key)}] = ${valueToPython(value)}`)
@@ -230,7 +222,7 @@ _test_error = None
 `;
     }
 
-    testCode = `
+    return `
 import json
 def _cs_normalize(value):
     # Tuples compare as lists, sets as sorted lists, dict keys as strings (JSON test data).
@@ -265,6 +257,28 @@ def _compare_values(actual, expected):
         return False
 ${testCode}
 `;
+
+}
+
+export async function runTestCase(
+  userCode: string,
+  testCase: TestCase,
+  pyodide: any,
+  taskType: "linear" | "function" | "class" = "linear"
+): Promise<TestResult> {
+  const startTime = Date.now();
+
+  try {
+    if (containsForbiddenFunctionDefinition(userCode, taskType)) {
+      return {
+        testCaseId: testCase.id,
+        passed: false,
+        error: "В этом задании нельзя объявлять функции. Уберите строку с def и используйте линейный код.",
+        executionTime: 0,
+      };
+    }
+
+    const testCode = buildTestProgram(userCode, testCase, taskType);
 
     await pyodide.runPythonAsync(testCode);
 

@@ -3,6 +3,9 @@ import { badRequest, requireApiUser } from "@/lib/appwrite/api";
 import { getAuthContext } from "@/lib/utils/auth";
 import { MAX_CODE_LENGTH, MAX_TEXT_LENGTH } from "@/lib/security/rate-limit";
 import { canAccessTask } from "@/lib/security/task-access";
+import { HOUR, hit, tooManyRequests } from "@/lib/security/rate-limit";
+import { runServerTestSuite, SandboxUnavailableError } from "@/lib/sandbox/python-sandbox";
+import type { TestCase } from "@/types/test-case";
 import {
   countTaskAttempts,
   createTaskAttempt,
@@ -55,17 +58,31 @@ export async function POST(request: Request) {
     return badRequest("Код решения слишком длинный");
   }
 
-  const testResults = body.testResults ?? {};
-  if (JSON.stringify(testResults).length > 50_000) {
-    return badRequest("Слишком большой результат тестов");
-  }
 
   const task = await getTask(taskId);
   if (!task || !(await canAccessTask(auth.userId, context.profile.role, task))) {
     return NextResponse.json({ error: "Задание не найдено" }, { status: 404 });
   }
 
-  const isSuccessful = Boolean(body.isSuccessful);
+  // Each check starts a sandboxed Python process.
+  const limit = hit(`attempts:user:${auth.userId}`, 120, HOUR);
+  if (!limit.ok) return tooManyRequests(limit.retryAfterSec);
+
+  // The verdict comes from the server-side test run; `isSuccessful` and
+  // `testResults` sent by the browser are ignored (PRD 11).
+  const testCases = Array.isArray(task.test_cases) ? (task.test_cases as unknown as TestCase[]) : [];
+  let verdict: Awaited<ReturnType<typeof runServerTestSuite>>;
+  try {
+    verdict = await runServerTestSuite(code, testCases, task.task_type);
+  } catch (error) {
+    console.error("Server-side test run failed:", error);
+    const message =
+      error instanceof SandboxUnavailableError
+        ? "Проверка на сервере сейчас перегружена. Повторите через минуту."
+        : "Не удалось проверить решение на сервере. Повторите позже.";
+    return NextResponse.json({ error: message }, { status: 503 });
+  }
+  const isSuccessful = verdict.allPassed;
   // Hint usage comes from server-side hint events, not from the request.
   const [attemptNumber, hadSuccess, usedAiHint] = await Promise.all([
     countTaskAttempts(auth.userId, taskId),
@@ -77,19 +94,24 @@ export async function POST(request: Request) {
     user_id: auth.userId,
     task_id: taskId,
     code_solution: code,
-    test_results: testResults as Json,
+    test_results: verdict as unknown as Json,
     is_successful: isSuccessful,
     used_ai_hint: usedAiHint,
-    execution_time_ms: body.executionTimeMs == null ? null : Number(body.executionTimeMs),
-    solving_time_ms: body.solvingTimeMs == null ? null : Number(body.solvingTimeMs),
+    execution_time_ms: verdict.executionTime,
+    solving_time_ms:
+      Number.isFinite(Number(body.solvingTimeMs)) && Number(body.solvingTimeMs) >= 0
+        ? Math.min(Math.round(Number(body.solvingTimeMs)), 30 * 24 * 3600 * 1000)
+        : null,
     error_message:
-      body.errorMessage == null ? null : String(body.errorMessage).slice(0, MAX_TEXT_LENGTH),
+      verdict.results.find((r) => !r.passed)?.error?.slice(0, MAX_TEXT_LENGTH) ?? null,
   });
 
   return NextResponse.json(
     {
       attempt,
       attemptNumber: attemptNumber + 1,
+      isSuccessful,
+      testResults: verdict,
       isFirstSuccessfulAttempt: isSuccessful && !hadSuccess,
     },
     { status: 201 }

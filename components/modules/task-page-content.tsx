@@ -328,23 +328,38 @@ export function TaskPageContent({
             body: JSON.stringify({
               taskId: task.id,
               code,
-              testResults: results,
-              isSuccessful: results.allPassed,
-              executionTimeMs: results.executionTime,
               solvingTimeMs,
-              errorMessage: results.results.find((r) => !r.passed)?.error ?? null,
               usedAiHint: false,
             }),
           });
 
           if (!attemptResponse.ok) {
-            throw new Error(`HTTP error! status: ${attemptResponse.status}`);
+            const failure = (await attemptResponse.json().catch(() => null)) as { error?: string } | null;
+            toast({
+              title: "Решение не сохранено",
+              description: failure?.error ?? "Не удалось проверить решение на сервере. Повторите позже.",
+              variant: "destructive",
+            });
+            return;
           }
 
           const attemptData = (await attemptResponse.json()) as {
             attemptNumber: number;
             isFirstSuccessfulAttempt: boolean;
+            isSuccessful: boolean;
+            testResults: TestSuiteResult;
           };
+
+          // The server re-runs the tests; only its verdict counts.
+          if (!attemptData.isSuccessful) {
+          setTestResults(attemptData.testResults);
+            toast({
+              title: "Решение не прошло проверку на сервере",
+              description: "Посмотрите результаты тестов и исправьте решение.",
+              variant: "destructive",
+            });
+            return;
+          }
 
           const attemptNumber = attemptData.attemptNumber;
           const isFirstSuccessfulAttempt = attemptData.isFirstSuccessfulAttempt;

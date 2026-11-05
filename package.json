@@ -72,5 +72,12 @@
       "mdast-util-to-hast": ">=13.2.1",
       "postcss-selector-parser@<6.1.5": ">=6.1.5 <7"
     }
+  },
+  "overrides": {
+    "dompurify": "^3.4.17",
+    "source-map-js": "^1.2.2",
+    "ws": "^8.21.0",
+    "mdast-util-to-hast": "^13.2.1",
+    "postcss-selector-parser": "^6.1.5"
   }
 }

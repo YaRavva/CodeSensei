@@ -1,0 +1,11 @@
+import { spawn } from "node:child_process";
+import path from "node:path"; import { pathToFileURL } from "node:url"; import fs from "node:fs";
+const dir = path.resolve("node_modules/pyodide");
+const real = fs.realpathSync(dir);
+const program = process.argv[2];
+const flags = ["--permission", `--allow-fs-read=${real}/*`, `--allow-fs-read=${dir}/*`, "--disallow-code-generation-from-strings", "--max-old-space-size=256"];
+const child = spawn(process.execPath, [...flags, "/tmp/sbx/child.mjs"], { env: {}, stdio: ["pipe","pipe","pipe"] });
+child.stdin.end(JSON.stringify({ pyodideUrl: pathToFileURL(path.join(real,"pyodide.mjs")).href, indexURL: real + "/", setup: ["import sys, json\nfrom io import StringIO\nclass S:\n  def __init__(s): s.b=StringIO()\n  def write(s,x): s.b.write(x)\n  def flush(s): pass\n  def getvalue(s): return s.b.getvalue()\n  def reset(s): s.b=StringIO()\n_stdout_capture=S()\nsys.stdout=_stdout_capture\nsys.stderr=StringIO()"], cases: [{ id: "1", program }] }));
+let o="",e=""; child.stdout.on("data",d=>o+=d); child.stderr.on("data",d=>e+=d);
+const t=Date.now(); const kill=setTimeout(()=>{child.kill("SIGKILL"); console.log("KILLED timeout")}, 8000);
+child.on("exit",(c)=>{clearTimeout(kill); console.log("exit",c,Date.now()-t,"ms\n",o.slice(0,1500),"\nERR:",e.slice(0,1500));});
