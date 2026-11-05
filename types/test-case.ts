@@ -3,7 +3,7 @@
  */
 
 export type TestCaseCategory = "basic" | "edge" | "error";
-export type VerificationMode = "variable" | "stdout" | "function";
+export type VerificationMode = "variable" | "stdout" | "function" | "class";
 
 export interface TestCase {
   id: string;

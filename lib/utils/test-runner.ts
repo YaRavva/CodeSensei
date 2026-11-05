@@ -134,9 +134,10 @@ for _output_name in _expected_output_files:
         pass
 `
       : "";
-    const safeUserCode = taskType === "linear"
-      ? removeTopLevelInputAssignments(userCode, Object.keys(input))
-      : userCode;
+    // Linear and class tasks read inputs from variables supplied by the test case.
+    const safeUserCode = taskType === "function"
+      ? userCode
+      : removeTopLevelInputAssignments(userCode, Object.keys(input));
     const codeLiteral = JSON.stringify(safeUserCode);
     const expectedOutputPy = valueToPython(testCase.expected_output);
     const verificationMode = testCase.verification_mode || "variable";
@@ -166,6 +167,14 @@ if _test_function is None:
 _test_result = _test_function(${functionArgs})
 _test_expected = ${expectedOutputPy}
 _test_passed = _compare_values(_test_result, _test_expected) if '_compare_values' in globals() else _test_result == _test_expected
+_output_files = ${valueToPython(testCase.output_files || {})}
+for _output_name, _expected_content in _output_files.items():
+    try:
+        with open(_output_name, "r", encoding="utf-8") as _output_file:
+            if not _compare_values(_output_file.read(), _expected_content):
+                _test_passed = False
+    except Exception:
+        _test_passed = False
 _test_error = None
 `;
     } else if (taskType === "class") {
@@ -182,8 +191,8 @@ _test_error = None
       testCode += `
 exec(${codeLiteral}, _test_ns, _test_ns)
 _test_expected = ${expectedOutputPy}
-_test_result = _stdout_capture.getvalue().strip()
-_test_passed = _compare_values(_test_result, str(_test_expected).strip()) if '_compare_values' in globals() else _test_result == str(_test_expected).strip()
+_test_result = _cs_normalize_output(_stdout_capture.getvalue())
+_test_passed = _test_result == _cs_normalize_output(_test_expected)
 _test_error = None
 `;
     } else {
@@ -223,14 +232,30 @@ _test_error = None
 
     testCode = `
 import json
+def _cs_normalize(value):
+    # Tuples compare as lists, sets as sorted lists, dict keys as strings (JSON test data).
+    if isinstance(value, (set, frozenset)):
+        return sorted((_cs_normalize(item) for item in value), key=lambda item: json.dumps(item, sort_keys=True, ensure_ascii=False))
+    if isinstance(value, (list, tuple)):
+        return [_cs_normalize(item) for item in value]
+    if isinstance(value, dict):
+        return {str(key): _cs_normalize(item) for key, item in value.items()}
+    return value
+
+def _cs_normalize_output(text):
+    # Trailing spaces at line ends and trailing newlines are ignored.
+    return "\\n".join(line.rstrip() for line in str(text).splitlines()).strip()
+
 def _compare_values(actual, expected):
     try:
+        if isinstance(actual, bool) or isinstance(expected, bool):
+            return actual is expected or (isinstance(actual, bool) and isinstance(expected, bool) and actual == expected)
         if isinstance(actual, (int, float)) and isinstance(expected, (int, float)):
             return abs(actual - expected) < 0.0001
         if isinstance(actual, str) and isinstance(expected, str):
             return actual == expected
-        if isinstance(actual, (list, dict)) or isinstance(expected, (list, dict)):
-            return json.dumps(actual, sort_keys=True, ensure_ascii=False) == json.dumps(expected, sort_keys=True, ensure_ascii=False)
+        if isinstance(actual, (list, tuple, set, frozenset, dict)) or isinstance(expected, (list, tuple, set, frozenset, dict)):
+            return json.dumps(_cs_normalize(actual), sort_keys=True, ensure_ascii=False) == json.dumps(_cs_normalize(expected), sort_keys=True, ensure_ascii=False)
         return actual == expected
     except Exception:
         return False
