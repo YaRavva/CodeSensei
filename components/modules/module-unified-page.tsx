@@ -18,6 +18,7 @@ import {
   Play,
   RotateCcw,
   Sparkles,
+  Trophy,
   TrendingUp,
 } from "lucide-react";
 import Link from "next/link";
@@ -67,6 +68,8 @@ interface ModuleUnifiedPageProps {
   tasks: Task[];
   completedTaskIds: string[];
   moduleProgress: number;
+  /** Next published module, shown when this one is completed. */
+  nextModule?: { id: string; title: string } | null;
   userProgress?: {
     xpEarned: number;
     avgScore?: number;
@@ -100,6 +103,7 @@ export function ModuleUnifiedPage({
   completedTaskIds,
   moduleProgress,
   userProgress,
+  nextModule = null,
 }: ModuleUnifiedPageProps) {
   const { theme } = useTheme();
   const router = useRouter();
@@ -159,6 +163,8 @@ export function ModuleUnifiedPage({
   // Дебаунс для кнопок проверки заданий (защита от спама) - Map по taskId
   const testTaskDebounceRefs = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
+  const taskIdsKey = tasks.map((task) => task.id).join(",");
+
   // Загружаем последние попытки для всех заданий
   useEffect(() => {
     if (!user || tasks.length === 0) return;
@@ -185,11 +191,23 @@ export function ModuleUnifiedPage({
           }
         }
 
-        // Инициализируем состояния заданий
+        // Инициализируем состояния заданий. Уже открытые задания сохраняют своё
+        // состояние (код, результаты тестов, AI-оценку): router.refresh() после
+        // начисления XP передаёт новые props, и сброс стирал результат проверки.
+        setTaskStates((prev) => {
         const newTaskStates: typeof taskStates = {};
         for (const task of tasks) {
           const lastAttempt = attemptsByTask.get(task.id) || null;
           const isCompleted = completedTaskIds.includes(task.id);
+          const existing = prev[task.id];
+          if (existing) {
+            newTaskStates[task.id] = {
+              ...existing,
+              isCompleted: existing.isCompleted || isCompleted || lastAttempt?.is_successful || false,
+              lastAttempt: lastAttempt ?? existing.lastAttempt,
+            };
+            continue;
+          }
 
           newTaskStates[task.id] = {
             code: (lastAttempt?.code_solution as string) || task.starter_code || "",
@@ -208,12 +226,14 @@ export function ModuleUnifiedPage({
           };
         }
 
-        setTaskStates(newTaskStates);
+        return newTaskStates;
+        });
       }
     };
 
     loadAttempts();
-  }, [user, tasks, completedTaskIds]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reload only when the task set changes
+  }, [user?.id, taskIdsKey]);
 
   // Определяем статус задания
   const getTaskStatus = (taskId: string): TaskStatus => {
@@ -882,10 +902,34 @@ export function ModuleUnifiedPage({
                     {module.title}
                   </h1>
                   <p className="mt-3 max-w-[680px] text-lg text-muted-foreground">
-                    {module.topic} — небольшой модуль с заданиями и мгновенной проверкой кода.
+                    {module.topic}
                   </p>
                 </div>
               </div>
+              {!nextTask && tasks.length > 0 && (
+                <Card className="mb-4 border-primary/30 bg-primary/[0.04]" role="status">
+                  <CardContent className="flex flex-wrap items-center justify-between gap-4 p-5">
+                    <div className="flex items-center gap-3">
+                      <Trophy className="size-6 shrink-0 text-primary" aria-hidden="true" />
+                      <div>
+                        <p className="font-semibold">Модуль пройден</p>
+                        <p className="text-sm text-muted-foreground">
+                          Все {tasks.length} заданий решены.
+                          {nextModule ? ` Следующий модуль — «${nextModule.title}».` : " Это последний модуль курса."}
+                        </p>
+                      </div>
+                    </div>
+                    {nextModule && (
+                      <Button asChild className="font-semibold">
+                        <Link href={`/modules/${nextModule.id}`}>
+                          Следующий модуль
+                          <ArrowRight className="size-4" />
+                        </Link>
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
               {nextTask ? (
                 <Button
                   size="lg"

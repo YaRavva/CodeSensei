@@ -1,6 +1,6 @@
 "use client";
 
-import { AchievementIcon } from "@/components/achievements/achievement-icon";
+import { AchievementIcon, EARNED_ICON_TILE } from "@/components/achievements/achievement-icon";
 import { Badge } from "@/components/ui/badge";
 
 type Achievement = {
@@ -51,10 +51,10 @@ export function AchievementBadge({
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3">
             <div
-              className={`flex items-center justify-center rounded-2xl ${iconWrapperSize} bg-gradient-to-br ${
+              className={`flex items-center justify-center rounded-2xl ${iconWrapperSize} ${
                 isEarned
-                  ? "from-primary/80 via-primary/70 to-primary/90 text-primary-foreground shadow-lg"
-                  : "from-muted/50 via-muted/20 to-background text-muted-foreground"
+                  ? EARNED_ICON_TILE
+                  : "bg-gradient-to-br from-muted/50 via-muted/20 to-background text-muted-foreground"
               }`}
             >
               <AchievementIcon

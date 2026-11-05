@@ -47,6 +47,10 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Zap,
 };
 
+/** Shared tile style for an earned achievement icon (achievements page, leaderboard). */
+export const EARNED_ICON_TILE =
+  "bg-gradient-to-br from-primary/80 via-primary/70 to-primary/90 text-primary-foreground shadow-lg";
+
 const PICTOGRAPHIC = /\p{Extended_Pictographic}/u;
 
 /**

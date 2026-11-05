@@ -2,7 +2,7 @@
 
 import { Award, Medal, Trophy } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AchievementIcon } from "@/components/achievements/achievement-icon";
+import { AchievementIcon, EARNED_ICON_TILE } from "@/components/achievements/achievement-icon";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -236,7 +236,7 @@ export function LeaderboardContent({
                           {userAchievements.slice(0, 5).map((achievement) => (
                             <div
                               key={achievement.id}
-                              className="group relative flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-sm cursor-default"
+                              className={`group relative flex h-10 w-10 cursor-default items-center justify-center rounded-xl ${EARNED_ICON_TILE}`}
                               title={`${achievement.title} — ${achievement.description}`}
                             >
                               <AchievementIcon
