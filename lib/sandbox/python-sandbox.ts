@@ -6,6 +6,7 @@ import { INPUT_SETUP, STDOUT_SETUP } from "@/lib/pyodide/setup";
 import {
   buildTestProgram,
   containsForbiddenFunctionDefinition,
+  judgeOutcome,
   simplifyPythonError,
 } from "@/lib/utils/test-runner";
 import type { TestCase, TestResult, TestSuiteResult } from "@/types/test-case";
@@ -66,27 +67,49 @@ try {
   const results = [];
   for (const testCase of job.cases) {
     const started = Date.now();
-    py.globals.set("_cs_program", testCase.program);
-    py.runPython([
-      "_stdout_capture.reset()",
-      "_cs_error = None",
-      "try:",
-      "    exec(_cs_program, globals())",
-      "except BaseException as _cs_exc:",
-      "    _cs_error = ''.join(traceback.format_exception_only(type(_cs_exc), _cs_exc)).strip()",
-    ].join("\n"));
-    const error = py.runPython("_cs_error");
+    // The program executes the student code in its own restricted namespace
+    // (see lib/utils/test-runner.ts) and leaves the produced values behind.
+    // The verdict is NOT computed here: the expected value never reaches the
+    // interpreter, so the student code cannot influence it.
+    let error = null;
+    try {
+      py.runPython("_stdout_capture.reset()");
+      py.runPython(testCase.program);
+    } catch (execError) {
+      error = String((execError && execError.message) || execError).slice(-2000);
+    }
+    if (!error) {
+      try {
+        const value = py.runPython("globals().get('_cs_error')");
+        if (value !== undefined && value !== null && value !== "None") {
+          error = String(value).slice(-2000);
+        }
+      } catch {}
+    }
     if (error) {
-      results.push({ id: testCase.id, passed: false, error: String(error).slice(-2000), ms: Date.now() - started });
+      results.push({ id: testCase.id, error: error.slice(-2000), ms: Date.now() - started });
       continue;
     }
-    const passed = Boolean(py.runPython("bool(globals().get('_test_passed'))"));
-    let actual = null;
+
+    const readJson = (name) => {
+      try {
+        const raw = py.runPython("globals().get('" + name + "')");
+        return typeof raw === "string" ? JSON.parse(raw) : null;
+      } catch {
+        return null;
+      }
+    };
+
+    const result = readJson("_cs_result_json");
+    const values = readJson("_cs_values_json");
+    const files = readJson("_cs_files_json");
+    let stdout = "";
     try {
-      actual = py.runPython("json.dumps(globals().get('_test_result'), ensure_ascii=False, default=repr)[:4000]");
+      stdout = String(py.runPython("globals().get('_cs_stdout')") ?? "");
     } catch {}
-    results.push({ id: testCase.id, passed, actual, ms: Date.now() - started });
-    py.runPython("for _cs_name in ('_test_ns', '_test_result', '_test_passed', '_test_error', '_test_expected'):\n    globals().pop(_cs_name, None)");
+
+    results.push({ id: testCase.id, result, values, stdout, files, ms: Date.now() - started });
+    py.runPython("for _cs_name in ('_cs_ns', '_cs_error', '_cs_result', '_cs_result_json', '_cs_values', '_cs_values_json', '_cs_stdout', '_cs_files', '_cs_files_json'):\n    globals().pop(_cs_name, None)");
   }
   send({ type: "done", results });
   exit(0);
@@ -130,7 +153,8 @@ let permissionFlags: string[] | null = null;
 function getPermissionFlags(pyodideDir: string): string[] {
   if (permissionFlags) return permissionFlags;
   const [major, minor] = process.versions.node.split(".").map(Number);
-  const flag = major > 22 || (major === 22 && minor >= 13) ? "--permission" : "--experimental-permission";
+  const flag =
+    major > 22 || (major === 22 && minor >= 13) ? "--permission" : "--experimental-permission";
   permissionFlags = [flag, `--allow-fs-read=${pyodideDir}/*`, `--allow-fs-read=${pyodideDir}`];
   return permissionFlags;
 }
@@ -202,9 +226,11 @@ function startChild(): Warm {
     const timer = setTimeout(() => child.kill("SIGKILL"), LOAD_TIMEOUT_MS);
     try {
       const first = await lines.next();
-      if (first.done) throw new SandboxUnavailableError(`Sandbox exited during start: ${stderr.slice(0, 500)}`);
+      if (first.done)
+        throw new SandboxUnavailableError(`Sandbox exited during start: ${stderr.slice(0, 500)}`);
       const message = JSON.parse(first.value) as { type: string; error?: string };
-      if (message.type !== "ready") throw new SandboxUnavailableError(`Sandbox failed to start: ${message.error ?? ""}`);
+      if (message.type !== "ready")
+        throw new SandboxUnavailableError(`Sandbox failed to start: ${message.error ?? ""}`);
     } finally {
       clearTimeout(timer);
     }
@@ -262,20 +288,16 @@ function rssKb(pid: number | undefined): number {
 
 interface ChildResult {
   id: string;
-  passed: boolean;
-  actual?: string | null;
+  /** Value produced by the student program. */
+  result?: unknown;
+  /** Every variable the student defined. */
+  values?: Record<string, unknown> | null;
+  /** Program output. */
+  stdout?: string;
+  /** Files the program wrote. */
+  files?: Record<string, string> | null;
   error?: string;
   ms?: number;
-}
-
-function parseActual(actual: string | null | undefined): unknown {
-  if (actual == null) return undefined;
-  try {
-    const value = JSON.parse(actual);
-    return value === null ? undefined : value;
-  } catch {
-    return actual;
-  }
 }
 
 /** Runs the task's tests against the student's code on the server. */
@@ -299,7 +321,12 @@ export async function runServerTestSuite(
   if (testCases.length === 0) return summarize([]);
   if (containsForbiddenFunctionDefinition(userCode, taskType)) {
     return summarize(
-      testCases.map((tc) => ({ testCaseId: tc.id, passed: false, error: FORBIDDEN_DEF_ERROR, executionTime: 0 }))
+      testCases.map((tc) => ({
+        testCaseId: tc.id,
+        passed: false,
+        error: FORBIDDEN_DEF_ERROR,
+        executionTime: 0,
+      }))
     );
   }
 
@@ -310,7 +337,10 @@ export async function runServerTestSuite(
 
     const job = {
       setup: [STDOUT_SETUP, INPUT_SETUP],
-      cases: testCases.map((tc) => ({ id: tc.id, program: buildTestProgram(userCode, tc, taskType) })),
+      cases: testCases.map((tc) => ({
+        id: tc.id,
+        program: buildTestProgram(userCode, tc, taskType),
+      })),
     };
     let failure: string | null = null;
     const limit = Math.min(MAX_RUN_MS, 1_000 + PER_CASE_MS * testCases.length);
@@ -331,7 +361,11 @@ export async function runServerTestSuite(
       for (;;) {
         const line = await lines.next();
         if (line.done) break;
-        const message = JSON.parse(line.value) as { type: string; results?: ChildResult[]; error?: string };
+        const message = JSON.parse(line.value) as {
+          type: string;
+          results?: ChildResult[];
+          error?: string;
+        };
         if (message.type === "done") {
           done = message.results ?? [];
           break;
@@ -346,19 +380,44 @@ export async function runServerTestSuite(
     if (!done) {
       if (!failure) throw new SandboxUnavailableError("Sandbox exited without a result");
       const error = failure;
-      return summarize(testCases.map((tc) => ({ testCaseId: tc.id, passed: false, error, executionTime: 0 })));
+      return summarize(
+        testCases.map((tc) => ({ testCaseId: tc.id, passed: false, error, executionTime: 0 }))
+      );
     }
 
     const byId = new Map(done.map((r) => [r.id, r]));
     return summarize(
       testCases.map((tc) => {
         const r = byId.get(tc.id);
-        if (!r) return { testCaseId: tc.id, passed: false, error: "Тест не выполнен", executionTime: 0 };
+        if (!r)
+          return { testCaseId: tc.id, passed: false, error: "Тест не выполнен", executionTime: 0 };
+        if (r.error) {
+          return {
+            testCaseId: tc.id,
+            passed: false,
+            error: simplifyPythonError(r.error),
+            executionTime: r.ms ?? 0,
+          };
+        }
+
+        // The verdict is computed here, on the server, outside the interpreter.
+        const verdict = judgeOutcome(
+          {
+            error: undefined,
+            result: r.result,
+            values: r.values ?? undefined,
+            stdout: r.stdout ?? "",
+            files: r.files ?? undefined,
+          },
+          tc,
+          taskType
+        );
+
         return {
           testCaseId: tc.id,
-          passed: r.passed,
-          actualOutput: parseActual(r.actual),
-          error: r.error ? simplifyPythonError(r.error) : undefined,
+          passed: verdict.passed,
+          actualOutput: verdict.actual,
+          error: verdict.error,
           executionTime: r.ms ?? 0,
         };
       })
