@@ -32,14 +32,14 @@ export async function POST(request: Request) {
     await getAdminAccount().updateRecovery({ userId, secret, password });
     return NextResponse.json({ success: true });
   } catch (error) {
+    // The message of Appwrite can tell apart an unknown user from an expired
+    // token, so the client always receives the same text. The cause stays in
+    // the log.
+    console.error("Password reset failed:", error);
     if (error instanceof AppwriteException) {
-      return NextResponse.json(
-        { error: error.message || "Ссылка недействительна или устарела" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Ссылка недействительна или устарела" }, { status: 400 });
     }
 
-    console.error("Password reset failed:", error);
     return NextResponse.json({ error: "Не удалось обновить пароль" }, { status: 500 });
   }
 }

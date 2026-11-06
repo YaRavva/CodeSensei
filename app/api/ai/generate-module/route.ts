@@ -6,8 +6,9 @@ import {
   OmnirouteError,
 } from "@/lib/ai/omniroute";
 import { requireApiAdmin } from "@/lib/appwrite/api";
-import { logGeneration } from "@/lib/utils/rate-limit";
 import { buildModuleGenerationPrompt, extractJsonFromMarkdown } from "@/lib/prompts";
+import { AI_SERVICE_UNAVAILABLE, serverError } from "@/lib/security/api-errors";
+import { logGeneration } from "@/lib/utils/rate-limit";
 
 export async function POST(request: NextRequest) {
   try {
@@ -54,7 +55,10 @@ export async function POST(request: NextRequest) {
       generatedText = completion.content;
     } catch (error) {
       if (error instanceof OmnirouteError) {
-        return NextResponse.json({ error: error.message, details: error.details }, { status: 502 });
+        // The details of the failure stay on the server: they can carry the
+        // address of the service and the body of the request.
+        console.error("Omniroute error while generating a module:", error.message, error.details);
+        return NextResponse.json({ error: AI_SERVICE_UNAVAILABLE }, { status: 502 });
       }
       throw error;
     }
@@ -71,12 +75,9 @@ export async function POST(request: NextRequest) {
       moduleData = JSON.parse(jsonText);
     } catch (parseError) {
       console.error("JSON parse error:", parseError);
+      // Only the length of the answer is written to the log: the text itself
+      // is large and is not needed to find the cause.
       console.error("Generated text length:", generatedText.length);
-      console.error("Generated text (first 2000 chars):", generatedText.substring(0, 2000));
-      console.error(
-        "Generated text (last 500 chars):",
-        generatedText.substring(Math.max(0, generatedText.length - 500))
-      );
       moduleData = {
         description: generatedText,
         theory: null,
@@ -91,12 +92,8 @@ export async function POST(request: NextRequest) {
       remaining: rateLimitCheck.remaining - 1,
     });
   } catch (error) {
-    console.error("Error generating module:", error);
-    return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : "Unknown error occurred",
-      },
-      { status: 500 }
-    );
+    // The message of the exception can carry internal details, so the client
+    // only receives a short message and the cause stays in the log.
+    return serverError("Error generating module", error);
   }
 }

@@ -6,8 +6,9 @@ import {
   OmnirouteError,
 } from "@/lib/ai/omniroute";
 import { requireApiAdmin } from "@/lib/appwrite/api";
-import { logGeneration } from "@/lib/utils/rate-limit";
 import { buildTaskGenerationPrompt, extractJsonFromMarkdown, tryFixJson } from "@/lib/prompts";
+import { AI_SERVICE_UNAVAILABLE, serverError } from "@/lib/security/api-errors";
+import { logGeneration } from "@/lib/utils/rate-limit";
 
 export async function POST(request: NextRequest) {
   try {
@@ -62,23 +63,28 @@ export async function POST(request: NextRequest) {
       generatedText = completion.content;
     } catch (error) {
       if (error instanceof OmnirouteError) {
-        return NextResponse.json({ error: error.message, details: error.details }, { status: 502 });
+        // The details of the failure stay on the server: they can carry the
+        // address of the service and the body of the request.
+        console.error("Omniroute error while generating a task:", error.message, error.details);
+        return NextResponse.json({ error: AI_SERVICE_UNAVAILABLE }, { status: 502 });
       }
       throw error;
     }
 
     if (!generatedText) {
-      return NextResponse.json({ error: "Empty response from AI" }, { status: 500 });
+      return NextResponse.json({ error: "AI-сервис вернул пустой ответ" }, { status: 502 });
     }
 
-    let jsonText = extractJsonFromMarkdown(generatedText.trim());
+    const jsonText = extractJsonFromMarkdown(generatedText.trim());
 
     let taskData: any = null;
     try {
       taskData = JSON.parse(jsonText);
     } catch (parseError) {
       console.error("JSON parse error:", parseError);
-      console.error("Generated text:", generatedText);
+      // The text of the model is not written to the log: it can be large and
+      // it is not needed to find the cause.
+      console.error("Generated text length:", generatedText.length);
       taskData = tryFixJson(jsonText);
     }
 
@@ -101,12 +107,8 @@ export async function POST(request: NextRequest) {
       remaining: rateLimitCheck.remaining - 1,
     });
   } catch (error) {
-    console.error("Generate task error:", error);
-    return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 }
-    );
+    // The message of the exception can carry internal details, so the client
+    // only receives a short message and the cause stays in the log.
+    return serverError("Generate task error", error);
   }
 }

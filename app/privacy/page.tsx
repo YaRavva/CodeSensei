@@ -1,8 +1,13 @@
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { connection } from "next/server";
 import { Button } from "@/components/ui/button";
 
-export default function PrivacyPage() {
+export default async function PrivacyPage() {
+  // The page is rendered per request, so that the scripts get the nonce of the
+  // Content Security Policy (see proxy.ts).
+  await connection();
+
   return (
     <div className="container mx-auto max-w-3xl px-4 py-16">
       <Button asChild variant="ghost" size="sm" className="mb-6">

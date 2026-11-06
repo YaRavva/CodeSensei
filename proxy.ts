@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { buildContentSecurityPolicy } from "@/lib/security/csp";
 import { isCrossSiteApiWrite } from "@/lib/security/csrf";
 
 const SESSION_COOKIE = `a_session_${process.env.APPWRITE_PROJECT_ID ?? ""}`;
@@ -18,26 +19,46 @@ function isProtected(pathname: string): boolean {
   );
 }
 
+/** A fresh nonce for every request: an attacker cannot guess it. */
+function createNonce(): string {
+  return Buffer.from(crypto.randomUUID()).toString("base64");
+}
+
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (isCrossSiteApiWrite(request, pathname)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
+
+  const nonce = createNonce();
+  const isDev = process.env.NODE_ENV === "development";
+  const csp = buildContentSecurityPolicy(nonce, isDev);
+
+  const requestHeaders = new Headers(request.headers);
+  // Next.js reads the nonce from the policy of the request header and puts it
+  // on every script and style it renders.
+  requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set("Content-Security-Policy", csp);
+
   const hasSession = Boolean(request.cookies.get(SESSION_COOKIE)?.value);
 
   if (!hasSession && isProtected(pathname)) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("next", pathname);
-    return NextResponse.redirect(url);
+    const redirect = NextResponse.redirect(url);
+    redirect.headers.set("Content-Security-Policy", csp);
+    return redirect;
   }
 
   // Note: an existing cookie is not proof of a valid session. Redirecting
   // /login based on cookie presence alone would loop with requireAuth() when
   // the Appwrite session has expired. The login page validates the session.
 
-  return NextResponse.next();
+  const response = NextResponse.next({ request: { headers: requestHeaders } });
+  response.headers.set("Content-Security-Policy", csp);
+  return response;
 }
 
 export const config = {

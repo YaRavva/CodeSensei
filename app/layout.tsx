@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import "./globals.css";
 import { ClientLayout } from "./client-layout";
 
@@ -40,16 +41,21 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // The nonce of the current request: the Content Security Policy allows only
+  // the scripts that carry it (see proxy.ts).
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
+
   return (
     <html lang="ru" suppressHydrationWarning>
       <head>
         {/* Тема ставится до первой отрисовки, чтобы не было вспышки светлого фона (B7) */}
         <script
+          nonce={nonce}
           // biome-ignore lint/security/noDangerouslySetInnerHtml: статический инлайн-скрипт темы
           dangerouslySetInnerHTML={{ __html: themeScript }}
         />

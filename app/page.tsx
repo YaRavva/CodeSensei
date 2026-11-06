@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { LandingPage } from "@/components/landing/landing-page";
 import { getCurrentAccount } from "@/lib/utils/auth";
@@ -74,18 +75,20 @@ const faqSchema = {
 
 export default async function Home() {
   const user = await getCurrentAccount();
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
 
   // Авторизованным показываем каталог модулей
   if (user) {
     redirect("/modules");
   }
 
-  // Анонимному посетителю — продуктовый лендинг с CTA на регистрацию
+  // Анонимному пособителю — продуктовый лендинг с CTA на регистрацию
   return (
     <>
       <LandingPage />
       <script
         type="application/ld+json"
+        nonce={nonce}
         // biome-ignore lint/security/noDangerouslySetInnerHtml: статический JSON-LD для поиска
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
       />
