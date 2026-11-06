@@ -11,22 +11,22 @@ import {
   Sparkles,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark, oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import remarkBreaks from "remark-breaks";
 import remarkGfm from "remark-gfm";
 import { useAuth } from "@/components/auth/auth-provider";
+import { CodeEditor } from "@/components/editor/code-editor";
+import { ErrorDisplay } from "@/components/editor/error-display";
 import {
   defaultProgramInput,
   ProgramInput,
   parseProgramInput,
   usesProgramInput,
 } from "@/components/editor/program-input";
-import { CodeEditor } from "@/components/editor/code-editor";
-import { ErrorDisplay } from "@/components/editor/error-display";
 import { TestResults } from "@/components/editor/test-results";
 import { useTheme } from "@/components/theme-provider";
 import { Badge } from "@/components/ui/badge";
@@ -36,9 +36,10 @@ import { DifficultyBadge, getDifficultyXP } from "@/components/ui/difficulty-bad
 import { ToastAction } from "@/components/ui/toast";
 import { usePyodide } from "@/hooks/use-pyodide";
 import { useToast } from "@/hooks/use-toast";
+import { visibleTestCases } from "@/lib/security/public-tests";
 import { buildPreviewCode, runTestSuite } from "@/lib/utils/test-runner";
 import type { Module, Task, TaskAttempt } from "@/types/db";
-import type { TestCase, TestSuiteResult } from "@/types/test-case";
+import type { PublicTestCase, TestSuiteResult } from "@/types/test-case";
 
 interface TaskPageContentProps {
   module: Module;
@@ -73,9 +74,7 @@ export function TaskPageContent({
 
   // Состояние кода
   const [code, setCode] = useState(task.starter_code || "");
-  const initialProgramInput = defaultProgramInput(
-    Array.isArray(task.test_cases) ? (task.test_cases as unknown as TestCase[]) : []
-  );
+  const initialProgramInput = defaultProgramInput(visibleTestCases(task.test_cases));
   const [programInput, setProgramInput] = useState(initialProgramInput);
   const [initialCode] = useState(task.starter_code || "");
 
@@ -98,11 +97,15 @@ export function TaskPageContent({
   // Состояние AI-подсказки (inline)
   const [hintVisible, setHintVisible] = useState(false);
   const [hintLoading, setHintLoading] = useState(false);
-  const [hintData, setHintData] = useState<{ type: string; hint: string; steps: string[] } | null>(null);
+  const [hintData, setHintData] = useState<{ type: string; hint: string; steps: string[] } | null>(
+    null
+  );
 
   // Состояние AI-оценки (inline)
   const [feedbackVisible, setFeedbackVisible] = useState(false);
-  const [feedbackData, setFeedbackData] = useState<{ score: number; feedback: string } | null>(null);
+  const [feedbackData, setFeedbackData] = useState<{ score: number; feedback: string } | null>(
+    null
+  );
 
   // Загружаем сохраненный код из последней попытки, если есть
   useEffect(() => {
@@ -111,10 +114,9 @@ export function TaskPageContent({
     }
   }, [lastAttempt, code]);
 
-  // Парсим тестовые случаи
-  const testCases: TestCase[] = Array.isArray(task.test_cases)
-    ? (task.test_cases as unknown as TestCase[])
-    : [];
+  // Парсим тестовые случаи. В браузере доступны только видимые проверки:
+  // ожидаемые значения скрытых тестов остаются на сервере.
+  const testCases: PublicTestCase[] = visibleTestCases(task.test_cases);
 
   async function handleRunCode() {
     if (pyodideError) {
@@ -230,17 +232,23 @@ export function TaskPageContent({
     }
 
     // ЗАПРЕТ ФУНКЦИЙ В ЛИНЕЙНЫХ ЗАДАНИЯХ
-    if (task.task_type !== "function" && /\bdef\s+\w+\s*\(/.test(code) && task.task_type !== "class") {
+    if (
+      task.task_type !== "function" &&
+      /\bdef\s+\w+\s*\(/.test(code) &&
+      task.task_type !== "class"
+    ) {
       toast({
         title: "Ошибка",
-        description: "В этом задании нельзя использовать функции (ключевое слово def). Используйте линейный код с input/print.",
+        description:
+          "В этом задании нельзя использовать функции (ключевое слово def). Используйте линейный код с input/print.",
         variant: "destructive",
       });
       setTestResults({
         results: testCases.map((tc) => ({
           testCaseId: tc.id,
           passed: false,
-          error: "В этом задании нельзя использовать функции (ключевое слово def). Используйте линейный код с input/print.",
+          error:
+            "В этом задании нельзя использовать функции (ключевое слово def). Используйте линейный код с input/print.",
           executionTime: 0,
         })),
         passedCount: 0,
@@ -334,10 +342,13 @@ export function TaskPageContent({
           });
 
           if (!attemptResponse.ok) {
-            const failure = (await attemptResponse.json().catch(() => null)) as { error?: string } | null;
+            const failure = (await attemptResponse.json().catch(() => null)) as {
+              error?: string;
+            } | null;
             toast({
               title: "Решение не сохранено",
-              description: failure?.error ?? "Не удалось проверить решение на сервере. Повторите позже.",
+              description:
+                failure?.error ?? "Не удалось проверить решение на сервере. Повторите позже.",
               variant: "destructive",
             });
             return;
@@ -352,7 +363,7 @@ export function TaskPageContent({
 
           // The server re-runs the tests; only its verdict counts.
           if (!attemptData.isSuccessful) {
-          setTestResults(attemptData.testResults);
+            setTestResults(attemptData.testResults);
             toast({
               title: "Решение не прошло проверку на сервере",
               description: "Посмотрите результаты тестов и исправьте решение.",
@@ -837,7 +848,9 @@ export function TaskPageContent({
                       <p className="text-sm leading-relaxed">{hintData.hint}</p>
                       {hintData.steps.length > 0 && (
                         <div className="rounded-md bg-muted/60 p-3">
-                          <p className="text-xs font-medium text-muted-foreground mb-2">Шаги к решению:</p>
+                          <p className="text-xs font-medium text-muted-foreground mb-2">
+                            Шаги к решению:
+                          </p>
                           <ol className="space-y-1.5">
                             {hintData.steps.map((step, i) => (
                               <li key={i} className="text-sm flex gap-2">
@@ -863,7 +876,10 @@ export function TaskPageContent({
                       <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                       AI-оценка решения
                     </CardTitle>
-                    <Badge variant={feedbackData.score >= 0.7 ? "success" : "outline"} className="text-sm">
+                    <Badge
+                      variant={feedbackData.score >= 0.7 ? "success" : "outline"}
+                      className="text-sm"
+                    >
                       {Math.round(feedbackData.score * 100)}%
                     </Badge>
                   </div>

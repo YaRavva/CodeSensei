@@ -4,7 +4,7 @@ import {
   compareValues,
   normalizeOutput,
 } from "@/lib/utils/test-compare";
-import type { TestCase, TestResult, TestSuiteResult } from "@/types/test-case";
+import type { PublicTestCase, TestCase, TestResult, TestSuiteResult } from "@/types/test-case";
 
 /**
  * Builds the Python program that runs one test case.
@@ -151,7 +151,7 @@ function valueToPython(value: unknown): string {
 
 export function buildPreviewCode(
   userCode: string,
-  testCase: TestCase | undefined,
+  testCase: Pick<TestCase, "input"> | undefined,
   taskType: "linear" | "function" | "class" = "linear"
 ): string {
   if (!testCase || taskType === "function") return userCode;
@@ -239,7 +239,7 @@ export function simplifyPythonError(error: unknown): string {
  */
 export function buildTestProgram(
   userCode: string,
-  testCase: TestCase,
+  testCase: TestCase | PublicTestCase,
   taskType: "linear" | "function" | "class" = "linear"
 ): string {
   const input = testCase.input || {};
@@ -372,7 +372,7 @@ export function readOutcome(pyodide: { runPython: (code: string) => unknown }): 
 /** Turns the values produced by the program into a verdict. */
 export function judgeOutcome(
   outcome: ProgramOutcome,
-  testCase: TestCase,
+  testCase: TestCase | PublicTestCase,
   taskType: "linear" | "function" | "class" = "linear"
 ): { passed: boolean; actual: unknown; error?: string } {
   const mode = testCase.verification_mode || "variable";
@@ -435,7 +435,8 @@ export function judgeOutcome(
   }
 
   // Output files are compared on the server side as well.
-  for (const [name, expectedContent] of Object.entries(testCase.output_files ?? {})) {
+  const expectedFiles = "output_files" in testCase ? (testCase.output_files ?? {}) : {};
+  for (const [name, expectedContent] of Object.entries(expectedFiles)) {
     const actualContent = outcome.files?.[name];
     if (actualContent === undefined) {
       return { passed: false, actual: verdict.actual, error: `Файл '${name}' не создан.` };
@@ -465,7 +466,7 @@ export function clearOutcome(pyodide: { runPython: (code: string) => unknown }):
 
 export async function runTestCase(
   userCode: string,
-  testCase: TestCase,
+  testCase: PublicTestCase,
   pyodide: any,
   taskType: "linear" | "function" | "class" = "linear"
 ): Promise<TestResult> {
@@ -518,7 +519,7 @@ export async function runTestCase(
 
 export async function runTestSuite(
   userCode: string,
-  testCases: TestCase[],
+  testCases: PublicTestCase[],
   pyodide: any,
   taskType: "linear" | "function" | "class" = "linear"
 ): Promise<TestSuiteResult> {

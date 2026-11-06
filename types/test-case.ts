@@ -19,6 +19,29 @@ export interface TestCase {
   verification_mode?: VerificationMode;
 }
 
+/**
+ * Test case as it may be sent to the student's browser.
+ *
+ * A hidden test carries neither its input nor its expected value: the student
+ * would otherwise read the answer from the page source and hardcode it.
+ */
+export interface PublicTestCase {
+  id: string;
+  description: string;
+  input: Record<string, unknown>;
+  /** Lines returned one by one by input() during the test. */
+  stdin?: string[];
+  /** Files the program may read. */
+  files?: Record<string, string>;
+  /** Files the program must produce. */
+  output_files?: Record<string, string>;
+  category: TestCaseCategory;
+  is_visible: boolean;
+  /** Only for visible tests. */
+  expected_output?: unknown;
+  verification_mode?: VerificationMode;
+}
+
 export interface TestResult {
   testCaseId: string;
   passed: boolean;

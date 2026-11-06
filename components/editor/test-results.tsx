@@ -3,11 +3,11 @@
 import { CheckCircle2, CircleAlert, XCircle, Zap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import type { TestCase, TestSuiteResult } from "@/types/test-case";
+import type { PublicTestCase, TestSuiteResult } from "@/types/test-case";
 
 interface TestResultsProps {
   testResults: TestSuiteResult;
-  testCases: TestCase[];
+  testCases: PublicTestCase[];
 }
 
 function formatValue(value: unknown): string {
@@ -38,7 +38,9 @@ export function TestResults({ testResults, testCases }: TestResultsProps) {
       <CardHeader className="border-b pb-4">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0">
-            <CardTitle className="text-lg font-semibold tracking-tight">Результаты проверки</CardTitle>
+            <CardTitle className="text-lg font-semibold tracking-tight">
+              Результаты проверки
+            </CardTitle>
             <CardDescription className="mt-1 text-sm">
               Пройдено {testResults.passedCount} из {testResults.totalCount} проверок
               {failedCount > 0 ? ` · ошибок: ${failedCount}` : ""}
@@ -61,8 +63,10 @@ export function TestResults({ testResults, testCases }: TestResultsProps) {
       <CardContent className="space-y-3 pt-4">
         {testResults.results.map((result, index) => {
           const testCase = getTestCase(result.testCaseId);
+          // The expected value of a hidden check is not known to the browser.
           const expected = testCase?.expected_output;
           const input = testCase?.input ?? {};
+          const isHidden = testCase ? testCase.is_visible === false : false;
 
           return (
             <section
@@ -82,7 +86,11 @@ export function TestResults({ testResults, testCases }: TestResultsProps) {
                         : "bg-destructive/15 text-destructive"
                     }`}
                   >
-                    {result.passed ? <CheckCircle2 className="size-4" /> : <XCircle className="size-4" />}
+                    {result.passed ? (
+                      <CheckCircle2 className="size-4" />
+                    ) : (
+                      <XCircle className="size-4" />
+                    )}
                   </div>
                   <div className="min-w-0">
                     <p className="text-sm font-semibold leading-snug">
@@ -90,7 +98,8 @@ export function TestResults({ testResults, testCases }: TestResultsProps) {
                     </p>
                     {Object.keys(input).length > 0 && (
                       <p className="mt-1 text-xs text-muted-foreground">
-                        Входные данные: <code className="rounded bg-muted px-1.5 py-0.5">{formatInput(input)}</code>
+                        Входные данные:{" "}
+                        <code className="rounded bg-muted px-1.5 py-0.5">{formatInput(input)}</code>
                       </p>
                     )}
                   </div>
@@ -106,11 +115,15 @@ export function TestResults({ testResults, testCases }: TestResultsProps) {
               <div className="mt-3 grid gap-2 pl-8 text-xs sm:grid-cols-2">
                 <div className="rounded-md border border-border/70 bg-background/60 p-3">
                   <p className="mb-1 font-semibold text-muted-foreground">Ожидалось</p>
-                  <pre className="whitespace-pre-wrap break-words font-mono text-foreground">{formatValue(expected)}</pre>
+                  <pre className="whitespace-pre-wrap break-words font-mono text-foreground">
+                    {isHidden ? "скрытая проверка" : formatValue(expected)}
+                  </pre>
                 </div>
                 <div className="rounded-md border border-border/70 bg-background/60 p-3">
                   <p className="mb-1 font-semibold text-muted-foreground">Получено</p>
-                  <pre className="whitespace-pre-wrap break-words font-mono text-foreground">{formatValue(result.actualOutput)}</pre>
+                  <pre className="whitespace-pre-wrap break-words font-mono text-foreground">
+                    {formatValue(result.actualOutput)}
+                  </pre>
                 </div>
               </div>
 
@@ -119,7 +132,9 @@ export function TestResults({ testResults, testCases }: TestResultsProps) {
                   <CircleAlert className="mt-0.5 size-4 shrink-0 text-destructive" />
                   <div>
                     <p className="text-xs font-semibold text-destructive">Что нужно исправить</p>
-                    <p className="mt-1 whitespace-pre-wrap text-xs text-destructive/90">{result.error}</p>
+                    <p className="mt-1 whitespace-pre-wrap text-xs text-destructive/90">
+                      {result.error}
+                    </p>
                   </div>
                 </div>
               )}

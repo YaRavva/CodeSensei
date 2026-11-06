@@ -1,6 +1,7 @@
 import { TABLES } from "@/lib/appwrite/config";
 import { createRow, deleteRow, getRowOrNull, listRows, Query, updateRow } from "@/lib/appwrite/db";
 import { serializeJson, toTask } from "@/lib/appwrite/mappers";
+import { toPublicTestCases } from "@/lib/security/public-tests";
 import type { Task } from "@/types/db";
 
 export async function listTasksByModule(moduleId: string): Promise<Task[]> {
@@ -119,5 +120,12 @@ export async function countTasks(moduleId: string): Promise<number> {
 
 /** Task as sent to the student's browser: no reference solution, no static hints. */
 export function toPublicTask(task: Task): Task {
-  return { ...task, solution_code: null, hints: null };
+  return {
+    ...task,
+    solution_code: null,
+    hints: null,
+    // The expected values of the tests stay on the server: the student must
+    // not be able to read the answer from the page source.
+    test_cases: toPublicTestCases(task.test_cases) as unknown as Task["test_cases"],
+  };
 }

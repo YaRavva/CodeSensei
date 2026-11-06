@@ -18,25 +18,25 @@ import {
   Play,
   RotateCcw,
   Sparkles,
-  Trophy,
   TrendingUp,
+  Trophy,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark, oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import remarkBreaks from "remark-breaks";
 import remarkGfm from "remark-gfm";
 import { useAuth } from "@/components/auth/auth-provider";
+import { CodeEditor } from "@/components/editor/code-editor";
 import {
   defaultProgramInput,
   ProgramInput,
   parseProgramInput,
   usesProgramInput,
 } from "@/components/editor/program-input";
-import { CodeEditor } from "@/components/editor/code-editor";
 import { TestResults } from "@/components/editor/test-results";
 import { useTheme } from "@/components/theme-provider";
 import {
@@ -59,9 +59,10 @@ import {
 } from "@/components/ui/select";
 import { usePyodide } from "@/hooks/use-pyodide";
 import { useToast } from "@/hooks/use-toast";
+import { visibleTestCases } from "@/lib/security/public-tests";
 import { buildPreviewCode, runTestSuite } from "@/lib/utils/test-runner";
 import type { Module, Task, TaskAttempt } from "@/types/db";
-import type { TestCase, TestSuiteResult } from "@/types/test-case";
+import type { PublicTestCase, TestSuiteResult } from "@/types/test-case";
 
 interface ModuleUnifiedPageProps {
   module: Module;
@@ -195,38 +196,39 @@ export function ModuleUnifiedPage({
         // состояние (код, результаты тестов, AI-оценку): router.refresh() после
         // начисления XP передаёт новые props, и сброс стирал результат проверки.
         setTaskStates((prev) => {
-        const newTaskStates: typeof taskStates = {};
-        for (const task of tasks) {
-          const lastAttempt = attemptsByTask.get(task.id) || null;
-          const isCompleted = completedTaskIds.includes(task.id);
-          const existing = prev[task.id];
-          if (existing) {
+          const newTaskStates: typeof taskStates = {};
+          for (const task of tasks) {
+            const lastAttempt = attemptsByTask.get(task.id) || null;
+            const isCompleted = completedTaskIds.includes(task.id);
+            const existing = prev[task.id];
+            if (existing) {
+              newTaskStates[task.id] = {
+                ...existing,
+                isCompleted:
+                  existing.isCompleted || isCompleted || lastAttempt?.is_successful || false,
+                lastAttempt: lastAttempt ?? existing.lastAttempt,
+              };
+              continue;
+            }
+
             newTaskStates[task.id] = {
-              ...existing,
-              isCompleted: existing.isCompleted || isCompleted || lastAttempt?.is_successful || false,
-              lastAttempt: lastAttempt ?? existing.lastAttempt,
+              code: (lastAttempt?.code_solution as string) || task.starter_code || "",
+              initialCode: task.starter_code || "",
+              executionResult: null,
+              testResults: null,
+              running: false,
+              testing: false,
+              isCompleted: isCompleted || lastAttempt?.is_successful || false,
+              lastAttempt,
+              hintVisible: false,
+              hintLoading: false,
+              hintData: null,
+              feedbackVisible: false,
+              feedbackData: null,
             };
-            continue;
           }
 
-          newTaskStates[task.id] = {
-            code: (lastAttempt?.code_solution as string) || task.starter_code || "",
-            initialCode: task.starter_code || "",
-            executionResult: null,
-            testResults: null,
-            running: false,
-            testing: false,
-            isCompleted: isCompleted || lastAttempt?.is_successful || false,
-            lastAttempt,
-            hintVisible: false,
-            hintLoading: false,
-            hintData: null,
-            feedbackVisible: false,
-            feedbackData: null,
-          };
-        }
-
-        return newTaskStates;
+          return newTaskStates;
         });
       }
     };
@@ -326,9 +328,7 @@ export function ModuleUnifiedPage({
 
     try {
       const task = tasks.find((item) => item.id === taskId);
-      const testCases: TestCase[] = Array.isArray(task?.test_cases)
-        ? (task.test_cases as unknown as TestCase[])
-        : [];
+      const testCases: PublicTestCase[] = visibleTestCases(task?.test_cases);
       const result = await executeCode(
         buildPreviewCode(state.code, testCases[0], task?.task_type),
         10000,
@@ -417,15 +417,18 @@ export function ModuleUnifiedPage({
     if (!task) return;
 
     // ЗАПРЕТ ФУНКЦИЙ В ЛИНЕЙНЫХ ЗАДАНИЯХ
-    if (task.task_type !== "function" && task.task_type !== "class" && /\bdef\s+\w+\s*\(/.test(state.code)) {
+    if (
+      task.task_type !== "function" &&
+      task.task_type !== "class" &&
+      /\bdef\s+\w+\s*\(/.test(state.code)
+    ) {
       toast({
         title: "Ошибка",
-        description: "В этом задании нельзя использовать функции (ключевое слово def). Используйте линейный код с input/print.",
+        description:
+          "В этом задании нельзя использовать функции (ключевое слово def). Используйте линейный код с input/print.",
         variant: "destructive",
       });
-      const testCases: TestCase[] = Array.isArray(task.test_cases)
-        ? (task.test_cases as unknown as TestCase[])
-        : [];
+      const testCases: PublicTestCase[] = visibleTestCases(task.test_cases);
       setTaskStates((prev) => ({
         ...prev,
         [taskId]: {
@@ -434,7 +437,8 @@ export function ModuleUnifiedPage({
             results: testCases.map((tc) => ({
               testCaseId: tc.id,
               passed: false,
-              error: "В этом задании нельзя использовать функции (ключевое слово def). Используйте линейный код с input/print.",
+              error:
+                "В этом задании нельзя использовать функции (ключевое слово def). Используйте линейный код с input/print.",
               executionTime: 0,
             })),
             passedCount: 0,
@@ -447,9 +451,7 @@ export function ModuleUnifiedPage({
       return;
     }
 
-    const testCases: TestCase[] = Array.isArray(task.test_cases)
-      ? (task.test_cases as unknown as TestCase[])
-      : [];
+    const testCases: PublicTestCase[] = visibleTestCases(task.test_cases);
 
     setTaskStates((prev) => ({
       ...prev,
@@ -542,10 +544,13 @@ export function ModuleUnifiedPage({
           });
 
           if (!attemptResponse.ok) {
-            const failure = (await attemptResponse.json().catch(() => null)) as { error?: string } | null;
+            const failure = (await attemptResponse.json().catch(() => null)) as {
+              error?: string;
+            } | null;
             toast({
               title: "Решение не сохранено",
-              description: failure?.error ?? "Не удалось проверить решение на сервере. Повторите позже.",
+              description:
+                failure?.error ?? "Не удалось проверить решение на сервере. Повторите позже.",
               variant: "destructive",
             });
             return;
@@ -560,14 +565,14 @@ export function ModuleUnifiedPage({
 
           // The server re-runs the tests; only its verdict counts.
           if (!attemptData.isSuccessful) {
-          setTaskStates((prev) => ({
-            ...prev,
-            [taskId]: {
-              ...prev[taskId],
-              testResults: attemptData.testResults,
-              isCompleted: state.isCompleted,
-            },
-          }));
+            setTaskStates((prev) => ({
+              ...prev,
+              [taskId]: {
+                ...prev[taskId],
+                testResults: attemptData.testResults,
+                isCompleted: state.isCompleted,
+              },
+            }));
             toast({
               title: "Решение не прошло проверку на сервере",
               description: "Посмотрите результаты тестов и исправьте решение.",
@@ -923,9 +928,7 @@ export function ModuleUnifiedPage({
                   <h1 className="max-w-[680px] text-balance text-3xl font-bold md:text-4xl">
                     {module.title}
                   </h1>
-                  <p className="mt-3 max-w-[680px] text-lg text-muted-foreground">
-                    {module.topic}
-                  </p>
+                  <p className="mt-3 max-w-[680px] text-lg text-muted-foreground">{module.topic}</p>
                 </div>
               </div>
               {!nextTask && tasks.length > 0 && (
@@ -937,7 +940,9 @@ export function ModuleUnifiedPage({
                         <p className="font-semibold">Модуль пройден</p>
                         <p className="text-sm text-muted-foreground">
                           Все {tasks.length} заданий решены.
-                          {nextModule ? ` Следующий модуль — «${nextModule.title}».` : " Это последний модуль курса."}
+                          {nextModule
+                            ? ` Следующий модуль — «${nextModule.title}».`
+                            : " Это последний модуль курса."}
                         </p>
                       </div>
                     </div>
@@ -1206,9 +1211,7 @@ export function ModuleUnifiedPage({
                   {sortedTasks.map((task, index) => {
                     const state = taskStates[task.id];
                     const statusConfig = getStatusConfig(task.status);
-                    const testCases: TestCase[] = Array.isArray(task.test_cases)
-                      ? (task.test_cases as unknown as TestCase[])
-                      : [];
+                    const testCases: PublicTestCase[] = visibleTestCases(task.test_cases);
 
                     return (
                       <Card
@@ -1305,9 +1308,9 @@ export function ModuleUnifiedPage({
                                   />
 
                                   {(() => {
-                                    const taskTests = Array.isArray(task.test_cases)
-                                      ? (task.test_cases as unknown as TestCase[])
-                                      : [];
+                                    const taskTests: PublicTestCase[] = visibleTestCases(
+                                      task.test_cases
+                                    );
                                     const initialInput = defaultProgramInput(taskTests);
                                     const currentCode = state?.code || task.starter_code || "";
                                     if (!usesProgramInput(currentCode, initialInput)) return null;
@@ -1316,7 +1319,10 @@ export function ModuleUnifiedPage({
                                         id={`program-input-${task.id}`}
                                         value={programInputs[task.id] ?? initialInput}
                                         onChange={(value) =>
-                                          setProgramInputs((prev) => ({ ...prev, [task.id]: value }))
+                                          setProgramInputs((prev) => ({
+                                            ...prev,
+                                            [task.id]: value,
+                                          }))
                                         }
                                       />
                                     );
@@ -1468,14 +1474,20 @@ export function ModuleUnifiedPage({
                                           </div>
                                         ) : state.hintData ? (
                                           <div className="space-y-3">
-                                            <p className="text-sm leading-relaxed">{state.hintData.hint}</p>
+                                            <p className="text-sm leading-relaxed">
+                                              {state.hintData.hint}
+                                            </p>
                                             {state.hintData.steps.length > 0 && (
                                               <div className="rounded-md bg-muted/60 p-3">
-                                                <p className="text-xs font-medium text-muted-foreground mb-2">Шаги к решению:</p>
+                                                <p className="text-xs font-medium text-muted-foreground mb-2">
+                                                  Шаги к решению:
+                                                </p>
                                                 <ol className="space-y-1.5">
                                                   {state.hintData.steps.map((step, i) => (
                                                     <li key={i} className="text-sm flex gap-2">
-                                                      <span className="shrink-0 font-medium text-primary">{i + 1}.</span>
+                                                      <span className="shrink-0 font-medium text-primary">
+                                                        {i + 1}.
+                                                      </span>
                                                       <span>{step}</span>
                                                     </li>
                                                   ))}
@@ -1497,13 +1509,22 @@ export function ModuleUnifiedPage({
                                             <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                                             AI-оценка решения
                                           </CardTitle>
-                                          <Badge variant={state.feedbackData.score >= 0.7 ? "success" : "outline"} className="text-sm">
+                                          <Badge
+                                            variant={
+                                              state.feedbackData.score >= 0.7
+                                                ? "success"
+                                                : "outline"
+                                            }
+                                            className="text-sm"
+                                          >
                                             {Math.round(state.feedbackData.score * 100)}%
                                           </Badge>
                                         </div>
                                       </CardHeader>
                                       <CardContent className="pt-0">
-                                        <p className="text-sm leading-relaxed">{state.feedbackData.feedback}</p>
+                                        <p className="text-sm leading-relaxed">
+                                          {state.feedbackData.feedback}
+                                        </p>
                                       </CardContent>
                                     </Card>
                                   )}

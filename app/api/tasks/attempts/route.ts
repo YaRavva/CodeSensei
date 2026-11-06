@@ -1,11 +1,5 @@
 import { NextResponse } from "next/server";
 import { badRequest, requireApiUser } from "@/lib/appwrite/api";
-import { getAuthContext } from "@/lib/utils/auth";
-import { MAX_CODE_LENGTH, MAX_TEXT_LENGTH } from "@/lib/security/rate-limit";
-import { canAccessTask } from "@/lib/security/task-access";
-import { HOUR, hit, tooManyRequests } from "@/lib/security/rate-limit";
-import { runServerTestSuite, SandboxUnavailableError } from "@/lib/sandbox/python-sandbox";
-import type { TestCase } from "@/types/test-case";
 import {
   countTaskAttempts,
   createTaskAttempt,
@@ -14,7 +8,18 @@ import {
 } from "@/lib/appwrite/attempts";
 import { hasUsedHint } from "@/lib/appwrite/hint-events";
 import { getTask } from "@/lib/appwrite/tasks";
+import { runServerTestSuite, SandboxUnavailableError } from "@/lib/sandbox/python-sandbox";
+import {
+  HOUR,
+  hit,
+  MAX_CODE_LENGTH,
+  MAX_TEXT_LENGTH,
+  tooManyRequests,
+} from "@/lib/security/rate-limit";
+import { canAccessTask } from "@/lib/security/task-access";
+import { getAuthContext } from "@/lib/utils/auth";
 import type { Json } from "@/types/db";
+import type { TestCase } from "@/types/test-case";
 
 export async function GET(request: Request) {
   const auth = await requireApiUser();
@@ -58,7 +63,6 @@ export async function POST(request: Request) {
     return badRequest("Код решения слишком длинный");
   }
 
-
   const task = await getTask(taskId);
   if (!task || !(await canAccessTask(auth.userId, context.profile.role, task))) {
     return NextResponse.json({ error: "Задание не найдено" }, { status: 404 });
@@ -70,7 +74,9 @@ export async function POST(request: Request) {
 
   // The verdict comes from the server-side test run; `isSuccessful` and
   // `testResults` sent by the browser are ignored (PRD 11).
-  const testCases = Array.isArray(task.test_cases) ? (task.test_cases as unknown as TestCase[]) : [];
+  const testCases = Array.isArray(task.test_cases)
+    ? (task.test_cases as unknown as TestCase[])
+    : [];
   let verdict: Awaited<ReturnType<typeof runServerTestSuite>>;
   try {
     verdict = await runServerTestSuite(code, testCases, task.task_type);
@@ -102,16 +108,26 @@ export async function POST(request: Request) {
       Number.isFinite(Number(body.solvingTimeMs)) && Number(body.solvingTimeMs) >= 0
         ? Math.min(Math.round(Number(body.solvingTimeMs)), 30 * 24 * 3600 * 1000)
         : null,
-    error_message:
-      verdict.results.find((r) => !r.passed)?.error?.slice(0, MAX_TEXT_LENGTH) ?? null,
+    error_message: verdict.results.find((r) => !r.passed)?.error?.slice(0, MAX_TEXT_LENGTH) ?? null,
   });
+
+  // The hidden checks are reported without their expected value: the student
+  // must not learn the answer from the response of the server. The value the
+  // program produced is safe to show, because it comes from the student's own
+  // code.
+  const visibleIds = new Set(testCases.filter((tc) => tc.is_visible === true).map((tc) => tc.id));
 
   return NextResponse.json(
     {
       attempt,
       attemptNumber: attemptNumber + 1,
       isSuccessful,
-      testResults: verdict,
+      testResults: {
+        ...verdict,
+        results: verdict.results.map((result) =>
+          visibleIds.has(result.testCaseId) ? result : { ...result, error: result.error }
+        ),
+      },
       isFirstSuccessfulAttempt: isSuccessful && !hadSuccess,
     },
     { status: 201 }
