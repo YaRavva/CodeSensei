@@ -1,7 +1,34 @@
 import type { NextConfig } from "next";
-import { SECURITY_HEADERS } from "./lib/security/csp";
 
-const securityHeaders = [...SECURITY_HEADERS];
+/**
+ * The security headers.
+ *
+ * They are written out here, and not imported from `lib/security/csp.ts`, on
+ * purpose: the deployment platform compiles this file on its own and runs it
+ * as a plain Node module, so an import would turn into a runtime `require`
+ * of a file that is not in the deployment.
+ *
+ * The Content Security Policy is not here: it needs a nonce that is different
+ * for every request, so it is built in `proxy.ts` (see `lib/security/csp.ts`).
+ */
+const securityHeaders = [
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "X-Frame-Options", value: "DENY" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  {
+    key: "Permissions-Policy",
+    value: "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()",
+  },
+  // Two years, with subdomains. The preload directive asks the browser to
+  // remember the rule for the domain, so the first visit is protected too.
+  {
+    key: "Strict-Transport-Security",
+    value: "max-age=63072000; includeSubDomains; preload",
+  },
+  { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+  { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
+  { key: "X-DNS-Prefetch-Control", value: "off" },
+];
 
 const nextConfig: NextConfig = {
   turbopack: {},
