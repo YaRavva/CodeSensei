@@ -64,6 +64,30 @@ Run in the repo root `C:\Users\Ravva\CodeSensei`:
 
 Do NOT copy: `node_modules`, `.next`, `.env.local`, `.env`, `.git`, `.migration`, `scripts/test`.
 
+**CRITICAL — `proxy.ts` MUST be in staging.**
+The root `proxy.ts` (Next 16 renamed `middleware` to `proxy`) holds the CSRF
+check, the session redirect and the Content Security Policy nonce. If it is
+missing from the staging archive, the site builds and starts, but the proxy
+never runs: there is no CSRF protection and no CSP, and nothing warns you.
+Copy it as a single root file.
+
+**CRITICAL — `next.config.ts` MUST NOT import project files.**
+The deployment platform compiles `next.config.ts` on its own and runs it as a
+plain Node module, so an `import` of a file from the project becomes a runtime
+`require` of a path that is not in the deployment:
+
+```
+Error: Cannot find module './lib/security/csp'
+Require stack:
+- /usr/local/server/src/function/next.config.compiled.js
+```
+
+The site then fails at startup with every request hanging. Keep
+`next.config.ts` self-contained: only `import type { NextConfig } from "next"`
+(type-only imports are erased at compile time). The security headers live
+directly in `next.config.ts`; the CSP with its per-request nonce lives in
+`proxy.ts`.
+
 **CRITICAL — Required config files that MUST be in staging:**
 The following files are essential for the remote build to succeed. Missing any of them will cause silent CSS/style failures or build errors:
 
@@ -75,22 +99,32 @@ The following files are essential for the remote build to succeed. Missing any o
 | `next-env.d.ts` | Next.js TypeScript declarations |
 | `appwrite.config.json` | Appwrite CLI endpoint configuration |
 | `package.json` + `package-lock.json` | Dependencies lock |
-| `next.config.ts` (or `.js`) | Next.js build configuration |
+| `next.config.ts` (or `.js`) | Next.js build configuration — must stay self-contained |
+| `proxy.ts` | CSRF check, session redirect, CSP nonce — **without it there is no CSRF and no CSP** |
 | `tsconfig.json` | TypeScript compiler options |
 | `app/globals.css` | Global styles and Tailwind directives |
 
 **Pre-deploy staging verification (PowerShell):**
 ```powershell
 $staging = "C:\Users\Ravva\CodeSensei-deploy"
-$required = @("postcss.config.js","postcss.config.mjs","tailwind.config.ts","components.json","next-env.d.ts","appwrite.config.json","package.json","package-lock.json","next.config.ts","tsconfig.json")
+$required = @("postcss.config.js","postcss.config.mjs","tailwind.config.ts","components.json","next-env.d.ts","appwrite.config.json","package.json","package-lock.json","next.config.ts","proxy.ts","tsconfig.json")
 $missing = $required | Where-Object { !(Test-Path (Join-Path $staging $_)) }
 if ($missing) {
   Write-Host "ERROR: Missing required files in staging:" -ForegroundColor Red
   $missing | ForEach-Object { Write-Host "  - $_" -ForegroundColor Red }
   exit 1
 }
+# next.config.ts must not import project files: the platform runs it as a
+# plain Node module, so the import would fail at runtime.
+$badImports = Select-String -Path (Join-Path $staging "next.config.ts") -Pattern '^\s*import\s+(?!type)' -ErrorAction SilentlyContinue
+if ($badImports) {
+  Write-Host "ERROR: next.config.ts imports a value from another file:" -ForegroundColor Red
+  $badImports | ForEach-Object { Write-Host "  - $($_.Line.Trim())" -ForegroundColor Red }
+  exit 1
+}
 ```
 If `postcss.config.js` is missing, the build will succeed but **all CSS styles will be completely broken** in production (white unstyled pages).
+If `proxy.ts` is missing, the site works but **CSRF protection and the CSP are silently absent**.
 
 ## Step 3 — Deploy from CLI & Managing CLI Blocking Behavior
 
@@ -109,3 +143,15 @@ appwrite sites create-deployment --site-id codesensei --activate true --code "C:
 ## Step 4 — Post-deploy verification
 
 Probe key routes (`/login`, `/register`, `/modules`, `/dashboard`, `/profile`) with a valid session cookie to confirm HTTP 200 responses.
+
+**Also verify that the proxy actually runs** (it is the only part of the stack
+that can be missing without any visible error):
+
+```powershell
+# The CSP header comes from proxy.ts: if it is empty, the proxy did not run.
+(Invoke-WebRequest "https://codesensei.ravva.su/" -UseBasicParsing).Headers["Content-Security-Policy"]
+
+# The CSRF check also lives in proxy.ts: a cross-site POST must be 403.
+curl.exe -s -o NUL -w "%{http_code}" -X POST -H "Content-Type: application/json" `
+  -H "Origin: https://evil.example" -d "{}" "https://codesensei.ravva.su/api/tasks/attempts"
+```

@@ -454,7 +454,8 @@ Worker `prompt()` недоступен. Это неприемлемо.
   `Host` и `X-Forwarded-Host` не учитываются: ими управляет атакующий.
   `Sec-Fetch-Site: cross-site` и `same-site` (другой поддомен) отклоняются
   всегда, `Origin: null` — тоже. Запрос без `Origin` и без `Referer`
-  отклоняется.
+  отклоняется. Проверка живёт в `proxy.ts`, поэтому файл обязан попадать в
+  деплой: без него сайт работает, но защиты нет (см. навык деплоя).
 - Ссылка сброса пароля строится только из `NEXT_PUBLIC_SITE_URL` (не из Host).
 - **Заголовки**: `Strict-Transport-Security: max-age=63072000; includeSubDomains;
   preload`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`,
