@@ -26,9 +26,13 @@ export function buildContentSecurityPolicy(nonce: string, isDev: boolean): strin
     }`,
     // Next.js injects inline styles for the styles of the framework; in
     // development React also needs 'unsafe-eval' for the styles.
-    `style-src 'self' 'nonce-${nonce}' https://fonts.googleapis.com${
-      isDev ? " 'unsafe-inline'" : ""
-    }`,
+    // 'unsafe-inline' is required in production as well: Monaco Editor creates
+    // its own <style> elements at runtime (tokenizer colors, bracket guides,
+    // decorations) and cannot attach the per-request nonce to them. Without it
+    // CSP blocks those styles and the editor renders without layout, text or
+    // decorations. script-src stays strict (nonce + 'strict-dynamic'), so
+    // injected CSS cannot execute script.
+    `style-src 'self' 'nonce-${nonce}' 'unsafe-inline' https://fonts.googleapis.com`,
     `img-src 'self' blob: data: https://cdn.jsdelivr.net`,
     `font-src 'self' data: https://fonts.gstatic.com`,
     // Pyodide is loaded from the CDN and talks to it while it starts.
