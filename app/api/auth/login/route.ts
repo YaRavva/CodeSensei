@@ -37,6 +37,19 @@ export async function POST(request: Request) {
     const session = await getAdminAccount().createEmailPasswordSession({ email, password });
     const account = getSessionAccount(session.secret);
     const user: Models.User = await account.get();
+
+    if (!user.emailVerification) {
+      await account.deleteSession({ sessionId: "current" }).catch(() => undefined);
+      return NextResponse.json(
+        {
+          error:
+            "Подтвердите email: перейдите по ссылке из письма, которое мы отправили при регистрации.",
+          code: "email_unverified",
+        },
+        { status: 403 }
+      );
+    }
+
     const profile = await ensureUserProfile(user);
 
     const response = NextResponse.json({
@@ -57,9 +70,7 @@ export async function POST(request: Request) {
     if (error instanceof AppwriteException) {
       const status = error.code === 401 ? 401 : 400;
       const message =
-        error.code === 401
-          ? "Неверный email или пароль"
-          : "Не удалось выполнить вход";
+        error.code === 401 ? "Неверный email или пароль" : "Не удалось выполнить вход";
       return NextResponse.json({ error: message }, { status });
     }
 

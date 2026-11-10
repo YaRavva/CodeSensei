@@ -2,10 +2,8 @@
 
 import { CheckCircle2, Clock, Database, Gauge } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { KatanaLogo } from "@/components/brand-logo";
-import { useAuth } from "@/components/auth/auth-provider";
 import { OAuthButtons } from "@/components/oauth-buttons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,8 +13,9 @@ import { useToast } from "@/hooks/use-toast";
 import { getNameValidationError, isValidRussianName } from "@/lib/utils/name-validation";
 import { validateEmail, validatePassword } from "@/lib/utils/validation";
 
-interface ErrorResponse {
+interface RegisterResponse {
   error?: string;
+  verificationSent?: boolean;
 }
 
 const linkClass =
@@ -30,8 +29,8 @@ export default function RegisterPage() {
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [nameError, setNameError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
-  const { refreshProfile } = useAuth();
+  const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
+  const [verificationSent, setVerificationSent] = useState(false);
   const { toast } = useToast();
 
   async function handleRegister(e: React.FormEvent) {
@@ -64,8 +63,9 @@ export default function RegisterPage() {
         body: JSON.stringify({ email, password, displayName: trimmedName }),
       });
 
+      const data = (await response.json().catch(() => null)) as RegisterResponse | null;
+
       if (!response.ok) {
-        const data = (await response.json().catch(() => null)) as ErrorResponse | null;
         toast({
           title: "Ошибка регистрации",
           description: data?.error || "Не удалось создать аккаунт",
@@ -74,14 +74,14 @@ export default function RegisterPage() {
         return;
       }
 
+      setRegisteredEmail(email);
+      setVerificationSent(!!data?.verificationSent);
       toast({
         title: "Аккаунт создан",
-        description: "Прогресс будет сохраняться автоматически",
+        description: data?.verificationSent
+          ? "Мы отправили письмо со ссылкой подтверждения"
+          : "Подтвердите email перед первым входом",
       });
-
-      await refreshProfile();
-      router.push("/modules");
-      router.refresh();
     } catch (error) {
       console.error("Unexpected registration error", error);
       toast({
@@ -92,6 +92,45 @@ export default function RegisterPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  if (registeredEmail) {
+    return (
+      <div className="bg-background flex min-h-[calc(100dvh-8rem)] flex-col items-center justify-center p-4 md:p-6">
+        <div className="w-full max-w-sm">
+          <Card className="overflow-hidden">
+            <CardContent className="flex flex-col items-center gap-4 p-6 text-center">
+              <CheckCircle2 className="size-10 text-primary" aria-hidden="true" />
+              <div className="space-y-2">
+                <h1 className="text-2xl font-bold">Подтвердите email</h1>
+                <p className="text-sm text-muted-foreground">
+                  {verificationSent ? (
+                    <>
+                      Мы отправили письмо со ссылкой на{" "}
+                      <span className="font-semibold text-foreground">{registeredEmail}</span>.
+                      Перейдите по ссылке, чтобы активировать аккаунт. Ссылка действует 1 час.
+                    </>
+                  ) : (
+                    <>
+                      Аккаунт для{" "}
+                      <span className="font-semibold text-foreground">{registeredEmail}</span>{" "}
+                      создан. Подтвердите почту перед первым входом — письмо можно запросить на
+                      странице входа.
+                    </>
+                  )}
+                </p>
+              </div>
+              <Button asChild className="w-full">
+                <Link href="/login">Перейти ко входу</Link>
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                Не пришло письмо? Проверьте папку «Спам» или запросите новое на странице входа.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
   }
 
   return (

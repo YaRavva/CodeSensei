@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { AppwriteException, ID, type Models } from "node-appwrite";
-import { getAdminAccount, getAdminUsers, getSessionAccount } from "@/lib/appwrite/client";
-import { clientIp, HOUR, hit, MINUTE, tooManyRequests } from "@/lib/security/rate-limit";
-import { sessionCookieOptions } from "@/lib/appwrite/session";
+import { AppwriteException, ID } from "node-appwrite";
+import { getAdminAccount } from "@/lib/appwrite/client";
+import { sendVerificationEmail } from "@/lib/appwrite/email-verification";
 import { ensureUserProfile } from "@/lib/appwrite/users";
+import { clientIp, HOUR, hit, MINUTE, tooManyRequests } from "@/lib/security/rate-limit";
 
 interface RegisterBody {
   email?: string;
@@ -54,35 +54,23 @@ export async function POST(request: Request) {
       name: displayName || email.split("@")[0],
     });
 
-    // Автоматически подтверждаем email без отправки письма (так как нет SMTP)
-    try {
-      await getAdminUsers().updateEmailVerification({ userId, emailVerification: true });
-    } catch (verifyErr) {
-      console.warn("Auto-verification warning:", verifyErr);
-    }
+    const profile = await ensureUserProfile(created);
 
-    const session = await getAdminAccount().createEmailPasswordSession({ email, password });
-    const account = getSessionAccount(session.secret);
-    const user: Models.User = await account.get();
-    const profile = await ensureUserProfile(user ?? created);
+    // Registration no longer auto-verifies: the user confirms ownership via
+    // the emailed link before the first login.
+    const origin = process.env.NEXT_PUBLIC_SITE_URL;
+    const verification = origin
+      ? await sendVerificationEmail(email, password, `${origin}/verify-email`)
+      : { sent: false, alreadyVerified: false };
 
-    const response = NextResponse.json(
+    return NextResponse.json(
       {
-        user: { id: user.$id, email: user.email, name: user.name },
+        user: { id: created.$id, email: created.email, name: created.name },
         profile,
+        verificationSent: verification.sent,
       },
       { status: 201 }
     );
-    const options = sessionCookieOptions(session.expire);
-    response.cookies.set(options.name, session.secret, {
-      httpOnly: options.httpOnly,
-      secure: options.secure,
-      sameSite: options.sameSite,
-      path: options.path,
-      ...(options.expires ? { expires: options.expires } : {}),
-    });
-
-    return response;
   } catch (error) {
     if (error instanceof AppwriteException) {
       const status = error.code === 409 ? 409 : 400;

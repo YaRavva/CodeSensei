@@ -4,8 +4,8 @@ import { CheckCircle2, Clock, Database, Gauge } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { KatanaLogo } from "@/components/brand-logo";
 import { useAuth } from "@/components/auth/auth-provider";
+import { KatanaLogo } from "@/components/brand-logo";
 import { OAuthButtons } from "@/components/oauth-buttons";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,6 +16,7 @@ import { validateEmail } from "@/lib/utils/validation";
 
 interface ErrorResponse {
   error?: string;
+  code?: string;
 }
 
 export function LoginForm() {
@@ -24,6 +25,8 @@ export function LoginForm() {
   const [emailError, setEmailError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [unverified, setUnverified] = useState(false);
+  const [resending, setResending] = useState(false);
   const router = useRouter();
   const { refreshProfile } = useAuth();
   const { toast } = useToast();
@@ -53,6 +56,7 @@ export function LoginForm() {
     }
 
     setLoading(true);
+    setUnverified(false);
 
     try {
       const response = await fetch("/api/auth/login", {
@@ -67,6 +71,10 @@ export function LoginForm() {
 
       if (!response.ok) {
         const data = (await response.json().catch(() => null)) as ErrorResponse | null;
+        if (data?.code === "email_unverified") {
+          setUnverified(true);
+          return;
+        }
         toast({
           title: "Ошибка входа",
           description: data?.error || "Неверная почта или пароль",
@@ -92,6 +100,48 @@ export function LoginForm() {
       });
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleResendVerification() {
+    setResending(true);
+
+    try {
+      const response = await fetch("/api/auth/resend-verification", {
+        method: "POST",
+        cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = (await response.json().catch(() => null)) as {
+        message?: string;
+        error?: string;
+      } | null;
+
+      if (!response.ok) {
+        toast({
+          title: "Письмо не отправлено",
+          description:
+            data?.error || "Не удалось отправить письмо. Попробуйте ещё раз через минуту",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Письмо отправлено",
+        description: data?.message || "Письмо со ссылкой подтверждения отправлено.",
+      });
+    } catch (error) {
+      console.error("Unexpected resend verification error", error);
+      toast({
+        title: "Неожиданная ошибка",
+        description: "Не удалось отправить письмо. Попробуйте ещё раз через минуту",
+        variant: "destructive",
+      });
+    } finally {
+      setResending(false);
     }
   }
 
@@ -125,6 +175,7 @@ export function LoginForm() {
                     onChange={(e) => {
                       setEmail(e.target.value);
                       if (emailError) setEmailError(null);
+                      if (unverified) setUnverified(false);
                     }}
                     onBlur={() => setEmailError(validateEmail(email))}
                     required
@@ -150,6 +201,7 @@ export function LoginForm() {
                     onChange={(e) => {
                       setPassword(e.target.value);
                       if (passwordError) setPasswordError(null);
+                      if (unverified) setUnverified(false);
                     }}
                     onBlur={() => setPasswordError(password ? null : "Введите пароль")}
                     required
@@ -168,6 +220,28 @@ export function LoginForm() {
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? "Вход..." : "Войти"}
                 </Button>
+
+                {unverified && (
+                  <div
+                    role="alert"
+                    className="space-y-2 rounded-md border border-border bg-muted p-3"
+                  >
+                    <p className="text-sm text-muted-foreground">
+                      Email ещё не подтверждён. Перейдите по ссылке из письма, которое мы отправили
+                      при регистрации, или запросите новое.
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={handleResendVerification}
+                      disabled={resending || loading}
+                    >
+                      {resending ? "Отправка..." : "Отправить письмо повторно"}
+                    </Button>
+                  </div>
+                )}
               </div>
 
               <OAuthButtons disabled={loading} />

@@ -442,7 +442,9 @@ Worker `prompt()` недоступен. Это неприемлемо.
 - Персональные данные учеников (email) не передаются другим пользователям.
 - Ограничение частоты (`lib/security/rate-limit.ts`, в памяти инстанса): вход —
   10 попыток на email и 30 на IP за 15 мин; регистрация — 5 в час и 2 в минуту
-  с IP; сброс пароля — 5 с IP за 15 мин и 3 на email в час; AI-проверка —
+  с IP; сброс пароля — 5 с IP за 15 мин и 3 на email в час; подтверждение email —
+  10 с IP за 15 мин; повторная отправка письма подтверждения — 5 с IP за 15 мин
+  и 3 на email в час; AI-проверка —
   60 в час на ученика; AI-подсказки и генерация — дневные лимиты (разделы 6, 8).
   Нужны потому, что серверные вызовы с API-ключом обходят лимиты Appwrite.
 - Лимиты размера ввода: код ≤ 20 000 символов, текстовые поля ≤ 5 000.
@@ -456,7 +458,8 @@ Worker `prompt()` недоступен. Это неприемлемо.
   всегда, `Origin: null` — тоже. Запрос без `Origin` и без `Referer`
   отклоняется. Проверка живёт в `proxy.ts`, поэтому файл обязан попадать в
   деплой: без него сайт работает, но защиты нет (см. навык деплоя).
-- Ссылка сброса пароля строится только из `NEXT_PUBLIC_SITE_URL` (не из Host).
+- Ссылки сброса пароля и подтверждения email строятся только из
+  `NEXT_PUBLIC_SITE_URL` (не из Host).
 - **Заголовки**: `Strict-Transport-Security: max-age=63072000; includeSubDomains;
   preload`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`,
   `Referrer-Policy`, `Permissions-Policy`, `Cross-Origin-Opener-Policy`,
@@ -572,7 +575,7 @@ Worker `prompt()` недоступен. Это неприемлемо.
 
 ### 15.1 Структура приложения
 - `app/layout.tsx` — корневой layout, `<html lang="ru">`, `ClientLayout`.
-- `app/(auth)/*` — вход, регистрация, восстановление пароля.
+- `app/(auth)/*` — вход, регистрация, подтверждение email, восстановление пароля.
 - `app/(dashboard)/dashboard`, `leaderboard`, `achievements` — кабинет, рейтинг, достижения.
 - `app/modules` — каталог модулей, страница модуля, страница задания.
 - `app/(admin)/admin/*` — админка (CRUD модулей и заданий, AI-генерация).
@@ -695,13 +698,26 @@ pnpm appwrite:seed    # достижения ach_* (upsert), демо-конте
 ### 16.4 Аутентификация и роли
 - Сервер создаёт сессию через SDK и кладёт секрет в HttpOnly cookie
   `a_session_<PROJECT_ID>`; профиль создаётся при первом входе (`ensureUserProfile`).
+- **Подтверждение email при регистрации**: аккаунт создаётся без сессии и без
+  авто-подтверждения; письмо со ссылкой отправляется через временную сессию
+  (`lib/appwrite/email-verification.ts`), ссылка ведёт на `/verify-email`
+  (`userId`, `secret`), подтверждение — `POST /api/auth/verify-email`. Вход до
+  подтверждения отклоняется с 403 `email_unverified`; форма входа предлагает
+  повторную отправку (`POST /api/auth/resend-verification`). Ссылка действует 1 час.
+- Шаблоны писем (`verification`, `recovery`) — кастомные, в стиле проекта,
+  хранятся для локалей ru и en (`scripts/appwrite/templates/*.html`, применение —
+  `pnpm appwrite:emails`); отправитель `no-reply@ravva.su` (Resend SMTP).
+  Смоук-тест обоих писем на тестовый адрес — `pnpm appwrite:test-emails`.
 - OAuth Google/GitHub: `/api/auth/oauth/{provider}` → провайдер → callback Appwrite
   → `/api/auth/oauth/callback` (`userId`, `secret`) → сессия → `ensureUserProfile()`;
   `reconcileByEmail()` переносит данные, если у OAuth-аккаунта новый ID.
   Callback у провайдеров: `https://appwrite.ravva.su/v1/account/sessions/oauth2/callback/{google|github}/<PROJECT_ID>`.
   OAuth ходит через **публичный** endpoint (`APPWRITE_OAUTH_ENDPOINT` или
   `NEXT_PUBLIC_APPWRITE_ENDPOINT`).
-- Восстановление пароля требует SMTP в Appwrite.
+- Восстановление пароля: `POST /api/auth/password-reset` → `createRecovery` →
+  письмо `recovery` → `/reset-password` (`userId`, `secret`) →
+  `POST /api/auth/password-reset/confirm`. Требует SMTP в Appwrite; ссылка
+  действует 1 час.
 - Роль — `users.role` (`student | teacher | admin`), меняется в Appwrite Console.
 
 ### 16.5 Деплой (Appwrite Sites)
