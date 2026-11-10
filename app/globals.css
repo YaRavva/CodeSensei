@@ -139,11 +139,11 @@
   --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 
   /* Аккордеон: высота раскрывается на базовой кривой (B7).
-     fill-mode: both обязателен — анимация задаёт высоту панели, и без forwards
-     конечное состояние не удерживается: при обнулённой длительности (prefers-reduced-motion)
-     панель остаётся с height:0, и вложенный редактор кода схлопывается. */
-  --animate-accordion-down: accordion-down 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
-  --animate-accordion-up: accordion-up 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
+     fill-mode: backwards удерживает только стартовое состояние: конечное
+     состояние не закрепляется, поэтому панель может вырасти, когда внутри
+     появляются результаты проверки. */
+  --animate-accordion-down: accordion-down 500ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  --animate-accordion-up: accordion-up 500ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
 
   @keyframes accordion-down {
     from {

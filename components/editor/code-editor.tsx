@@ -15,6 +15,18 @@ interface CodeEditorProps {
   path?: string;
 }
 
+// Monaco запускает свой worker через blob-URL и не может разрешить относительные
+// импорты собранного Turbopack чанка, поэтому worker монтируется здесь и
+// передаётся редактору напрямую.
+self.MonacoEnvironment = {
+  getWorker() {
+    return new Worker(new URL("./monaco-editor.worker.ts", import.meta.url), {
+      type: "module",
+      name: "editorWorkerService",
+    });
+  },
+};
+
 loader.config({ monaco });
 
 export function CodeEditor({
@@ -29,6 +41,10 @@ export function CodeEditor({
   const { theme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
+  // Значение, отправленное редактором вверх, и значение, которое редактор уже
+  // показал. Пока React отдаёт более старое значение, записывать его обратно
+  // нельзя: это откатывало бы текст к предыдущему состоянию и сбрасывало курсор.
+  const emittedRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     setMounted(true);
@@ -36,13 +52,13 @@ export function CodeEditor({
 
   // Внешнее изменение кода (сброс, загрузка сохранённой попытки, смена задания)
   // попадает в редактор только тогда, когда содержимое действительно отличается.
-  // Сравнение с содержимым редактора, а не флаг «изменено изнутри»: React
-  // выполняет эффект уже после того, как обработчик снял флаг, и setValue
-  // перезаписывал бы весь текст на каждое нажатие клавиши — курсор прыгал бы
-  // в конец строки и символы вводились не туда, где стоял курсор.
+  // Пока значение совпадает с тем, что редактор уже отправил, изменение пришло
+  // из редактора: React отдаёт его с задержкой, и setValue по устаревшему value
+  // перезаписывал бы весь текст — символы вводились не туда, где стоял курсор.
   useEffect(() => {
     const editor = editorRef.current;
     if (!editor || value === undefined) return;
+    if (value === emittedRef.current) return;
     if (editor.getValue() !== value) {
       editor.setValue(value);
     }
@@ -53,6 +69,7 @@ export function CodeEditor({
   };
 
   const handleEditorChange = (val: string | undefined) => {
+    emittedRef.current = val;
     onChange?.(val);
   };
 

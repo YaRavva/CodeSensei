@@ -12,15 +12,14 @@ const RAW_APPWRITE_ENDPOINT =
  * suffer from ETIMEDOUT socket stalls in undici. When running inside the server environment,
  * routes can route directly to the host Tailscale Caddy port or internal endpoint if configured,
  * or rewrite host-internal loopback.
+ *
+ * The internal endpoint is used only when it is configured explicitly: the hardcoded
+ * docker gateway address does not exist on a developer machine, so falling back to it
+ * made every server-side request fail locally with a connect timeout.
  */
 function resolveServerEndpoint(endpoint: string): string {
-  // If explicitly configured to internal or if running server-side targeting self
   if (typeof window === "undefined" && process.env.APPWRITE_INTERNAL_ENDPOINT) {
     return process.env.APPWRITE_INTERNAL_ENDPOINT;
-  }
-  // If server-side and endpoint is public domain, route through internal docker gateway
-  if (typeof window === "undefined" && endpoint.includes("appwrite.ravva.su")) {
-    return "http://172.18.0.1:80/v1";
   }
   return endpoint;
 }

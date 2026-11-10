@@ -39,54 +39,15 @@ AccordionTrigger.displayName = AccordionPrimitive.Trigger.displayName;
 const AccordionContent = React.forwardRef<
   React.ElementRef<typeof AccordionPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Content>
->(({ className, children, ...props }, ref) => {
-  const localRef = React.useRef<HTMLDivElement | null>(null);
-
-  React.useEffect(() => {
-    const node = localRef.current;
-    if (!node) return;
-
-    const sync = () => {
-      const isOpen = node.getAttribute("data-state") === "open";
-      if (isOpen) {
-        // Высота раскрытой панели задаётся явно, а не только CSS-анимацией: при
-        // prefers-reduced-motion глобальное правило обнуляет длительность анимации,
-        // и панель остаётся с height:0 — вложенный редактор кода схлопывается до
-        // нулевого размера, не рисуется и не принимает ввод.
-        // important обязателен: CSS-анимация перебивает обычные объявления.
-        node.style.setProperty("height", "var(--radix-collapsible-content-height)", "important");
-      } else {
-        node.style.removeProperty("height");
-      }
-    };
-
-    sync();
-    const observer = new MutationObserver(sync);
-    observer.observe(node, { attributes: true, attributeFilter: ["data-state"] });
-    return () => observer.disconnect();
-  }, []);
-
-  const setRef = React.useCallback(
-    (node: HTMLDivElement | null) => {
-      localRef.current = node;
-      if (typeof ref === "function") ref(node);
-      else if (ref) {
-        (ref as React.RefObject<HTMLDivElement | null>).current = node;
-      }
-    },
-    [ref]
-  );
-
-  return (
-    <AccordionPrimitive.Content
-      ref={setRef}
-      className="overflow-hidden text-sm data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down"
-      {...props}
-    >
-      <div className={cn("pb-4 pt-0", className)}>{children}</div>
-    </AccordionPrimitive.Content>
-  );
-});
+>(({ className, children, ...props }, ref) => (
+  <AccordionPrimitive.Content
+    ref={ref}
+    className="overflow-hidden text-sm data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down"
+    {...props}
+  >
+    <div className={cn("pb-4 pt-0", className)}>{children}</div>
+  </AccordionPrimitive.Content>
+));
 
 AccordionContent.displayName = AccordionPrimitive.Content.displayName;
 
