@@ -2,7 +2,7 @@
 
 import { Editor, loader } from "@monaco-editor/react";
 import * as monaco from "monaco-editor";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTheme } from "@/components/theme-provider";
 
 interface CodeEditorProps {
@@ -12,10 +12,10 @@ interface CodeEditorProps {
   language?: string;
   readOnly?: boolean;
   className?: string;
+  path?: string;
 }
 
-// Use the same Monaco instance as the installed package. The 0.57 AMD build
-// no longer exposes the legacy `m` export expected by the CDN loader.
+// Use the same Monaco instance as the installed package.
 loader.config({ monaco });
 
 export function CodeEditor({
@@ -25,6 +25,7 @@ export function CodeEditor({
   language = "python",
   readOnly = false,
   className,
+  path,
 }: CodeEditorProps) {
   const { theme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -42,6 +43,30 @@ export function CodeEditor({
     }
     return theme === "dark" ? "vs-dark" : "light";
   };
+
+  const editorOptions = useMemo(
+    () => ({
+      readOnly,
+      minimap: { enabled: false },
+      lineNumbers: "on" as const,
+      wordWrap: "on" as const,
+      fontSize: 16,
+      tabSize: 4,
+      automaticLayout: true,
+      scrollBeyondLastLine: false,
+      fontFamily: "'Geist Mono', ui-monospace, monospace",
+      padding: { top: 12, bottom: 12 },
+      suggest: {
+        showWords: true,
+        showSnippets: true,
+      },
+      quickSuggestions: true,
+      parameterHints: { enabled: true },
+      renderValidationDecorations: "on" as const,
+      wordBasedSuggestions: "currentDocument" as const,
+    }),
+    [readOnly]
+  );
 
   if (!mounted) {
     return (
@@ -61,27 +86,8 @@ export function CodeEditor({
         value={value}
         onChange={onChange}
         theme={getEditorTheme()}
-        options={{
-          readOnly,
-          minimap: { enabled: false },
-          lineNumbers: "on",
-          wordWrap: "on",
-          fontSize: 16,
-          tabSize: 4,
-          automaticLayout: true,
-          scrollBeyondLastLine: false,
-          fontFamily: "'Geist Mono', ui-monospace, monospace",
-          padding: { top: 12, bottom: 12 },
-          suggest: {
-            showWords: true,
-            showSnippets: true,
-          },
-          quickSuggestions: true,
-          parameterHints: { enabled: true },
-          // Включаем стандартные функции Monaco
-          renderValidationDecorations: "on",
-          wordBasedSuggestions: "currentDocument",
-        }}
+        path={path}
+        options={editorOptions}
       />
     </div>
   );

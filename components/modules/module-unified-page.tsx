@@ -779,12 +779,13 @@ export function ModuleUnifiedPage({
     setTaskStates((prev) => {
       const currentState = prev[taskId];
       const task = tasks.find((t) => t.id === taskId);
+      const newCode = value ?? "";
       if (!currentState && task) {
         // Создаем новое состояние, если его еще нет
         return {
           ...prev,
           [taskId]: {
-            code: value || task.starter_code || "",
+            code: newCode,
             initialCode: task.starter_code || "",
             executionResult: null,
             testResults: null,
@@ -802,7 +803,7 @@ export function ModuleUnifiedPage({
       }
       return {
         ...prev,
-        [taskId]: { ...currentState, code: value || "" },
+        [taskId]: { ...currentState, code: newCode },
       };
     });
   };
@@ -1301,10 +1302,11 @@ export function ModuleUnifiedPage({
                                 </CardHeader>
                                 <CardContent className="space-y-4">
                                   <CodeEditor
-                                    value={state?.code || task.starter_code || ""}
+                                    value={state?.code ?? task.starter_code ?? ""}
                                     onChange={(value) => handleCodeChange(task.id, value)}
                                     height="400px"
                                     language="python"
+                                    path={`unified-task-${task.id}`}
                                   />
 
                                   {(() => {

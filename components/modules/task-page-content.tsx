@@ -697,6 +697,7 @@ export function TaskPageContent({
                   onChange={(value) => setCode(value || "")}
                   height="400px"
                   language="python"
+                  path={`task-${task.id}`}
                 />
 
                 {usesProgramInput(code, initialProgramInput) && (
