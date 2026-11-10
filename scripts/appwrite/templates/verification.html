@@ -1,54 +1,90 @@
 <style type="text/css">
   @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap');
-  @media only screen and (max-width: 600px) {
-    .cs-card-cell { padding: 24px 20px !important; }
-    .cs-cta-table { width: 100% !important; }
+  @media only screen and (max-width: 620px) {
+    .cs-cols, .cs-cols tbody, .cs-cols tr, .cs-col { display: block !important; width: 100% !important; }
+    .cs-col-right { border-left: none !important; border-top: 1px solid #d8d8dd !important; }
+    .cs-pad { padding: 24px 20px !important; }
   }
 </style>
 
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width: 100%; border-collapse: collapse; font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #09090b; font-size: 15px; line-height: 1.5;">
   <tr>
     <td style="padding: 0;">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="cs-card" style="width: 100%; border-collapse: separate; border-spacing: 0; background-color: #ffffff; border: 1px solid #d8d8dd; border-radius: 12px; color-scheme: light;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width: 100%; border-collapse: separate; border-spacing: 0; background-color: #ffffff; border: 1px solid #d8d8dd; border-radius: 12px; overflow: hidden; color-scheme: light;">
         <tr>
-          <td style="height: 4px; padding: 0; background-color: #ec003f; border-radius: 11px 11px 0 0; font-size: 0; line-height: 0;">&nbsp;</td>
-        </tr>
-        <tr>
-          <td class="cs-card-cell" style="padding: 28px 32px 0;">
-            <span style="font-size: 18px; font-weight: 700; letter-spacing: -0.02em; color: #09090b;">CodeSensei</span>
-          </td>
-        </tr>
-        <tr>
-          <td class="cs-card-cell" style="padding: 20px 32px 32px;">
-            <div style="font-size: 22px; font-weight: 600; letter-spacing: -0.01em; color: #09090b; margin: 0 0 16px;">Подтвердите email</div>
-
-            <p style="margin: 0 0 12px; font-size: 15px; line-height: 1.5; color: #09090b;">Здравствуйте, {{user}}!</p>
-
-            <p style="margin: 0 0 24px; font-size: 15px; line-height: 1.5; color: #09090b;">Вы создали аккаунт в CodeSensei — школе программирования. Остался один шаг: подтвердите адрес почты, чтобы войти и начать решать задачи.</p>
-
-            <table role="presentation" cellpadding="0" cellspacing="0" border="0" class="cs-cta-table" style="width: auto; border-collapse: separate; border-spacing: 0; margin: 0 0 24px;">
+          <td style="padding: 0;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="cs-cols" style="width: 100%; border-collapse: collapse;">
               <tr>
-                <td align="center" bgcolor="#ec003f" style="background-color: #ec003f; border-radius: 8px; padding: 0; color: #fff1f2;">
-                  <a href="{{redirect}}" target="_blank" class="cs-cta" style="display: block; padding: 13px 24px; font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 15px; font-weight: 600; line-height: 1.2; color: #fff1f2; text-decoration: none; word-break: normal; border-radius: 8px;">Подтвердить email</a>
+                <td class="cs-col cs-pad" width="56%" valign="top" style="width: 56%; padding: 28px; vertical-align: top;">
+                  <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border-collapse: collapse; margin: 0 0 20px;">
+                    <tr>
+                      <td valign="middle" style="padding: 0 8px 0 0; vertical-align: middle;">
+                        <img src="https://codesensei.ravva.su/emails/katana-small.png" width="28" height="24" alt="CodeSensei" style="display: block; width: 28px; height: 24px; border: 0;" />
+                      </td>
+                      <td valign="middle" style="vertical-align: middle;">
+                        <span style="font-size: 17px; font-weight: 700; letter-spacing: -0.02em; color: #09090b;">CodeSensei</span>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <div style="font-size: 24px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.25; color: #09090b; text-align: center; margin: 0 0 6px;">Подтвердите email</div>
+                  <div style="font-size: 13px; line-height: 1.45; color: #71717b; text-align: center; margin: 0 0 20px;">Остался один шаг до первого урока</div>
+
+                  <p style="margin: 0 0 10px; font-size: 15px; line-height: 1.5; color: #09090b;">Здравствуйте, {{user}}!</p>
+                  <p style="margin: 0 0 20px; font-size: 14px; line-height: 1.55; color: #09090b;">Вы создали аккаунт в CodeSensei. Подтвердите адрес почты, чтобы войти и начать решать задачи.</p>
+
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width: 100%; border-collapse: separate; border-spacing: 0; margin: 0 0 16px;">
+                    <tr>
+                      <td align="center" bgcolor="#ec003f" style="background-color: #ec003f; border-radius: 8px; padding: 0; color: #fff1f2;">
+                        <a href="{{redirect}}" target="_blank" style="display: block; padding: 12px 20px; font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 15px; font-weight: 600; line-height: 1.2; color: #fff1f2; text-decoration: none; word-break: normal; text-align: center; border-radius: 8px;">Подтвердить email</a>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width: 100%; border-collapse: separate; border-spacing: 0; margin: 0 0 16px;">
+                    <tr>
+                      <td bgcolor="#ececef" style="background-color: #ececef; border-radius: 8px; padding: 12px 14px;">
+                        <div style="font-size: 12px; font-weight: 500; line-height: 1.45; color: #71717b; margin: 0 0 5px;">Если кнопка не работает, скопируйте ссылку в браузер:</div>
+                        <div style="font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11px; line-height: 1.5; color: #71717b; word-break: break-all;">{{redirect}}</div>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <p style="margin: 0; font-size: 12px; line-height: 1.5; color: #71717b;">Ссылка действует 1 час. Если вы не регистрировались в CodeSensei, просто проигнорируйте это письмо.</p>
+                </td>
+
+                <td class="cs-col cs-col-right cs-pad" width="44%" valign="top" bgcolor="#ececef" style="width: 44%; padding: 28px 24px; vertical-align: top; background-color: #ececef; border-left: 1px solid #d8d8dd;">
+                  <div style="text-align: center; margin: 0 0 14px;">
+                    <img src="https://codesensei.ravva.su/emails/katana.png" width="170" height="147" alt="CodeSensei" style="display: inline-block; width: 170px; height: 147px; border: 0;" />
+                  </div>
+                  <div style="font-size: 16px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.35; color: #09090b; text-align: center; margin: 0 0 16px;">Пишите настоящий код с&nbsp;первого урока</div>
+
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width: 100%; border-collapse: collapse; margin: 0 0 16px;">
+                    <tr><td style="height: 1px; padding: 0; background-color: #d8d8dd; font-size: 0; line-height: 0;">&nbsp;</td></tr>
+                  </table>
+
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                      <td width="18" valign="top" style="width: 18px; padding: 0 0 12px; vertical-align: top; font-size: 13px; font-weight: 700; color: #ec003f;">✓</td>
+                      <td valign="top" style="padding: 0 0 12px; vertical-align: top; font-size: 13px; line-height: 1.45; color: #71717b;"><span style="font-weight: 600; color: #09090b;">Настоящий код с первого урока</span> — первый рабочий скрипт уже в начале курса</td>
+                    </tr>
+                    <tr>
+                      <td width="18" valign="top" style="width: 18px; padding: 0 0 12px; vertical-align: top; font-size: 13px; font-weight: 700; color: #ec003f;">✓</td>
+                      <td valign="top" style="padding: 0 0 12px; vertical-align: top; font-size: 13px; line-height: 1.45; color: #71717b;"><span style="font-weight: 600; color: #09090b;">Мгновенная проверка</span> — решение запускается прямо в браузере</td>
+                    </tr>
+                    <tr>
+                      <td width="18" valign="top" style="width: 18px; padding: 0; vertical-align: top; font-size: 13px; font-weight: 700; color: #ec003f;">✓</td>
+                      <td valign="top" style="padding: 0; vertical-align: top; font-size: 13px; line-height: 1.45; color: #71717b;"><span style="font-weight: 600; color: #09090b;">XP, уровни и достижения</span> — прогресс виден сразу</td>
+                    </tr>
+                  </table>
                 </td>
               </tr>
             </table>
-
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width: 100%; border-collapse: separate; border-spacing: 0; margin: 0 0 20px;">
-              <tr>
-                <td bgcolor="#ececef" style="background-color: #ececef; border-radius: 8px; padding: 14px 16px;">
-                  <div style="font-size: 13px; font-weight: 500; line-height: 1.45; color: #71717b; margin: 0 0 6px;">Если кнопка не работает, скопируйте ссылку в браузер:</div>
-                  <div style="font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; line-height: 1.5; color: #71717b; word-break: break-all;">{{redirect}}</div>
-                </td>
-              </tr>
-            </table>
-
-            <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #71717b;">Ссылка действует 1 час. Если вы не регистрировались в CodeSensei, просто проигнорируйте это письмо.</p>
           </td>
         </tr>
         <tr>
-          <td class="cs-card-cell" style="padding: 20px 32px; border-top: 1px solid #d8d8dd;">
-            <div style="font-size: 12px; line-height: 1.5; color: #71717b; margin: 0 0 4px;">© {{year}} CodeSensei · <a href="https://codesensei.ravva.su" target="_blank" style="color: #71717b; text-decoration: underline;">codesensei.ravva.su</a></div>
+          <td class="cs-pad" style="padding: 16px 28px; border-top: 1px solid #d8d8dd;">
+            <div style="font-size: 12px; line-height: 1.5; color: #71717b; margin: 0 0 3px;">© {{year}} CodeSensei · <a href="https://codesensei.ravva.su" target="_blank" style="color: #71717b; text-decoration: underline;">codesensei.ravva.su</a></div>
             <div style="font-size: 12px; line-height: 1.5; color: #71717b; margin: 0;">Письмо отправлено автоматически, отвечать на него не нужно.</div>
           </td>
         </tr>
