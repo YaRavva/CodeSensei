@@ -28,11 +28,13 @@ export function buildContentSecurityPolicy(nonce: string, isDev: boolean): strin
     // development React also needs 'unsafe-eval' for the styles.
     // 'unsafe-inline' is required in production as well: Monaco Editor creates
     // its own <style> elements at runtime (tokenizer colors, bracket guides,
-    // decorations) and cannot attach the per-request nonce to them. Without it
-    // CSP blocks those styles and the editor renders without layout, text or
-    // decorations. script-src stays strict (nonce + 'strict-dynamic'), so
-    // injected CSS cannot execute script.
-    `style-src 'self' 'nonce-${nonce}' 'unsafe-inline' https://fonts.googleapis.com`,
+    // decorations) and sets inline styles on its widgets. Without it CSP blocks
+    // them and the editor renders with artefacts and jumping lines.
+    // The nonce must NOT be listed here: per CSP a nonce in the source list
+    // makes 'unsafe-inline' ignored, which would block every Monaco style.
+    // script-src stays strict (nonce + 'strict-dynamic'), so injected CSS
+    // cannot execute script.
+    `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
     `img-src 'self' blob: data: https://cdn.jsdelivr.net`,
     `font-src 'self' data: https://fonts.gstatic.com`,
     // Pyodide is loaded from the CDN and talks to it while it starts.
