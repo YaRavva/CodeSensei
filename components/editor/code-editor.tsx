@@ -28,33 +28,32 @@ export function CodeEditor({
 }: CodeEditorProps) {
   const { theme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const editorRef = useRef<any>(null);
-  const isInternalChangeRef = useRef(false);
+  const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Синхронизируем внешнее изменение value (например, "Сбросить код" или смена задания)
+  // Внешнее изменение кода (сброс, загрузка сохранённой попытки, смена задания)
+  // попадает в редактор только тогда, когда содержимое действительно отличается.
+  // Сравнение с содержимым редактора, а не флаг «изменено изнутри»: React
+  // выполняет эффект уже после того, как обработчик снял флаг, и setValue
+  // перезаписывал бы весь текст на каждое нажатие клавиши — курсор прыгал бы
+  // в конец строки и символы вводились не туда, где стоял курсор.
   useEffect(() => {
-    if (editorRef.current && value !== undefined) {
-      const currentVal = editorRef.current.getValue();
-      if (value !== currentVal && !isInternalChangeRef.current) {
-        editorRef.current.setValue(value);
-      }
+    const editor = editorRef.current;
+    if (!editor || value === undefined) return;
+    if (editor.getValue() !== value) {
+      editor.setValue(value);
     }
   }, [value]);
 
-  const handleEditorDidMount = (editor: any) => {
+  const handleEditorDidMount = (editor: monaco.editor.IStandaloneCodeEditor) => {
     editorRef.current = editor;
   };
 
   const handleEditorChange = (val: string | undefined) => {
-    isInternalChangeRef.current = true;
     onChange?.(val);
-    Promise.resolve().then(() => {
-      isInternalChangeRef.current = false;
-    });
   };
 
   const getEditorTheme = () => {

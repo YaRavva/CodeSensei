@@ -107,12 +107,17 @@ export function TaskPageContent({
     null
   );
 
-  // Загружаем сохраненный код из последней попытки, если есть
+  // Загружаем сохраненный код из последней попытки, если есть.
+  // Код подставляется один раз при смене задания: иначе очистка редактора
+  // откатывалась бы назад, и ввод выглядел бы «прыгающим».
+  const loadedAttemptCodeRef = useRef<string | null>(null);
   useEffect(() => {
+    if (loadedAttemptCodeRef.current === task.id) return;
+    loadedAttemptCodeRef.current = task.id;
     if (lastAttempt?.code_solution && !code) {
       setCode(lastAttempt.code_solution);
     }
-  }, [lastAttempt, code]);
+  }, [lastAttempt, code, task.id]);
 
   // Парсим тестовые случаи. В браузере доступны только видимые проверки:
   // ожидаемые значения скрытых тестов остаются на сервере.
