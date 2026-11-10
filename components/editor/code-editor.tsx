@@ -2,7 +2,7 @@
 
 import { Editor, loader } from "@monaco-editor/react";
 import * as monaco from "monaco-editor";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "@/components/theme-provider";
 
 interface CodeEditorProps {
@@ -15,7 +15,6 @@ interface CodeEditorProps {
   path?: string;
 }
 
-// Use the same Monaco instance as the installed package.
 loader.config({ monaco });
 
 export function CodeEditor({
@@ -29,13 +28,35 @@ export function CodeEditor({
 }: CodeEditorProps) {
   const { theme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const editorRef = useRef<any>(null);
+  const isInternalChangeRef = useRef(false);
 
-  // Избегаем hydration mismatch
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Определяем тему редактора на основе системной темы
+  // Синхронизируем внешнее изменение value (например, "Сбросить код" или смена задания)
+  useEffect(() => {
+    if (editorRef.current && value !== undefined) {
+      const currentVal = editorRef.current.getValue();
+      if (value !== currentVal && !isInternalChangeRef.current) {
+        editorRef.current.setValue(value);
+      }
+    }
+  }, [value]);
+
+  const handleEditorDidMount = (editor: any) => {
+    editorRef.current = editor;
+  };
+
+  const handleEditorChange = (val: string | undefined) => {
+    isInternalChangeRef.current = true;
+    onChange?.(val);
+    Promise.resolve().then(() => {
+      isInternalChangeRef.current = false;
+    });
+  };
+
   const getEditorTheme = () => {
     if (!mounted) return "vs-dark";
     if (theme === "system") {
@@ -83,8 +104,9 @@ export function CodeEditor({
       <Editor
         height={height}
         language={language}
-        value={value}
-        onChange={onChange}
+        defaultValue={value}
+        onMount={handleEditorDidMount}
+        onChange={handleEditorChange}
         theme={getEditorTheme()}
         path={path}
         options={editorOptions}
