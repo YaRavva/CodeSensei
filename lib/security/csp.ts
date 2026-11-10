@@ -17,7 +17,11 @@ export function buildContentSecurityPolicy(nonce: string, isDev: boolean): strin
     `default-src 'self'`,
     // 'strict-dynamic' lets the scripts that carry the nonce load the
     // scripts they need, so the allowlist of hosts stays short.
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://cdn.jsdelivr.net${
+    // 'wasm-unsafe-eval' is required in production: Pyodide compiles the Python
+    // interpreter as WebAssembly, and without it the runtime fails with
+    // "WebAssembly.instantiateStreaming(): ... violates the following Content
+    // Security policy directive" and code execution never starts.
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://cdn.jsdelivr.net 'wasm-unsafe-eval'${
       isDev ? " 'unsafe-eval'" : ""
     }`,
     // Next.js injects inline styles for the styles of the framework; in

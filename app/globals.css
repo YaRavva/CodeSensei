@@ -138,9 +138,12 @@
   --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 
-  /* Аккордеон: высота раскрывается на базовой кривой (B7) */
-  --animate-accordion-down: accordion-down 500ms cubic-bezier(0.22, 1, 0.36, 1);
-  --animate-accordion-up: accordion-up 500ms cubic-bezier(0.22, 1, 0.36, 1);
+  /* Аккордеон: высота раскрывается на базовой кривой (B7).
+     fill-mode: both обязателен — анимация задаёт высоту панели, и без forwards
+     конечное состояние не удерживается: при обнулённой длительности (prefers-reduced-motion)
+     панель остаётся с height:0, и вложенный редактор кода схлопывается. */
+  --animate-accordion-down: accordion-down 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-accordion-up: accordion-up 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
 
   @keyframes accordion-down {
     from {
@@ -244,6 +247,13 @@
   .landing-rise {
     opacity: 1;
     transform: none;
+  }
+  /* Анимация аккордеона задаёт высоту раскрытой панели, а не только эффект.
+     При обнулённой длительности панель остаётся с height:0, и вложенный редактор
+     кода схлопывается до нулевого размера — перестаёт рисоваться и принимать
+     ввод. Высота open-состояния дублируется в accordion.tsx (без JS не работает). */
+  [data-state="open"][class*="animate-accordion-down"] {
+    height: var(--radix-collapsible-content-height) !important;
   }
 }
 /* Полоса прокрутки видна всегда: страница не сдвигается, когда контент становится
