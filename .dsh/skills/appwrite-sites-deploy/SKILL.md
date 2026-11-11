@@ -1,9 +1,9 @@
 ---
 name: appwrite-sites-deploy
-description: "Use when building and deploying a Next.js site to a self-hosted Appwrite via Appwrite Sites on Windows, especially the CodeSensei project. Covers local production build, preparing a small staging directory for a real source deployment, `appwrite sites create-deployment` from CLI, activation, and post-deploy page verification. Triggers: deploy appwrite site, create-deployment, build nextjs for appwrite sites, self-hosted appwrite deploy, codesensei deploy."
+description: "Use when building and deploying a Next.js site to a self-hosted Appwrite via Appwrite Sites on Windows, especially the CodeSensei project. Covers local production build, preparing a small staging directory for a real source deployment, `appwrite sites create-deployment` from CLI (run in the background — the build takes 1-3 min and does not need to be awaited), activation, and post-deploy page verification run in the background ~3 minutes later. Triggers: deploy appwrite site, create-deployment, build nextjs for appwrite sites, self-hosted appwrite deploy, codesensei deploy."
 metadata:
   author: Ravva
-  version: "1.2.0"
+  version: "1.3.0"
 ---
 
 # Appwrite Sites Deploy (self-hosted)
@@ -54,6 +54,8 @@ Run in the repo root `C:\Users\Ravva\CodeSensei`:
 
 - `npm run typecheck` (tsc --noEmit) — must be clean.
 - `npm run build` (next build, Turbopack) — must end with "Compiled successfully" and list routes.
+  The build takes a minute or two — run it **in the background** and continue with
+  staging preparation while it finishes.
 
 ## Step 2 — Prepare the staging dir (CRITICAL: DO NOT INCLUDE node_modules)
 
@@ -126,12 +128,16 @@ if ($badImports) {
 If `postcss.config.js` is missing, the build will succeed but **all CSS styles will be completely broken** in production (white unstyled pages).
 If `proxy.ts` is missing, the site works but **CSRF protection and the CSP are silently absent**.
 
-## Step 3 — Deploy from CLI & Managing CLI Blocking Behavior
+## Step 3 — Deploy from CLI (асинхронно, без ожидания)
 
 ```
 appwrite sites create-deployment --site-id codesensei --activate true --code "C:\Users\Ravva\CodeSensei-deploy"
 ```
 
+- **Деплой запускается в фоне и не блокирует работу.** Не жди его завершения в
+  этом же вызове: команда стримит удалённые логи сборки в реальном времени и
+  занимает 1–3 минуты. Запусти её в фоне (`run_in_background`) или отдельной
+  командой с `&` и переходи к следующим задачам.
 - **Understanding CLI Blocking / "Hanging"**: `appwrite sites create-deployment` blocks the terminal shell because it streams remote build logs in real-time from OpenRuntimes. **This is normal and does not mean it is frozen.** A clean source build takes ~1–3 minutes.
 - **Handling npm / store-dir conflicts**: Ensure no global/local `.npmrc` containing `store-dir` (from pnpm) leaks into the environment or staging, as this causes remote npm builds to hang in deadlock.
 - **Verification via SDK**: If you prefer non-blocking execution or if CLI throws serialization bugs (`Go unmarshal error` on `list-logs`), poll deployment status via Node.js SDK:
@@ -139,19 +145,39 @@ appwrite sites create-deployment --site-id codesensei --activate true --code "C:
   const dep = await sites.getDeployment({ siteId: "codesensei", deploymentId });
   // wait until status === "ready"
   ```
+- **Быстрая проверка статуса без ожидания** (одноразовый опрос):
+  ```bash
+  node --env-file-if-exists=.env.local -e "
+  const { Client, Sites } = require('node-appwrite');
+  const c = new Client().setEndpoint(process.env.APPWRITE_ENDPOINT).setProject(process.env.APPWRITE_PROJECT_ID).setKey(process.env.APPWRITE_API_KEY);
+  new Sites(c).listDeployments({ siteId: 'codesensei' }).then(r => {
+    const d = r.deployments[0];
+    console.log(d.\$id, d.status, 'buildDuration=' + d.buildDuration);
+  });"
+  ```
+  Статусы: `waiting` → `building` → `ready` | `failed`.
 
-## Step 4 — Post-deploy verification
+## Step 4 — Post-deploy verification (в фоне, через 3 минуты после деплоя)
 
-Probe key routes (`/login`, `/register`, `/modules`, `/dashboard`, `/profile`) with a valid session cookie to confirm HTTP 200 responses.
+**Не проверяй прод сразу после запуска деплоя.** Сборка идёт на сервере 1–3
+минуты, и сайт переключается на новую версию только после `ready` + активации.
+Проверку запускай **в фоне с задержкой ~3 минуты** и не блокируй этим терминал:
 
-**Also verify that the proxy actually runs** (it is the only part of the stack
-that can be missing without any visible error):
-
-```powershell
-# The CSP header comes from proxy.ts: if it is empty, the proxy did not run.
-(Invoke-WebRequest "https://codesensei.ravva.su/" -UseBasicParsing).Headers["Content-Security-Policy"]
-
-# The CSRF check also lives in proxy.ts: a cross-site POST must be 403.
-curl.exe -s -o NUL -w "%{http_code}" -X POST -H "Content-Type: application/json" `
-  -H "Origin: https://evil.example" -d "{}" "https://codesensei.ravva.su/api/tasks/attempts"
+```bash
+# В фоне: подождать 3 минуты и прогнать проверки
+(sleep 180; bash scripts/check-prod.sh) &
 ```
+
+Где `scripts/check-prod.sh` — набор запросов: коды ответов на `/login`,
+`/register`, `/verify-email`, `/reset-password`, `/forgot-password`, `/modules`
+(307 без сессии — норма), наличие `/emails/katana.png`, непустой заголовок
+`Content-Security-Policy` (если он пуст — `proxy.ts` не попал в деплой),
+cross-site POST → 403 (проверка CSRF), пустой токен подтверждения → 400.
+
+Дополнительно (по SSH на `aw`) во время ожидания можно посмотреть контейнер
+сборки: `docker ps | grep <deploymentId>` — контейнер `...-build` живёт, пока
+идёт сборка.
+
+Если деплой упал (`failed`), смотри логи на сервере:
+`docker logs appwrite-worker-builds --since 15m`.
+
