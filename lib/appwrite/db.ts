@@ -46,6 +46,31 @@ export async function listRows(tableId: string, queries: string[] = []): Promise
   return rows;
 }
 
+/**
+ * Appwrite rejects a single query longer than 4096 characters, so a list of
+ * values is requested in chunks. The chunk size keeps the encoded query well
+ * below the limit even for long IDs.
+ */
+const QUERY_VALUES_CHUNK_SIZE = 50;
+
+/** Rows where the attribute equals one of the values, fetched in safe chunks. */
+export async function listRowsByValues(
+  tableId: string,
+  attribute: string,
+  values: string[],
+  queries: string[] = []
+): Promise<AppwriteRow[]> {
+  if (values.length === 0) return [];
+
+  const rows: AppwriteRow[] = [];
+  for (let i = 0; i < values.length; i += QUERY_VALUES_CHUNK_SIZE) {
+    const chunk = values.slice(i, i + QUERY_VALUES_CHUNK_SIZE);
+    rows.push(...(await listRows(tableId, [...queries, Query.equal(attribute, chunk)])));
+  }
+
+  return rows;
+}
+
 /** Returns the number of rows matching the queries without fetching the rows. */
 export async function countRows(tableId: string, queries: string[] = []): Promise<number> {
   const response = await getTablesDB().listRows({

@@ -1,5 +1,5 @@
 import { TABLES } from "@/lib/appwrite/config";
-import { createRow, listRows, Query } from "@/lib/appwrite/db";
+import { createRow, listRows, listRowsByValues, Query } from "@/lib/appwrite/db";
 import { toAchievement, toUserAchievement } from "@/lib/appwrite/mappers";
 import type { Achievement, UserAchievement } from "@/types/db";
 
@@ -74,7 +74,7 @@ export async function getAchievementsForUsers(
   if (userIds.length === 0) return {};
 
   const [rows, achievements] = await Promise.all([
-    listRows(TABLES.userAchievements, [Query.equal("user_id", userIds)]),
+    listRowsByValues(TABLES.userAchievements, "user_id", userIds),
     listAchievements(),
   ]);
 

@@ -1,5 +1,13 @@
 import { TABLES } from "@/lib/appwrite/config";
-import { countRows, createRow, getRowOrNull, listRows, Query, updateRow } from "@/lib/appwrite/db";
+import {
+  countRows,
+  createRow,
+  getRowOrNull,
+  listRows,
+  listRowsByValues,
+  Query,
+  updateRow,
+} from "@/lib/appwrite/db";
 import { serializeJson, toTaskAttempt } from "@/lib/appwrite/mappers";
 import type { Json, TaskAttempt } from "@/types/db";
 
@@ -36,9 +44,8 @@ export async function listAttemptsForTasks(
 ): Promise<TaskAttempt[]> {
   if (taskIds.length === 0) return [];
 
-  const rows = await listRows(TABLES.taskAttempts, [
+  const rows = await listRowsByValues(TABLES.taskAttempts, "task_id", taskIds, [
     Query.equal("user_id", userId),
-    Query.equal("task_id", taskIds),
     Query.orderDesc("created_at"),
   ]);
 

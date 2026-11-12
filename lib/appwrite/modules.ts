@@ -1,5 +1,13 @@
 import { TABLES } from "@/lib/appwrite/config";
-import { createRow, deleteRow, getRowOrNull, listRows, Query, updateRow } from "@/lib/appwrite/db";
+import {
+  createRow,
+  deleteRow,
+  getRowOrNull,
+  listRows,
+  listRowsByValues,
+  Query,
+  updateRow,
+} from "@/lib/appwrite/db";
 import { toModule } from "@/lib/appwrite/mappers";
 import type { Module } from "@/types/db";
 
@@ -76,8 +84,7 @@ export async function deleteModuleCascade(moduleId: string): Promise<void> {
 export async function countTasksByModule(moduleIds: string[]): Promise<Record<string, number>> {
   if (moduleIds.length === 0) return {};
 
-  const rows = await listRows(TABLES.tasks, [
-    Query.equal("module_id", moduleIds),
+  const rows = await listRowsByValues(TABLES.tasks, "module_id", moduleIds, [
     Query.select(["module_id"]),
   ]);
 

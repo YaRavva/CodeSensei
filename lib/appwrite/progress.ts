@@ -1,5 +1,12 @@
 import { TABLES } from "@/lib/appwrite/config";
-import { countRows, createRow, listRows, Query, updateRow } from "@/lib/appwrite/db";
+import {
+  countRows,
+  createRow,
+  listRows,
+  listRowsByValues,
+  Query,
+  updateRow,
+} from "@/lib/appwrite/db";
 import { toUserProgress } from "@/lib/appwrite/mappers";
 import type { UserProgress } from "@/types/db";
 
@@ -79,10 +86,9 @@ export async function recomputeModuleProgress(
     });
   }
 
-  const attemptRows = await listRows(TABLES.taskAttempts, [
+  const attemptRows = await listRowsByValues(TABLES.taskAttempts, "task_id", taskIds, [
     Query.equal("user_id", userId),
     Query.equal("is_successful", true),
-    Query.equal("task_id", taskIds),
     Query.select(["task_id"]),
   ]);
 
