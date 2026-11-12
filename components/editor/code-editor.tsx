@@ -1,7 +1,7 @@
 "use client";
 
 import { Editor, loader } from "@monaco-editor/react";
-import * as monaco from "monaco-editor";
+import type * as monaco from "monaco-editor";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "@/components/theme-provider";
 
@@ -18,17 +18,6 @@ interface CodeEditorProps {
 // Monaco запускает свой worker через blob-URL и не может разрешить относительные
 // импорты собранного Turbopack чанка, поэтому worker монтируется здесь и
 // передаётся редактору напрямую.
-self.MonacoEnvironment = {
-  getWorker() {
-    return new Worker(new URL("./monaco-editor.worker.ts", import.meta.url), {
-      type: "module",
-      name: "editorWorkerService",
-    });
-  },
-};
-
-loader.config({ monaco });
-
 export function CodeEditor({
   value,
   onChange,
@@ -39,15 +28,33 @@ export function CodeEditor({
   path,
 }: CodeEditorProps) {
   const { theme } = useTheme();
-  const [mounted, setMounted] = useState(false);
+  const [ready, setReady] = useState(false);
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   // Значение, отправленное редактором вверх, и значение, которое редактор уже
   // показал. Пока React отдаёт более старое значение, записывать его обратно
   // нельзя: это откатывало бы текст к предыдущему состоянию и сбрасывало курсор.
   const emittedRef = useRef<string | undefined>(undefined);
 
+  // Пакет monaco-editor обращается к self при вычислении модуля, поэтому статический
+  // импорт ронял серверный рендер страницы модуля (HTTP 500 при живом клиенте).
   useEffect(() => {
-    setMounted(true);
+    let active = true;
+    import("monaco-editor").then((monaco) => {
+      if (!active) return;
+      self.MonacoEnvironment = {
+        getWorker() {
+          return new Worker(new URL("./monaco-editor.worker.ts", import.meta.url), {
+            type: "module",
+            name: "editorWorkerService",
+          });
+        },
+      };
+      loader.config({ monaco });
+      setReady(true);
+    });
+    return () => {
+      active = false;
+    };
   }, []);
 
   // Внешнее изменение кода (сброс, загрузка сохранённой попытки, смена задания)
@@ -74,7 +81,6 @@ export function CodeEditor({
   };
 
   const getEditorTheme = () => {
-    if (!mounted) return "vs-dark";
     if (theme === "system") {
       return window.matchMedia("(prefers-color-scheme: dark)").matches ? "vs-dark" : "light";
     }
@@ -105,7 +111,7 @@ export function CodeEditor({
     [readOnly]
   );
 
-  if (!mounted) {
+  if (!ready) {
     return (
       <div className={`border rounded-md bg-muted ${className}`} style={{ height }}>
         <div className="flex items-center justify-center h-full text-muted-foreground">
@@ -116,9 +122,9 @@ export function CodeEditor({
   }
 
   return (
-    <div className={`border rounded-md overflow-hidden ${className}`}>
+    <div className={`border rounded-md overflow-hidden ${className}`} style={{ height }}>
       <Editor
-        height={height}
+        height="100%"
         language={language}
         defaultValue={value}
         onMount={handleEditorDidMount}

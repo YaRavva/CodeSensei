@@ -1,66 +1,53 @@
 "use client";
 
 import {
-  AlertCircle,
-  ArrowLeft,
+  ArrowCounterClockwise,
   ArrowRight,
-  ArrowUpDown,
-  Award,
-  BookOpen,
-  CheckCircle2,
-  Circle,
-  CircleDot,
-  Clock,
-  Filter,
+  CaretLeft,
+  CaretRight,
+  Check,
+  FilePy,
+  Lightbulb,
   List,
-  Loader2,
-  type LucideIcon,
   Play,
-  RotateCcw,
-  Sparkles,
-  TrendingUp,
-  Trophy,
-} from "lucide-react";
-import Link from "next/link";
+  SpinnerGap,
+  Star,
+  Warning,
+} from "@phosphor-icons/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
-import ReactMarkdown from "react-markdown";
-import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { oneDark, oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
-import remarkBreaks from "remark-breaks";
-import remarkGfm from "remark-gfm";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { CodeEditor } from "@/components/editor/code-editor";
 import {
   defaultProgramInput,
-  ProgramInput,
   parseProgramInput,
   usesProgramInput,
 } from "@/components/editor/program-input";
-import { TestResults } from "@/components/editor/test-results";
-import { useTheme } from "@/components/theme-provider";
-import { ScrollIntoViewOnMount } from "@/components/modules/scroll-into-view-on-mount";
+import { Markdown } from "@/components/modules/workshop/markdown";
+import { ResultDock } from "@/components/modules/workshop/result-dock";
+import { TaskRail } from "@/components/modules/workshop/task-rail";
+import { TheoryView } from "@/components/modules/workshop/theory-view";
+import type {
+  DockTab,
+  HintData,
+  MobilePane,
+  TaskState,
+  TaskStatus,
+  TaskWithStatus,
+} from "@/components/modules/workshop/types";
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import { Badge } from "@/components/ui/badge";
+  MAX_SPLIT,
+  MIN_SPLIT,
+  useMediaQuery,
+  useResizablePanes,
+  useShellHeight,
+} from "@/components/modules/workshop/use-workshop-layout";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { DifficultyBadge, getDifficultyXP } from "@/components/ui/difficulty-badge";
-import { Progress } from "@/components/ui/progress";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { DifficultyBadge } from "@/components/ui/difficulty-badge";
 import { usePyodide } from "@/hooks/use-pyodide";
 import { useToast } from "@/hooks/use-toast";
 import { visibleTestCases } from "@/lib/security/public-tests";
+import { cn } from "@/lib/utils";
 import { buildPreviewCode, runTestSuite } from "@/lib/utils/test-runner";
 import type { Module, Task, TaskAttempt } from "@/types/db";
 import type { PublicTestCase, TestSuiteResult } from "@/types/test-case";
@@ -69,6 +56,7 @@ interface ModuleUnifiedPageProps {
   module: Module;
   tasks: Task[];
   completedTaskIds: string[];
+  /** Прогресс с сервера; в UI считается вживую, чтобы полоса двигалась сразу после проверки. */
   moduleProgress: number;
   /** Next published module, shown when this one is completed. */
   nextModule?: { id: string; title: string } | null;
@@ -79,95 +67,95 @@ interface ModuleUnifiedPageProps {
   };
 }
 
-type TaskStatus = "not_started" | "in_progress" | "completed";
-type FilterStatus = "all" | "completed" | "in_progress" | "not_started";
-type SortOption = "order" | "status" | "difficulty";
+const EASE = "duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]";
 
-interface TaskWithStatus extends Task {
-  status: TaskStatus;
-  lastAttempt: TaskAttempt | null;
+function Kbd({ children }: { children: React.ReactNode }) {
+  return (
+    <kbd className="rounded-sm border px-1 font-mono caption-5 text-muted-foreground">
+      {children}
+    </kbd>
+  );
 }
 
-interface HintData {
-  type: string;
-  hint: string;
-  steps: string[];
+function ProgressRing({ value }: { value: number }) {
+  const circumference = 2 * Math.PI * 14;
+  return (
+    <span className="relative grid size-8 shrink-0 place-items-center">
+      <svg width="32" height="32" viewBox="0 0 32 32" aria-hidden="true" className="-rotate-90">
+        <circle cx="16" cy="16" r="14" fill="none" stroke="var(--input)" strokeWidth="3" />
+        <circle
+          cx="16"
+          cy="16"
+          r="14"
+          fill="none"
+          stroke="var(--primary)"
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={circumference * (1 - value / 100)}
+          className="transition-[stroke-dashoffset] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
+        />
+      </svg>
+      <span className="absolute font-mono text-[9px] font-medium text-foreground">{value}</span>
+    </span>
+  );
 }
 
-interface FeedbackData {
-  score: number;
-  feedback: string;
+function formatExample(value: unknown): string {
+  return typeof value === "string" ? value : JSON.stringify(value);
 }
 
 export function ModuleUnifiedPage({
   module,
   tasks,
   completedTaskIds,
-  moduleProgress,
   userProgress,
   nextModule = null,
 }: ModuleUnifiedPageProps) {
-  const { theme } = useTheme();
   const router = useRouter();
-  const [mounted, setMounted] = useState(false);
   const { user, refreshProfile } = useAuth();
-  // Text of the "program input" field per task (lines returned by input()).
-  const [programInputs, setProgramInputs] = useState<Record<string, string>>({});
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Состояние для открытых accordion items (для навигации)
-  const [openItems, setOpenItems] = useState<string[]>([]);
-
-  // Отслеживаем время открытия заданий в аккордеоне
-  // Время открытия обновляется при каждом открытии (если пользователь закрыл и открыл снова)
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    openItems.forEach((taskId) => {
-      const openTimeKey = `task_open_time_${taskId}`;
-      // Обновляем время открытия каждый раз, когда задание открывается
-      // Это позволяет считать время с момента последнего открытия
-      localStorage.setItem(openTimeKey, Date.now().toString());
-    });
-  }, [openItems]);
   const { toast } = useToast();
   const { pyodide, loading: pyodideLoading, error: pyodideError, executeCode } = usePyodide();
 
-  // Состояния фильтров и сортировки
-  const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
-  const [sortOption, setSortOption] = useState<SortOption>("order");
+  const orderedTasks = useMemo(
+    () => [...tasks].sort((a, b) => a.order_index - b.order_index),
+    [tasks]
+  );
 
-  // Состояния для каждого задания (код, результаты и т.д.)
-  const [taskStates, setTaskStates] = useState<
-    Record<
-      string,
-      {
-        code: string;
-        initialCode: string;
-        executionResult: { output: string; error: string | null; executionTime: number } | null;
-        testResults: TestSuiteResult | null;
-        running: boolean;
-        testing: boolean;
-        isCompleted: boolean;
-        lastAttempt: TaskAttempt | null;
-        hintVisible: boolean;
-        hintLoading: boolean;
-        hintData: HintData | null;
-        feedbackVisible: boolean;
-        feedbackData: FeedbackData | null;
-      }
-    >
-  >({});
+  const [activeId, setActiveId] = useState<string | null>(() => {
+    const pending = orderedTasks.find((task) => !completedTaskIds.includes(task.id));
+    return (pending ?? orderedTasks[0])?.id ?? null;
+  });
+  const [mode, setMode] = useState<"task" | "theory">("task");
+  const [dockTab, setDockTab] = useState<DockTab>("output");
+  const [mobilePane, setMobilePane] = useState<MobilePane>("code");
+  const [railOpen, setRailOpen] = useState(false);
+  // Text of the "program input" field per task (lines returned by input()).
+  const [programInputs, setProgramInputs] = useState<Record<string, string>>({});
+  const [taskStates, setTaskStates] = useState<Record<string, TaskState>>({});
+
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
+  const { ref: shellRef, height: shellHeight } = useShellHeight();
+  const {
+    workRef,
+    dockBodyRef,
+    split,
+    dockHeight,
+    dockMax,
+    startSplit,
+    nudgeSplit,
+    startDock,
+    nudgeDock,
+    fitDock,
+  } = useResizablePanes();
 
   // Дебаунс для кнопок проверки заданий (защита от спама) - Map по taskId
-  const testTaskDebounceRefs = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  const testTaskDebounceRefs = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   const taskIdsKey = tasks.map((task) => task.id).join(",");
 
   // Загружаем последние попытки для всех заданий
+  // biome-ignore lint/correctness/useExhaustiveDependencies: перезагрузка только при смене набора заданий
   useEffect(() => {
     if (!user || tasks.length === 0) return;
 
@@ -185,9 +173,8 @@ export function ModuleUnifiedPage({
 
       if (attempts) {
         // Группируем попытки по task_id, берем последнюю для каждого
-        const typedAttempts = attempts as TaskAttempt[];
         const attemptsByTask = new Map<string, TaskAttempt>();
-        for (const attempt of typedAttempts) {
+        for (const attempt of attempts) {
           if (!attemptsByTask.has(attempt.task_id)) {
             attemptsByTask.set(attempt.task_id, attempt);
           }
@@ -197,7 +184,7 @@ export function ModuleUnifiedPage({
         // состояние (код, результаты тестов, AI-оценку): router.refresh() после
         // начисления XP передаёт новые props, и сброс стирал результат проверки.
         setTaskStates((prev) => {
-          const newTaskStates: typeof taskStates = {};
+          const newTaskStates: Record<string, TaskState> = {};
           for (const task of tasks) {
             const lastAttempt = attemptsByTask.get(task.id) || null;
             const isCompleted = completedTaskIds.includes(task.id);
@@ -221,10 +208,8 @@ export function ModuleUnifiedPage({
               testing: false,
               isCompleted: isCompleted || lastAttempt?.is_successful || false,
               lastAttempt,
-              hintVisible: false,
               hintLoading: false,
               hintData: null,
-              feedbackVisible: false,
               feedbackData: null,
             };
           }
@@ -235,71 +220,71 @@ export function ModuleUnifiedPage({
     };
 
     loadAttempts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- reload only when the task set changes
   }, [user?.id, taskIdsKey]);
 
-  // Определяем статус задания
-  const getTaskStatus = (taskId: string): TaskStatus => {
-    const state = taskStates[taskId];
-    // Проверяем isCompleted из состояния (обновляется после успешного выполнения)
-    if (completedTaskIds.includes(taskId) || state?.isCompleted) return "completed";
-    if (state && (state.code !== state.initialCode || state.lastAttempt)) return "in_progress";
-    return "not_started";
-  };
-
-  // Получаем задания с статусами
-  const tasksWithStatus: TaskWithStatus[] = useMemo(() => {
-    return tasks.map((task) => ({
-      ...task,
-      status: getTaskStatus(task.id),
-      lastAttempt: taskStates[task.id]?.lastAttempt || null,
-    }));
-  }, [tasks, taskStates, completedTaskIds]);
-
-  // Следующее не завершённое задание — основа главного действия модуля (A4)
-  const nextTask = useMemo(
-    () => tasksWithStatus.find((task) => task.status !== "completed") ?? null,
-    [tasksWithStatus]
+  const tasksWithStatus: TaskWithStatus[] = useMemo(
+    () =>
+      orderedTasks.map((task) => {
+        const state = taskStates[task.id];
+        let status: TaskStatus = "not_started";
+        if (completedTaskIds.includes(task.id) || state?.isCompleted) {
+          status = "completed";
+        } else if (state && (state.code !== state.initialCode || state.lastAttempt)) {
+          status = "in_progress";
+        }
+        return { ...task, status, lastAttempt: state?.lastAttempt ?? null };
+      }),
+    [orderedTasks, taskStates, completedTaskIds]
   );
 
-  // Фильтруем задания
-  const filteredTasks = useMemo(() => {
-    let filtered = tasksWithStatus;
+  const completedCount = tasksWithStatus.filter((task) => task.status === "completed").length;
+  const progress = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0;
+  const moduleDone = tasks.length > 0 && completedCount === tasks.length;
+  const nextTask = tasksWithStatus.find((task) => task.status !== "completed") ?? null;
 
-    if (filterStatus !== "all") {
-      filtered = filtered.filter((task) => task.status === filterStatus);
-    }
+  const activeTask = orderedTasks.find((task) => task.id === activeId) ?? null;
+  const activeIndex = orderedTasks.findIndex((task) => task.id === activeId);
+  const activeState = activeId ? taskStates[activeId] : undefined;
+  const activeCode = activeState?.code ?? activeTask?.starter_code ?? "";
+  const activeTestCases: PublicTestCase[] = useMemo(
+    () => visibleTestCases(activeTask?.test_cases),
+    [activeTask]
+  );
+  const initialInput = defaultProgramInput(activeTestCases);
+  const programInput =
+    activeTask && usesProgramInput(activeCode, initialInput)
+      ? (programInputs[activeTask.id] ?? initialInput)
+      : null;
+  const example = activeTestCases.find(
+    (testCase) => testCase.is_visible && testCase.expected_output !== undefined
+  );
 
-    return filtered;
-  }, [tasksWithStatus, filterStatus]);
+  // Время открытия обновляется при каждом показе задания — от него считается
+  // время решения, которое уходит в попытку.
+  useEffect(() => {
+    if (!activeId || mode !== "task") return;
+    localStorage.setItem(`task_open_time_${activeId}`, Date.now().toString());
+  }, [activeId, mode]);
 
-  // Сортируем задания
-  const sortedTasks = useMemo(() => {
-    const sorted = [...filteredTasks];
+  const openTask = (taskId: string) => {
+    setActiveId(taskId);
+    setMode("task");
+    setRailOpen(false);
+    setDockTab(taskStates[taskId]?.testResults ? "tests" : "output");
+    if (!isDesktop) setMobilePane("task");
+  };
 
-    switch (sortOption) {
-      case "order":
-        return sorted.sort((a, b) => a.order_index - b.order_index);
-      case "status": {
-        const statusOrder: Record<TaskStatus, number> = {
-          not_started: 0,
-          in_progress: 1,
-          completed: 2,
-        };
-        return sorted.sort((a, b) => statusOrder[a.status] - statusOrder[b.status]);
-      }
-      case "difficulty": {
-        const difficultyOrder: Record<string, number> = { easy: 0, medium: 1, hard: 2 };
-        return sorted.sort(
-          (a, b) => (difficultyOrder[a.difficulty] || 0) - (difficultyOrder[b.difficulty] || 0)
-        );
-      }
-      default:
-        return sorted;
-    }
-  }, [filteredTasks, sortOption]);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: openTask читает свежее состояние на вызове
+  const stepTask = useCallback(
+    (delta: number) => {
+      if (orderedTasks.length === 0) return;
+      const index = orderedTasks.findIndex((task) => task.id === activeId);
+      const next = orderedTasks[Math.max(0, Math.min(orderedTasks.length - 1, index + delta))];
+      if (next && next.id !== activeId) openTask(next.id);
+    },
+    [orderedTasks, activeId, isDesktop]
+  );
 
-  // Обработчики для заданий
   const handleRunCode = async (taskId: string) => {
     const state = taskStates[taskId];
     if (!state || !pyodide) return;
@@ -314,14 +299,11 @@ export function ModuleUnifiedPage({
     }
 
     if (!state.code.trim()) {
-      toast({
-        title: "Ошибка",
-        description: "Код не может быть пустым",
-        variant: "destructive",
-      });
+      toast({ title: "Ошибка", description: "Код не может быть пустым", variant: "destructive" });
       return;
     }
 
+    setDockTab("output");
     setTaskStates((prev) => ({
       ...prev,
       [taskId]: { ...prev[taskId], running: true, executionResult: null },
@@ -346,38 +328,10 @@ export function ModuleUnifiedPage({
         [taskId]: {
           ...prev[taskId],
           running: false,
-          executionResult: {
-            output: "",
-            error: errorMessage,
-            executionTime: 0,
-          },
+          executionResult: { output: "", error: errorMessage, executionTime: 0 },
         },
       }));
     }
-  };
-
-  const handleTestTask = async (taskId: string) => {
-    const state = taskStates[taskId];
-    if (!state || !pyodide) return;
-
-    // КЛИЕНТСКАЯ ЗАЩИТА ОТ ЭКСПЛОИТА: Проверяем, не выполняется ли уже проверка
-    if (state.testing) {
-      return; // Игнорируем повторные вызовы во время обработки
-    }
-
-    // Дебаунс: отменяем предыдущий таймер для этого задания, если он был установлен
-    const existingTimeout = testTaskDebounceRefs.current.get(taskId);
-    if (existingTimeout) {
-      clearTimeout(existingTimeout);
-    }
-
-    // Устанавливаем новый таймер для дебаунса (500мс)
-    // Если кнопка будет нажата повторно в течение 500мс, предыдущий вызов будет отменен
-    const timeoutId = setTimeout(async () => {
-      testTaskDebounceRefs.current.delete(taskId);
-      await executeTestTask(taskId);
-    }, 500);
-    testTaskDebounceRefs.current.set(taskId, timeoutId);
   };
 
   const executeTestTask = async (taskId: string) => {
@@ -394,16 +348,12 @@ export function ModuleUnifiedPage({
     }
 
     if (!state.code.trim()) {
-      toast({
-        title: "Ошибка",
-        description: "Код не может быть пустым",
-        variant: "destructive",
-      });
+      toast({ title: "Ошибка", description: "Код не может быть пустым", variant: "destructive" });
       return;
     }
 
-    // КЛИЕНТСКАЯ ЗАЩИТА ОТ ЭКСПЛОИТА: Если задание уже выполнено, показываем сообщение
-    // Серверная проверка всё равно защитит, но это улучшает UX
+    // КЛИЕНТСКАЯ ЗАЩИТА ОТ ЭКСПЛОИТА: предупреждаем о повторном решении.
+    // Серверная проверка всё равно защитит, но это улучшает UX.
     if (state.isCompleted) {
       toast({
         title: "Задание уже выполнено",
@@ -417,19 +367,17 @@ export function ModuleUnifiedPage({
     const task = tasks.find((t) => t.id === taskId);
     if (!task) return;
 
+    const testCases: PublicTestCase[] = visibleTestCases(task.test_cases);
+
     // ЗАПРЕТ ФУНКЦИЙ В ЛИНЕЙНЫХ ЗАДАНИЯХ
     if (
       task.task_type !== "function" &&
       task.task_type !== "class" &&
       /\bdef\s+\w+\s*\(/.test(state.code)
     ) {
-      toast({
-        title: "Ошибка",
-        description:
-          "В этом задании нельзя использовать функции (ключевое слово def). Используйте линейный код с input/print.",
-        variant: "destructive",
-      });
-      const testCases: PublicTestCase[] = visibleTestCases(task.test_cases);
+      const message =
+        "В этом задании нельзя использовать функции (ключевое слово def). Используйте линейный код с input/print.";
+      toast({ title: "Ошибка", description: message, variant: "destructive" });
       setTaskStates((prev) => ({
         ...prev,
         [taskId]: {
@@ -438,8 +386,7 @@ export function ModuleUnifiedPage({
             results: testCases.map((tc) => ({
               testCaseId: tc.id,
               passed: false,
-              error:
-                "В этом задании нельзя использовать функции (ключевое слово def). Используйте линейный код с input/print.",
+              error: message,
               executionTime: 0,
             })),
             passedCount: 0,
@@ -451,8 +398,6 @@ export function ModuleUnifiedPage({
       }));
       return;
     }
-
-    const testCases: PublicTestCase[] = visibleTestCases(task.test_cases);
 
     setTaskStates((prev) => ({
       ...prev,
@@ -472,227 +417,191 @@ export function ModuleUnifiedPage({
         },
       }));
 
-      if (results.allPassed) {
-        // AI-оценка решения
-        try {
-          const evalRes = await fetch("/api/tasks/evaluate", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              taskId,
-              code: state.code,
-              runtimeOutput: state.executionResult?.output,
-              testSummary: {
-                allPassed: results.allPassed,
-                passedCount: results.passedCount,
-                total: results.totalCount,
-              },
-            }),
-          });
-          if (!evalRes.ok) {
-            throw new Error(`HTTP error! status: ${evalRes.status}`);
-          }
-          const contentType = evalRes.headers.get("content-type");
-          if (!contentType || !contentType.includes("application/json")) {
-            throw new Error("Response is not JSON");
-          }
-          const evalJson = await evalRes.json();
-          if (evalRes.ok && evalJson.success) {
-            setTaskStates((prev) => ({
-              ...prev,
-              [taskId]: {
-                ...prev[taskId],
-                feedbackData: {
-                  score: evalJson.score,
-                  feedback: evalJson.feedback,
-                },
-                feedbackVisible: true,
-              },
-            }));
-          }
-        } catch {
-          // ignore AI failure
+      if (!results.allPassed) return;
+
+      // AI-оценка решения
+      try {
+        const evalRes = await fetch("/api/tasks/evaluate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            taskId,
+            code: state.code,
+            runtimeOutput: state.executionResult?.output,
+            testSummary: {
+              allPassed: results.allPassed,
+              passedCount: results.passedCount,
+              total: results.totalCount,
+            },
+          }),
+        });
+        if (!evalRes.ok) {
+          throw new Error(`HTTP error! status: ${evalRes.status}`);
         }
-
-        // Сохраняем попытку и начисляем XP
-        // The server identifies the user by the session cookie; the client-side
-        // auth state may still be loading and must not block saving the attempt.
-        {
-          // Вычисляем время решения (от открытия до проверки)
-          let solvingTimeMs: number | null = null;
-          if (typeof window !== "undefined") {
-            const openTimeKey = `task_open_time_${taskId}`;
-            const openTimeStr = localStorage.getItem(openTimeKey);
-            if (openTimeStr) {
-              const openTime = parseInt(openTimeStr, 10);
-              const currentTime = Date.now();
-              solvingTimeMs = currentTime - openTime;
-              // Удаляем время открытия после использования
-              localStorage.removeItem(openTimeKey);
-            }
-          }
-
-          const attemptResponse = await fetch("/api/tasks/attempts", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify({
-              taskId,
-              code: state.code,
-              solvingTimeMs,
-              usedAiHint: false,
-            }),
+        const contentType = evalRes.headers.get("content-type");
+        if (!contentType?.includes("application/json")) {
+          throw new Error("Response is not JSON");
+        }
+        const evalJson = await evalRes.json();
+        if (evalJson.success) {
+          setTaskStates((prev) => ({
+            ...prev,
+            [taskId]: {
+              ...prev[taskId],
+              feedbackData: { score: evalJson.score, feedback: evalJson.feedback },
+            },
+          }));
+          toast({
+            title: "AI-оценка готова",
+            description: `Решение оценено на ${Math.round(evalJson.score * 100)}%. Разбор — во вкладке «AI-оценка».`,
+            duration: 4000,
           });
+        }
+      } catch {
+        // ignore AI failure
+      }
 
-          if (!attemptResponse.ok) {
-            const failure = (await attemptResponse.json().catch(() => null)) as {
-              error?: string;
-            } | null;
-            toast({
-              title: "Решение не сохранено",
-              description:
-                failure?.error ?? "Не удалось проверить решение на сервере. Повторите позже.",
-              variant: "destructive",
-            });
-            return;
-          }
+      // Сохраняем попытку и начисляем XP.
+      // The server identifies the user by the session cookie; the client-side
+      // auth state may still be loading and must not block saving the attempt.
+      let solvingTimeMs: number | null = null;
+      const openTimeStr = localStorage.getItem(`task_open_time_${taskId}`);
+      if (openTimeStr) {
+        solvingTimeMs = Date.now() - Number.parseInt(openTimeStr, 10);
+        localStorage.removeItem(`task_open_time_${taskId}`);
+      }
 
-          const attemptData = (await attemptResponse.json()) as {
-            attemptNumber: number;
-            isFirstSuccessfulAttempt: boolean;
-            isSuccessful: boolean;
-            testResults: TestSuiteResult;
-          };
+      const attemptResponse = await fetch("/api/tasks/attempts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ taskId, code: state.code, solvingTimeMs, usedAiHint: false }),
+      });
 
-          // The server re-runs the tests; only its verdict counts.
-          if (!attemptData.isSuccessful) {
-            setTaskStates((prev) => ({
-              ...prev,
-              [taskId]: {
-                ...prev[taskId],
-                testResults: attemptData.testResults,
-                isCompleted: state.isCompleted,
-              },
-            }));
-            toast({
-              title: "Решение не прошло проверку на сервере",
-              description: "Посмотрите результаты тестов и исправьте решение.",
-              variant: "destructive",
-            });
-            return;
-          }
+      if (!attemptResponse.ok) {
+        const failure = (await attemptResponse.json().catch(() => null)) as {
+          error?: string;
+        } | null;
+        toast({
+          title: "Решение не сохранено",
+          description:
+            failure?.error ?? "Не удалось проверить решение на сервере. Повторите позже.",
+          variant: "destructive",
+        });
+        return;
+      }
 
-          const attemptNumber = attemptData.attemptNumber;
-          const isFirstSuccessfulAttempt = attemptData.isFirstSuccessfulAttempt;
+      const attemptData = (await attemptResponse.json()) as {
+        attemptNumber: number;
+        isFirstSuccessfulAttempt: boolean;
+        isSuccessful: boolean;
+        testResults: TestSuiteResult;
+      };
 
-          // КЛИЕНТСКАЯ ЗАЩИТА ОТ ЭКСПЛОИТА: Не вызываем API начисления XP, если задание уже было выполнено
-          // Это уменьшает нагрузку на сервер и улучшает UX
-          // Серверная проверка всё равно защитит от обхода этой проверки
-          if (!state.isCompleted || isFirstSuccessfulAttempt) {
-            const xpResponse = await fetch("/api/tasks/award-xp", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                taskId,
-                lessonId: "legacy",
-                attemptNumber,
-                usedAiHint: false,
-                executionTime: results.executionTime,
-                isFirstAttempt: isFirstSuccessfulAttempt,
-              }),
-            });
+      // The server re-runs the tests; only its verdict counts.
+      if (!attemptData.isSuccessful) {
+        setTaskStates((prev) => ({
+          ...prev,
+          [taskId]: {
+            ...prev[taskId],
+            testResults: attemptData.testResults,
+            isCompleted: state.isCompleted,
+          },
+        }));
+        toast({
+          title: "Решение не прошло проверку на сервере",
+          description: "Посмотрите результаты тестов и исправьте решение.",
+          variant: "destructive",
+        });
+        return;
+      }
 
-            if (!xpResponse.ok) {
-              throw new Error(`HTTP error! status: ${xpResponse.status}`);
-            }
-            const contentType = xpResponse.headers.get("content-type");
-            if (!contentType || !contentType.includes("application/json")) {
-              throw new Error("Response is not JSON");
-            }
-            const xpData = await xpResponse.json();
+      const { attemptNumber, isFirstSuccessfulAttempt } = attemptData;
 
-            if (xpResponse.ok && xpData.success) {
-              // Обрабатываем ответ от сервера
-              if (xpData.alreadyCompleted) {
-                // Сервер вернул, что задание уже было выполнено
-                toast({
-                  title: "Все тесты пройдены",
-                  description:
-                    xpData.message ||
-                    "Задание уже было успешно выполнено ранее. XP не начисляется повторно.",
-                  variant: "default",
-                  duration: 3000,
-                });
-                setTaskStates((prev) => ({
-                  ...prev,
-                  [taskId]: { ...prev[taskId], isCompleted: true },
-                }));
-              } else if (xpData.xpAwarded > 0) {
-                // XP был начислен
-                toast({
-                  title: "Задание решено",
-                  description: `Все тесты пройдены. Вы заработали ${xpData.xpAwarded} XP${xpData.newLevel !== undefined && xpData.newLevel !== null ? ` (Уровень ${xpData.newLevel})` : ""}`,
-                  duration: 5000,
-                });
+      // КЛИЕНТСКАЯ ЗАЩИТА ОТ ЭКСПЛОИТА: не начисляем XP повторно за решённое задание.
+      // Серверная проверка всё равно защитит от обхода этой проверки.
+      if (!state.isCompleted || isFirstSuccessfulAttempt) {
+        const xpResponse = await fetch("/api/tasks/award-xp", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            taskId,
+            lessonId: "legacy",
+            attemptNumber,
+            usedAiHint: false,
+            executionTime: results.executionTime,
+            isFirstAttempt: isFirstSuccessfulAttempt,
+          }),
+        });
 
-                if (
-                  xpData.newlyUnlockedAchievements &&
-                  xpData.newlyUnlockedAchievements.length > 0
-                ) {
-                  for (const achievement of xpData.newlyUnlockedAchievements) {
-                    setTimeout(() => {
-                      toast({
-                        title: `Достижение разблокировано`,
-                        description: `${achievement.title}: ${achievement.description} (+${achievement.xp_reward} XP)`,
-                        duration: 7000,
-                      });
-                    }, 600);
-                  }
-                }
+        if (!xpResponse.ok) {
+          throw new Error(`HTTP error! status: ${xpResponse.status}`);
+        }
+        const contentType = xpResponse.headers.get("content-type");
+        if (!contentType?.includes("application/json")) {
+          throw new Error("Response is not JSON");
+        }
+        const xpData = await xpResponse.json();
 
-                // Обновляем состояние задания
-                setTaskStates((prev) => ({
-                  ...prev,
-                  [taskId]: { ...prev[taskId], isCompleted: true },
-                }));
-
-                // Обновляем XP в шапке/профиле и обновляем серверные данные страницы
-                refreshProfile?.().catch(() => {});
-                router.refresh();
-              } else {
-                // Успех, но XP не начислен (возможно, это не первая попытка)
-                toast({
-                  title: "Все тесты пройдены",
-                  description: "Задание выполнено",
-                  variant: "default",
-                  duration: 3000,
-                });
-                setTaskStates((prev) => ({
-                  ...prev,
-                  [taskId]: { ...prev[taskId], isCompleted: true },
-                }));
-              }
-            }
-          } else {
-            // Задание уже было выполнено ранее, не вызываем API начисления XP
+        if (xpData.success) {
+          if (xpData.alreadyCompleted) {
             toast({
               title: "Все тесты пройдены",
-              description: "Задание уже было успешно выполнено ранее. Попытка сохранена в историю.",
+              description:
+                xpData.message ||
+                "Задание уже было успешно выполнено ранее. XP не начисляется повторно.",
               variant: "default",
               duration: 3000,
             });
-            setTaskStates((prev) => ({
-              ...prev,
-              [taskId]: { ...prev[taskId], isCompleted: true },
-            }));
+          } else if (xpData.xpAwarded > 0) {
+            toast({
+              title: "Задание решено",
+              description: `Все тесты пройдены. Вы заработали ${xpData.xpAwarded} XP${xpData.newLevel !== undefined && xpData.newLevel !== null ? ` (Уровень ${xpData.newLevel})` : ""}`,
+              duration: 5000,
+            });
+
+            for (const achievement of xpData.newlyUnlockedAchievements ?? []) {
+              setTimeout(() => {
+                toast({
+                  title: "Достижение разблокировано",
+                  description: `${achievement.title}: ${achievement.description} (+${achievement.xp_reward} XP)`,
+                  duration: 7000,
+                });
+              }, 600);
+            }
+
+            // Обновляем XP в шапке/профиле и серверные данные страницы
+            refreshProfile?.().catch(() => {});
+            router.refresh();
+          } else {
+            toast({
+              title: "Все тесты пройдены",
+              description: "Задание выполнено",
+              variant: "default",
+              duration: 3000,
+            });
           }
+          setTaskStates((prev) => ({
+            ...prev,
+            [taskId]: { ...prev[taskId], isCompleted: true },
+          }));
         }
+      } else {
+        toast({
+          title: "Все тесты пройдены",
+          description: "Задание уже было успешно выполнено ранее. Попытка сохранена в историю.",
+          variant: "default",
+          duration: 3000,
+        });
+        setTaskStates((prev) => ({
+          ...prev,
+          [taskId]: { ...prev[taskId], isCompleted: true },
+        }));
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
       toast({
         title: "Ошибка выполнения тестов",
-        description: errorMessage,
+        description: error instanceof Error ? error.message : String(error),
         variant: "destructive",
       });
       setTaskStates((prev) => ({
@@ -702,38 +611,50 @@ export function ModuleUnifiedPage({
     }
   };
 
-  const handleResetCode = (taskId: string) => {
+  const handleTestTask = (taskId: string) => {
     const state = taskStates[taskId];
-    if (!state) return;
+    if (!state || !pyodide) return;
 
-    setTaskStates((prev) => ({
-      ...prev,
-      [taskId]: {
-        ...prev[taskId],
-        code: prev[taskId].initialCode,
-        executionResult: null,
-        testResults: null,
-      },
-    }));
+    // КЛИЕНТСКАЯ ЗАЩИТА ОТ ЭКСПЛОИТА: повторные вызовы во время проверки игнорируем
+    if (state.testing) return;
+
+    setDockTab("tests");
+
+    // Дебаунс 500мс: повторное нажатие отменяет предыдущий запуск
+    const existingTimeout = testTaskDebounceRefs.current.get(taskId);
+    if (existingTimeout) clearTimeout(existingTimeout);
+
+    const timeoutId = setTimeout(() => {
+      testTaskDebounceRefs.current.delete(taskId);
+      executeTestTask(taskId);
+    }, 500);
+    testTaskDebounceRefs.current.set(taskId, timeoutId);
+  };
+
+  const handleResetCode = (taskId: string) => {
+    setTaskStates((prev) => {
+      const state = prev[taskId];
+      if (!state) return prev;
+      return {
+        ...prev,
+        [taskId]: {
+          ...state,
+          code: state.initialCode,
+          executionResult: null,
+          testResults: null,
+        },
+      };
+    });
   };
 
   const handleAiHint = async (taskId: string) => {
+    setDockTab("hint");
     const state = taskStates[taskId];
-    if (!state) return;
+    if (!state || state.hintLoading || state.hintData) return;
 
-    // Если подсказка уже видна — скрываем
-    if (state.hintVisible) {
-      setTaskStates((prev) => ({
-        ...prev,
-        [taskId]: { ...prev[taskId], hintVisible: false },
-      }));
-      return;
-    }
-
-    // Показываем подсказку с индикатором загрузки
     setTaskStates((prev) => ({
       ...prev,
-      [taskId]: { ...prev[taskId], hintVisible: true, hintLoading: true, hintData: null },
+      [taskId]: { ...prev[taskId], hintLoading: true },
     }));
 
     try {
@@ -746,7 +667,7 @@ export function ModuleUnifiedPage({
         throw new Error(`HTTP error! status: ${res.status}`);
       }
       const contentType = res.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
+      if (!contentType?.includes("application/json")) {
         throw new Error("Response is not JSON");
       }
       const data = await res.json();
@@ -763,15 +684,14 @@ export function ModuleUnifiedPage({
         [taskId]: { ...prev[taskId], hintLoading: false, hintData },
       }));
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Неизвестная ошибка";
       toast({
         title: "Ошибка подсказки",
-        description: msg,
+        description: e instanceof Error ? e.message : "Неизвестная ошибка",
         variant: "destructive",
       });
       setTaskStates((prev) => ({
         ...prev,
-        [taskId]: { ...prev[taskId], hintVisible: false, hintLoading: false },
+        [taskId]: { ...prev[taskId], hintLoading: false },
       }));
     }
   };
@@ -782,7 +702,6 @@ export function ModuleUnifiedPage({
       const task = tasks.find((t) => t.id === taskId);
       const newCode = value ?? "";
       if (!currentState && task) {
-        // Создаем новое состояние, если его еще нет
         return {
           ...prev,
           [taskId]: {
@@ -794,769 +713,535 @@ export function ModuleUnifiedPage({
             testing: false,
             isCompleted: false,
             lastAttempt: null,
-            hintVisible: false,
             hintLoading: false,
             hintData: null,
-            feedbackVisible: false,
             feedbackData: null,
           },
         };
       }
-      return {
-        ...prev,
-        [taskId]: { ...currentState, code: newCode },
-      };
+      return { ...prev, [taskId]: { ...currentState, code: newCode } };
     });
   };
 
-  const getStatusConfig = (status: TaskStatus) => {
-    switch (status) {
-      case "completed":
-        return {
-          label: "Завершено",
-          icon: CheckCircle2,
-          iconClassName: "text-emerald-500",
-          variant: "secondary" as const,
-          className: "", // Используем стандартный стиль secondary, как у бейджа XP
-        };
-      case "in_progress":
-        return {
-          label: "В процессе",
-          icon: CircleDot,
-          iconClassName: "text-amber-500",
-          variant: "secondary" as const,
-          className: "", // Используем стандартный стиль secondary, как у бейджа XP
-        };
-      default:
-        return {
-          label: "Не начато",
-          icon: Circle,
-          iconClassName: "text-muted-foreground",
-          variant: "secondary" as const,
-          className: "", // Используем стандартный стиль secondary, как у бейджа XP
-        };
-    }
-  };
+  // Док подстраивается под содержимое, пока высоту не задали вручную.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: пересчёт нужен на каждое новое содержимое дока
+  useEffect(() => {
+    const frame = requestAnimationFrame(fitDock);
+    return () => cancelAnimationFrame(frame);
+  }, [
+    fitDock,
+    dockTab,
+    activeId,
+    activeState?.executionResult,
+    activeState?.testResults,
+    activeState?.hintData,
+    activeState?.feedbackData,
+  ]);
 
-  // Функция для прокрутки к заданию
-  const prefersReducedMotion = () =>
-    typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // Monaco вешает свои биндинги на DOM редактора и глушит всплытие, поэтому
+  // горячие клавиши слушаются в фазе перехвата — до того, как их увидит редактор.
+  const shortcutsRef = useRef<{
+    run: () => void;
+    check: () => void;
+    step: (delta: number) => void;
+    enabled: boolean;
+  } | null>(null);
 
-  const scrollToTask = (taskId: string) => {
-    const element = document.getElementById(`task-${taskId}`);
-    if (element) {
-      element.scrollIntoView({
-        behavior: prefersReducedMotion() ? "auto" : "smooth",
-        block: "start",
-      });
-      // Открываем accordion если закрыт
-      if (!openItems.includes(taskId)) {
-        setOpenItems([...openItems, taskId]);
+  useEffect(() => {
+    shortcutsRef.current = {
+      run: () => {
+        if (activeId) handleRunCode(activeId);
+      },
+      check: () => {
+        if (activeId) handleTestTask(activeId);
+      },
+      step: stepTask,
+      enabled: mode === "task" && Boolean(activeId),
+    };
+  });
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      const actions = shortcutsRef.current;
+      if (!actions) return;
+      const take = () => {
+        event.preventDefault();
+        event.stopPropagation();
+      };
+      if (event.altKey && (event.key === "ArrowLeft" || event.key === "ArrowRight")) {
+        take();
+        actions.step(event.key === "ArrowLeft" ? -1 : 1);
+        return;
       }
-    }
-  };
+      if (!actions.enabled || !(event.ctrlKey || event.metaKey) || event.key !== "Enter") return;
+      take();
+      if (event.shiftKey) actions.check();
+      else actions.run();
+    };
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => window.removeEventListener("keydown", onKeyDown, true);
+  }, []);
 
-  return (
-    <>
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-[250px_1fr] gap-8">
-          {/* Боковое меню навигации */}
-          <aside className="hidden lg:block">
-            <Card className="sticky top-24">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <List className="h-4 w-4" />
-                  Навигация
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <nav className="space-y-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      document.getElementById("theory-section")?.scrollIntoView({
-                        behavior: prefersReducedMotion() ? "auto" : "smooth",
-                      });
-                    }}
-                    className="w-full rounded-md px-3 py-2 text-left text-sm transition-colors duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  >
-                    <BookOpen className="mr-2 inline h-4 w-4" aria-hidden="true" />
-                    Теория
-                  </button>
-                  {sortedTasks.map((task, index) => {
-                    const statusConfig = getStatusConfig(task.status);
-                    return (
-                      <button
-                        type="button"
-                        key={task.id}
-                        onClick={() => scrollToTask(task.id)}
-                        className={`group flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm transition-colors duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
-                          openItems.includes(task.id) ? "bg-accent" : ""
-                        }`}
-                      >
-                        <span className="truncate">
-                          {index + 1}. {task.title}
-                        </span>
-                        <span className="ml-2 shrink-0 opacity-70 group-hover:opacity-100">
-                          <statusConfig.icon
-                            className={`h-4 w-4 ${statusConfig.iconClassName}`}
-                            aria-hidden="true"
-                          />
-                        </span>
-                      </button>
-                    );
-                  })}
-                </nav>
-              </CardContent>
-            </Card>
-          </aside>
+  useEffect(() => {
+    if (!railOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setRailOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [railOpen]);
 
-          {/* Основной контент */}
-          <div>
-            {/* Заголовок модуля — hero-версия с единственным главным действием (A4/A5) */}
-            <Link
-              href="/modules"
-              className="mb-4 inline-flex items-center gap-2 rounded-sm text-sm font-semibold text-muted-foreground transition-colors duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <ArrowLeft className="size-4" aria-hidden="true" />
-              Все модули
-            </Link>
-            <div className="mb-8" id="theory-section">
-              <div className="mb-4 flex items-start justify-between gap-4">
-                <div>
-                  <Badge variant="outline" className="mb-3">
-                    Уровень {module.level}
-                  </Badge>
-                  <h1 className="max-w-[680px] text-balance text-3xl font-bold md:text-4xl">
-                    {module.title}
-                  </h1>
-                  <p className="mt-3 max-w-[680px] text-lg text-muted-foreground">{module.topic}</p>
-                </div>
-              </div>
-              {!nextTask && tasks.length > 0 && (
-                <Card className="mb-4 border-primary/30 bg-primary/[0.04]" role="status">
-                  <CardContent className="flex flex-wrap items-center justify-between gap-4 p-5">
-                    <div className="flex items-center gap-3">
-                      <Trophy className="size-6 shrink-0 text-primary" aria-hidden="true" />
-                      <div>
-                        <p className="font-semibold">Модуль пройден</p>
-                        <p className="text-sm text-muted-foreground">
-                          Все {tasks.length} заданий решены.
-                          {nextModule
-                            ? ` Следующий модуль — «${nextModule.title}».`
-                            : " Это последний модуль курса."}
-                        </p>
-                      </div>
-                    </div>
-                    {nextModule && (
-                      <Button asChild className="font-semibold">
-                        <Link href={`/modules/${nextModule.id}`}>
-                          Следующий модуль
-                          <ArrowRight className="size-4" />
-                        </Link>
-                      </Button>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
-              {nextTask ? (
-                <Button
-                  size="lg"
-                  className="h-11 px-3 text-base font-semibold"
-                  onClick={() => scrollToTask(nextTask.id)}
-                >
-                  {completedTaskIds.length === 0 ? (
-                    <>
-                      <Play className="size-5" />
-                      Начать с первого задания
-                    </>
-                  ) : (
-                    <>
-                      Продолжить с задания {nextTask.order_index}
-                      <ArrowRight className="size-5" />
-                    </>
-                  )}
-                </Button>
-              ) : (
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="h-11 px-3 text-base font-semibold"
-                  onClick={() => scrollToTask(sortedTasks[0]?.id ?? tasks[0]?.id ?? "")}
-                >
-                  <RotateCcw className="size-5" />
-                  Пройти заново
-                </Button>
-              )}
-            </div>
+  const runDisabled =
+    activeState?.running || pyodideLoading || Boolean(pyodideError) || !activeCode.trim();
+  const testDisabled =
+    activeState?.testing || pyodideLoading || Boolean(pyodideError) || !activeCode.trim();
+  const resetDisabled = activeCode === (activeState?.initialCode ?? activeTask?.starter_code ?? "");
+  const showEditor = isDesktop || mobilePane === "code";
+  const showDock = isDesktop || mobilePane === "result";
+  const showStatement = isDesktop || mobilePane === "task";
 
-            {/* Статистика изучения */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Прогресс</CardTitle>
-                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {completedTaskIds.length} / {tasks.length}
-                  </div>
-                  <p className="text-xs text-muted-foreground">заданий завершено</p>
-                  <Progress value={moduleProgress} className="mt-2 h-2" />
-                </CardContent>
-              </Card>
-
-              {userProgress && (
-                <>
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Заработано XP</CardTitle>
-                      <Award className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">{userProgress.xpEarned}</div>
-                      <p className="text-xs text-muted-foreground">очков за модуль</p>
-                    </CardContent>
-                  </Card>
-
-                  {userProgress.avgScore !== undefined && (
-                    <Card>
-                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Средний балл</CardTitle>
-                        <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-2xl font-bold">
-                          {userProgress.avgScore.toFixed(0)}%
-                        </div>
-                        <p className="text-xs text-muted-foreground">AI-оценка</p>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {userProgress.timeSpent !== undefined && (
-                    <Card>
-                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Время</CardTitle>
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                      </CardHeader>
-                      <CardContent>
-                        <div className="text-2xl font-bold">
-                          {Math.round(userProgress.timeSpent / 60)}
-                        </div>
-                        <p className="text-xs text-muted-foreground">минут</p>
-                      </CardContent>
-                    </Card>
-                  )}
-                </>
-              )}
-            </div>
-
-            {/* Теория модуля */}
-            {module.description && (
-              <Card className="mb-8">
-                <Accordion type="single" collapsible className="w-full">
-                  <AccordionItem value="theory">
-                    <AccordionTrigger className="px-6">
-                      <div className="flex items-center gap-2">
-                        <BookOpen className="h-5 w-5" />
-                        <span className="font-semibold">Теория модуля</span>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent className="px-6 pb-6">
-                      <div className="prose prose-sm dark:prose-invert max-w-none">
-                        <ReactMarkdown
-                          remarkPlugins={[remarkGfm, remarkBreaks]}
-                          components={{
-                            h1: ({ children }) => (
-                              <h1 className="mt-6 mb-4 text-2xl font-bold tracking-tight text-foreground">
-                                {children}
-                              </h1>
-                            ),
-                            h2: ({ children }) => (
-                              <h2 className="mt-4 mb-3 text-xl font-bold tracking-tight text-foreground">
-                                {children}
-                              </h2>
-                            ),
-                            h3: ({ children }) => (
-                              <h3 className="mt-4 mb-2 text-lg font-semibold tracking-tight text-foreground">
-                                {children}
-                              </h3>
-                            ),
-                            h4: ({ children }) => (
-                              <h4 className="mt-3 mb-2 text-base font-semibold text-foreground">
-                                {children}
-                              </h4>
-                            ),
-                            p: ({ children }) => (
-                              <p className="mb-4 text-muted-foreground last:mb-0">{children}</p>
-                            ),
-                            ul: ({ children }) => (
-                              <ul className="list-disc pl-6 mb-4 space-y-1 text-muted-foreground">
-                                {children}
-                              </ul>
-                            ),
-                            ol: ({ children }) => (
-                              <ol className="list-decimal pl-6 mb-4 space-y-1 text-muted-foreground">
-                                {children}
-                              </ol>
-                            ),
-                            li: ({ children }) => <li>{children}</li>,
-                            hr: () => <hr className="my-6 border-border" />,
-                            blockquote: ({ children }) => (
-                              <blockquote className="border-l-4 border-primary pl-4 my-4 text-muted-foreground">
-                                {children}
-                              </blockquote>
-                            ),
-                            strong: ({ children }) => (
-                              <strong className="font-semibold text-foreground">{children}</strong>
-                            ),
-                            code(props) {
-                              const { node, className, children, ...rest } = props as any;
-                              const inline = !className || !className.includes("language-");
-                              const match = /language-(\w+)/.exec(className || "");
-                              const isDark =
-                                mounted &&
-                                (theme === "dark" ||
-                                  (theme === "system" &&
-                                    typeof window !== "undefined" &&
-                                    window.matchMedia("(prefers-color-scheme: dark)").matches));
-                              return !inline && match ? (
-                                <SyntaxHighlighter
-                                  style={(isDark ? oneDark : oneLight) as any}
-                                  language={match[1]}
-                                  PreTag="div"
-                                  className="font-mono rounded-md"
-                                  customStyle={{ fontFamily: "Geist Mono, monospace" }}
-                                  {...rest}
-                                >
-                                  {String(children).replace(/\n$/, "")}
-                                </SyntaxHighlighter>
-                              ) : (
-                                <code className={`font-mono ${className}`} {...rest}>
-                                  {children}
-                                </code>
-                              );
-                            },
-                          }}
-                        >
-                          {module.description}
-                        </ReactMarkdown>
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
-              </Card>
-            )}
-
-            {/* Фильтры и сортировка */}
-            <div className="flex flex-wrap gap-4 mb-6 items-center">
-              <div className="flex items-center gap-2">
-                <Filter className="h-4 w-4 text-muted-foreground" />
-                <Select
-                  value={filterStatus}
-                  onValueChange={(v) => setFilterStatus(v as FilterStatus)}
-                >
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Фильтр" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Все задания</SelectItem>
-                    <SelectItem value="completed">Завершенные</SelectItem>
-                    <SelectItem value="in_progress">В процессе</SelectItem>
-                    <SelectItem value="not_started">Не начатые</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
-                <Select value={sortOption} onValueChange={(v) => setSortOption(v as SortOption)}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Сортировка" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="order">По порядку</SelectItem>
-                    <SelectItem value="status">По статусу</SelectItem>
-                    <SelectItem value="difficulty">По сложности</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="ml-auto text-sm text-muted-foreground">
-                Показано: {sortedTasks.length} из {tasks.length}
-              </div>
-            </div>
-
-            {/* Список заданий */}
-            <div className="space-y-4">
-              <h2 className="text-2xl font-bold mb-4">
-                <BookOpen className="inline mr-2 h-6 w-6" />
-                Задания ({sortedTasks.length})
-              </h2>
-
-              {sortedTasks.length === 0 ? (
-                <Card>
-                  <CardContent className="pt-6">
-                    <p className="text-center text-muted-foreground">
-                      Нет заданий, соответствующих выбранным фильтрам
-                    </p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <Accordion
-                  type="multiple"
-                  className="w-full space-y-4"
-                  value={openItems}
-                  onValueChange={setOpenItems}
-                >
-                  {sortedTasks.map((task, index) => {
-                    const state = taskStates[task.id];
-                    const statusConfig = getStatusConfig(task.status);
-                    const testCases: PublicTestCase[] = visibleTestCases(task.test_cases);
-
-                    return (
-                      <Card
-                        key={task.id}
-                        id={`task-${task.id}`}
-                        className="overflow-hidden scroll-mt-24 hover:shadow-lg transition-shadow"
-                      >
-                        <AccordionItem value={task.id} className="border-none">
-                          <AccordionTrigger className="px-6 hover:no-underline">
-                            <div className="flex items-center justify-between w-full pr-4">
-                              <div className="flex items-center gap-4 flex-1">
-                                <div className="flex items-center gap-2">
-                                  <span className="font-semibold text-lg">Задание {index + 1}</span>
-                                  <span className="text-lg font-bold">{task.title}</span>
-                                </div>
-                                <DifficultyBadge difficulty={task.difficulty} />
-                                <Badge
-                                  variant="outline"
-                                  className="border-primary/30 bg-primary/10 text-primary"
-                                >
-                                  +{getDifficultyXP(task.difficulty)} XP
-                                </Badge>
-                              </div>
-                              <Badge
-                                variant={statusConfig.variant}
-                                className={statusConfig.className || undefined}
-                              >
-                                <statusConfig.icon
-                                  className={`mr-1 h-4 w-4 ${statusConfig.iconClassName}`}
-                                  aria-hidden="true"
-                                />
-                                {statusConfig.label}
-                              </Badge>
-                            </div>
-                          </AccordionTrigger>
-                          <AccordionContent className="px-6 pb-6">
-                            <div className="space-y-6">
-                              {/* Описание задания */}
-                              <div className="prose prose-sm dark:prose-invert max-w-none">
-                                <ReactMarkdown
-                                  remarkPlugins={[remarkGfm, remarkBreaks]}
-                                  components={{
-                                    code({ node, inline, className, children, ...props }: any) {
-                                      const match = /language-(\w+)/.exec(className || "");
-                                      const isDark =
-                                        mounted &&
-                                        (theme === "dark" ||
-                                          (theme === "system" &&
-                                            typeof window !== "undefined" &&
-                                            window.matchMedia("(prefers-color-scheme: dark)")
-                                              .matches));
-                                      const inlineProp = (props as any).inline;
-                                      return !inlineProp && match ? (
-                                        <SyntaxHighlighter
-                                          style={(isDark ? oneDark : oneLight) as any}
-                                          language={match[1]}
-                                          PreTag="div"
-                                          className="font-mono rounded-md"
-                                          customStyle={{ fontFamily: "Geist Mono, monospace" }}
-                                        >
-                                          {String(children).replace(/\n$/, "")}
-                                        </SyntaxHighlighter>
-                                      ) : (
-                                        <code className={`font-mono ${className}`} {...props}>
-                                          {children}
-                                        </code>
-                                      );
-                                    },
-                                    p: ({ children }) => (
-                                      <p className="mb-4 last:mb-0 whitespace-pre-line">
-                                        {children}
-                                      </p>
-                                    ),
-                                  }}
-                                >
-                                  {task.description}
-                                </ReactMarkdown>
-                              </div>
-
-                              {/* Редактор кода */}
-                              <Card>
-                                <CardHeader>
-                                  <CardTitle>Редактор кода</CardTitle>
-                                  <CardDescription>
-                                    Напишите решение задачи на Python
-                                  </CardDescription>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                  <CodeEditor
-                                    value={state?.code ?? task.starter_code ?? ""}
-                                    onChange={(value) => handleCodeChange(task.id, value)}
-                                    height="400px"
-                                    language="python"
-                                    path={`unified-task-${task.id}`}
-                                  />
-
-                                  {(() => {
-                                    const taskTests: PublicTestCase[] = visibleTestCases(
-                                      task.test_cases
-                                    );
-                                    const initialInput = defaultProgramInput(taskTests);
-                                    const currentCode = state?.code || task.starter_code || "";
-                                    if (!usesProgramInput(currentCode, initialInput)) return null;
-                                    return (
-                                      <ProgramInput
-                                        id={`program-input-${task.id}`}
-                                        value={programInputs[task.id] ?? initialInput}
-                                        onChange={(value) =>
-                                          setProgramInputs((prev) => ({
-                                            ...prev,
-                                            [task.id]: value,
-                                          }))
-                                        }
-                                      />
-                                    );
-                                  })()}
-
-                                  {/* Кнопки управления */}
-                                  <div className="flex flex-wrap gap-2">
-                                    <Button
-                                      onClick={() => handleRunCode(task.id)}
-                                      variant="default"
-                                      disabled={
-                                        state?.running ||
-                                        pyodideLoading ||
-                                        !(state?.code || task.starter_code || "").trim()
-                                      }
-                                    >
-                                      {state?.running ? (
-                                        <>
-                                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                          Выполнение...
-                                        </>
-                                      ) : (
-                                        "Запустить код"
-                                      )}
-                                    </Button>
-                                    <Button
-                                      onClick={() => handleTestTask(task.id)}
-                                      variant="default"
-                                      disabled={
-                                        state?.testing ||
-                                        pyodideLoading ||
-                                        !(state?.code || task.starter_code || "").trim()
-                                      }
-                                    >
-                                      {state?.testing ? (
-                                        <>
-                                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                          Проверка...
-                                        </>
-                                      ) : (
-                                        "Проверить задание"
-                                      )}
-                                    </Button>
-                                    <Button
-                                      onClick={() => handleResetCode(task.id)}
-                                      variant="outline"
-                                      disabled={
-                                        (state?.code || task.starter_code || "") ===
-                                        (state?.initialCode || task.starter_code || "")
-                                      }
-                                    >
-                                      <RotateCcw className="mr-2 h-4 w-4" />
-                                      Сбросить код
-                                    </Button>
-                                    <Button onClick={() => handleAiHint(task.id)} variant="outline">
-                                      <Sparkles className="mr-2 h-4 w-4" />
-                                      {state?.hintVisible ? "Скрыть подсказку" : "AI-подсказка"}
-                                    </Button>
-                                  </div>
-
-                                  {/* Отображение ошибки Pyodide */}
-                                  {pyodideError && (
-                                    <div className="mt-4 p-4 rounded-md bg-destructive/10 border border-destructive">
-                                      <div className="flex items-start gap-2">
-                                        <AlertCircle className="h-5 w-5 text-destructive mt-0.5 flex-shrink-0" />
-                                        <div>
-                                          <h4 className="font-medium text-destructive">
-                                            Ошибка загрузки Python среды
-                                          </h4>
-                                          <p className="text-sm text-muted-foreground mt-1">
-                                            {pyodideError.message}
-                                          </p>
-                                          <Button
-                                            onClick={() => window.location.reload()}
-                                            variant="outline"
-                                            size="sm"
-                                            className="mt-2"
-                                          >
-                                            Перезагрузить страницу
-                                          </Button>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  {/* Индикатор загрузки Pyodide */}
-                                  {pyodideLoading && (
-                                    <div className="mt-4 p-4 rounded-md bg-muted">
-                                      <div className="flex items-center gap-2">
-                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                        <span className="text-sm">
-                                          Загрузка Python среды... Это может занять несколько секунд
-                                        </span>
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  {/* Выполнение кода */}
-                                  {state?.executionResult && (
-                                    <Card className="mt-4">
-                                      <CardHeader>
-                                        <CardTitle>
-                                          {state.executionResult.error
-                                            ? "Ошибка выполнения"
-                                            : "Код выполнен успешно"}
-                                        </CardTitle>
-                                        {state.executionResult.executionTime > 0 && (
-                                          <CardDescription>
-                                            Время выполнения: {state.executionResult.executionTime}{" "}
-                                            мс
-                                          </CardDescription>
-                                        )}
-                                      </CardHeader>
-                                      <CardContent>
-                                        {state.executionResult.error ? (
-                                          <div className="rounded-md bg-destructive/10 p-4">
-                                            <pre className="text-sm text-destructive whitespace-pre-wrap font-mono">
-                                              {state.executionResult.error}
-                                            </pre>
-                                          </div>
-                                        ) : (
-                                          <div className="space-y-2">
-                                            <h4 className="text-sm font-medium">Вывод:</h4>
-                                            <div className="rounded-md bg-muted p-4">
-                                              <pre className="text-sm whitespace-pre-wrap font-mono">
-                                                {state.executionResult.output || "(нет вывода)"}
-                                              </pre>
-                                            </div>
-                                          </div>
-                                        )}
-                                      </CardContent>
-                                    </Card>
-                                  )}
-
-                                  {/* Inline AI hint */}
-                                  {state?.hintVisible && (
-                                    <Card className="border-primary/30 bg-primary/[0.04] mt-4">
-                                      <CardHeader className="pb-3">
-                                        <CardTitle className="flex items-center gap-2 text-base">
-                                          <Sparkles className="h-4 w-4 text-primary" />
-                                          AI-помощник
-                                        </CardTitle>
-                                      </CardHeader>
-                                      <CardContent className="pt-0">
-                                        {state.hintLoading ? (
-                                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                            <Loader2 className="h-4 w-4 animate-spin" />
-                                            Думаю над подсказкой...
-                                          </div>
-                                        ) : state.hintData ? (
-                                          <div className="space-y-3">
-                                            <p className="text-sm leading-relaxed">
-                                              {state.hintData.hint}
-                                            </p>
-                                            {state.hintData.steps.length > 0 && (
-                                              <div className="rounded-md bg-muted/60 p-3">
-                                                <p className="text-xs font-medium text-muted-foreground mb-2">
-                                                  Шаги к решению:
-                                                </p>
-                                                <ol className="space-y-1.5">
-                                                  {state.hintData.steps.map((step, i) => (
-                                                    <li key={i} className="text-sm flex gap-2">
-                                                      <span className="shrink-0 font-medium text-primary">
-                                                        {i + 1}.
-                                                      </span>
-                                                      <span>{step}</span>
-                                                    </li>
-                                                  ))}
-                                                </ol>
-                                              </div>
-                                            )}
-                                          </div>
-                                        ) : null}
-                                      </CardContent>
-                                    </Card>
-                                  )}
-
-                                  {/* Результаты тестов */}
-                                  {state?.testResults && (
-                                    <div className="mt-4">
-                                      <TestResults
-                                        testResults={state.testResults}
-                                        testCases={testCases}
-                                      />
-                                    </div>
-                                  )}
-
-                                  {/* Inline AI feedback: итоговая оценка идёт после результатов */}
-                                  {state?.feedbackVisible && state.feedbackData && (
-                                    <ScrollIntoViewOnMount>
-                                      <Card className="border-emerald-500/30 bg-emerald-500/[0.04] mt-4">
-                                        <CardHeader className="pb-3">
-                                          <div className="flex items-center justify-between">
-                                            <CardTitle className="flex items-center gap-2 text-base">
-                                              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                                              AI-оценка решения
-                                            </CardTitle>
-                                            <Badge
-                                              variant={
-                                                state.feedbackData.score >= 0.7
-                                                  ? "success"
-                                                  : "outline"
-                                              }
-                                              className="text-sm"
-                                            >
-                                              {Math.round(state.feedbackData.score * 100)}%
-                                            </Badge>
-                                          </div>
-                                        </CardHeader>
-                                        <CardContent className="pt-0">
-                                          <p className="text-sm leading-relaxed">
-                                            {state.feedbackData.feedback}
-                                          </p>
-                                        </CardContent>
-                                      </Card>
-                                    </ScrollIntoViewOnMount>
-                                  )}
-                                </CardContent>
-                              </Card>
-                            </div>
-                          </AccordionContent>
-                        </AccordionItem>
-                      </Card>
-                    );
-                  })}
-                </Accordion>
-              )}
-            </div>
-          </div>
+  if (!activeTask) {
+    return (
+      <div className="container mx-auto px-4 py-16">
+        <div className="mx-auto max-w-md rounded-2xl border bg-card p-8 text-center">
+          <h1 className="heading-5 text-foreground">{module.title}</h1>
+          <p className="mt-3 body-6 text-muted-foreground">
+            В этом модуле пока нет опубликованных заданий. Загляните позже.
+          </p>
+          <Button asChild className="mt-6">
+            <a href="/modules">К списку модулей</a>
+          </Button>
         </div>
       </div>
-    </>
+    );
+  }
+
+  const rail = (
+    <TaskRail
+      level={module.level}
+      moduleId={module.id}
+      title={module.title}
+      topic={module.topic}
+      tasks={tasksWithStatus}
+      activeId={activeId}
+      mode={mode}
+      hasTheory={Boolean(module.description)}
+      completedCount={completedCount}
+      progress={progress}
+      xpEarned={userProgress?.xpEarned ?? 0}
+      nextModule={nextModule}
+      onSelect={openTask}
+      onTheory={() => {
+        setMode("theory");
+        setRailOpen(false);
+      }}
+      onClose={() => setRailOpen(false)}
+    />
+  );
+
+  return (
+    <div className="px-3 pt-3 md:px-4 md:pt-4">
+      <div
+        ref={shellRef}
+        style={{ height: shellHeight ? `${shellHeight}px` : "calc(100vh - 160px)" }}
+        className="grid min-h-[560px] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden rounded-2xl border bg-card"
+      >
+        <div className="flex h-12 shrink-0 items-center gap-2 border-b bg-card px-2 lg:hidden">
+          <button
+            type="button"
+            onClick={() => setRailOpen(true)}
+            aria-label="Список заданий"
+            className={cn(
+              "grid size-9 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              EASE
+            )}
+          >
+            <List size={20} />
+          </button>
+          <span className="min-w-0 flex-1 truncate body-4 text-foreground">
+            {mode === "theory" ? "Теория модуля" : activeTask.title}
+          </span>
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 font-mono caption-5 text-amber-700 dark:text-amber-400">
+            <Star size={12} weight="fill" />
+            {userProgress?.xpEarned ?? 0}
+          </span>
+          <ProgressRing value={progress} />
+        </div>
+
+        <div className="relative grid min-h-0 min-w-0 grid-cols-1 overflow-hidden lg:grid-cols-[288px_minmax(0,1fr)]">
+          <aside className="hidden min-h-0 border-r lg:block">{rail}</aside>
+
+          {!isDesktop && (
+            <>
+              <button
+                type="button"
+                tabIndex={railOpen ? 0 : -1}
+                aria-label="Закрыть список заданий"
+                aria-hidden={!railOpen}
+                onClick={() => setRailOpen(false)}
+                className={cn(
+                  "absolute inset-0 z-20 bg-black/60 transition-opacity duration-300",
+                  railOpen ? "opacity-100" : "pointer-events-none opacity-0"
+                )}
+              />
+              <aside
+                aria-hidden={!railOpen}
+                className={cn(
+                  "absolute inset-y-0 left-0 z-30 w-[288px] max-w-[85vw] border-r shadow-xl transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                  railOpen ? "translate-x-0" : "-translate-x-[101%]"
+                )}
+              >
+                {rail}
+              </aside>
+            </>
+          )}
+
+          <div ref={workRef} className="relative min-h-0 min-w-0 bg-background">
+            {mode === "theory" && module.description ? (
+              <TheoryView
+                level={module.level}
+                title={module.title}
+                topic={module.topic}
+                description={module.description}
+                allDone={moduleDone}
+                avgScore={userProgress?.avgScore}
+                timeSpent={userProgress?.timeSpent}
+                startLabel={
+                  moduleDone
+                    ? "Вернуться к заданиям"
+                    : completedCount === 0
+                      ? "Начать первое задание"
+                      : `Продолжить с задания ${nextTask?.order_index ?? 1}`
+                }
+                onStart={() => openTask(nextTask?.id ?? orderedTasks[0].id)}
+              />
+            ) : (
+              <div
+                className="grid h-full min-h-0 grid-cols-1"
+                style={
+                  isDesktop
+                    ? { gridTemplateColumns: `${split}% 4px minmax(0,1fr)` }
+                    : { gridTemplateRows: "auto minmax(0,1fr)" }
+                }
+              >
+                {!isDesktop && (
+                  <div
+                    role="tablist"
+                    aria-label="Раздел задания"
+                    className="flex shrink-0 gap-1 border-b bg-muted p-1"
+                  >
+                    {(
+                      [
+                        ["task", "Задание"],
+                        ["code", "Код"],
+                        ["result", "Результат"],
+                      ] as [MobilePane, string][]
+                    ).map(([pane, label]) => (
+                      <button
+                        key={pane}
+                        type="button"
+                        role="tab"
+                        aria-selected={mobilePane === pane}
+                        onClick={() => setMobilePane(pane)}
+                        className={cn(
+                          "h-9 flex-1 rounded-sm button-sm transition-colors",
+                          EASE,
+                          mobilePane === pane
+                            ? "bg-background text-foreground shadow-sm"
+                            : "text-muted-foreground"
+                        )}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                <section
+                  className={cn(
+                    "flex min-h-0 min-w-0 flex-col overflow-hidden bg-card",
+                    !showStatement && "hidden"
+                  )}
+                >
+                  <div className="shrink-0 border-b p-4">
+                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                      <span className="caption-3 uppercase tracking-wider text-muted-foreground">
+                        Задание {activeIndex + 1} из {orderedTasks.length}
+                      </span>
+                      <DifficultyBadge difficulty={activeTask.difficulty} />
+                      <span className="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-3 py-0.5 font-mono caption-4 text-primary">
+                        +{activeTask.xp_reward} XP
+                      </span>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <h2 className="min-w-0 flex-1 title-1 text-foreground">{activeTask.title}</h2>
+                      <div className="flex shrink-0 gap-1">
+                        <button
+                          type="button"
+                          onClick={() => stepTask(-1)}
+                          disabled={activeIndex <= 0}
+                          aria-label="Предыдущее задание"
+                          className={cn(
+                            "grid size-8 place-items-center rounded-md border border-input bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
+                            EASE
+                          )}
+                        >
+                          <CaretLeft size={16} weight="bold" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => stepTask(1)}
+                          disabled={activeIndex >= orderedTasks.length - 1}
+                          aria-label="Следующее задание"
+                          className={cn(
+                            "grid size-8 place-items-center rounded-md border border-input bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
+                            EASE
+                          )}
+                        >
+                          <CaretRight size={16} weight="bold" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="cs-scroll min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-4 pb-6">
+                    <Markdown key={activeTask.id} source={activeTask.description} />
+
+                    {example && (
+                      <div className="mt-5 rounded-xl border bg-background p-4">
+                        <p className="caption-3 uppercase tracking-wider text-muted-foreground">
+                          Пример · {example.description}
+                        </p>
+                        {example.stdin && example.stdin.length > 0 && (
+                          <div className="mt-3">
+                            <p className="caption-5 text-muted-foreground">Ввод</p>
+                            <pre className="mt-1 overflow-x-auto rounded-lg border bg-muted p-3 font-mono caption-5 text-foreground">
+                              {example.stdin.join("\n")}
+                            </pre>
+                          </div>
+                        )}
+                        <div className="mt-3">
+                          <p className="caption-5 text-muted-foreground">Ожидаемый вывод</p>
+                          <pre className="mt-1 overflow-x-auto rounded-lg border bg-muted p-3 font-mono caption-5 text-foreground">
+                            {formatExample(example.expected_output)}
+                          </pre>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {!isDesktop && (
+                    <div className="shrink-0 border-t p-3">
+                      <Button className="w-full" onClick={() => setMobilePane("code")}>
+                        Перейти к коду
+                        <ArrowRight size={16} weight="bold" />
+                      </Button>
+                    </div>
+                  )}
+                </section>
+
+                {isDesktop && (
+                  // biome-ignore lint/a11y/useSemanticElements: перетаскиваемая граница — это window splitter, а не <hr>
+                  <div
+                    role="separator"
+                    aria-orientation="vertical"
+                    tabIndex={0}
+                    aria-label="Ширина колонок"
+                    aria-valuenow={Math.round(split)}
+                    aria-valuemin={MIN_SPLIT}
+                    aria-valuemax={MAX_SPLIT}
+                    onPointerDown={startSplit}
+                    onKeyDown={(event) => {
+                      if (event.key === "ArrowLeft") {
+                        event.preventDefault();
+                        nudgeSplit(-2);
+                      } else if (event.key === "ArrowRight") {
+                        event.preventDefault();
+                        nudgeSplit(2);
+                      }
+                    }}
+                    className={cn(
+                      "relative cursor-col-resize bg-border transition-colors after:absolute after:inset-y-0 after:-inset-x-1 hover:bg-primary focus-visible:bg-primary focus-visible:outline-none",
+                      EASE
+                    )}
+                  />
+                )}
+
+                <div
+                  className={cn(
+                    "flex min-h-0 min-w-0 flex-col bg-card",
+                    !showEditor && !showDock && "hidden"
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "flex h-10 shrink-0 items-center gap-2 border-b px-3",
+                      !showEditor && "hidden"
+                    )}
+                  >
+                    <span className="inline-flex items-center gap-2 font-mono caption-4 text-foreground">
+                      <FilePy size={16} weight="duotone" className="text-primary" />
+                      main.py
+                    </span>
+                    <span className="hidden rounded-full border px-2 caption-5 text-muted-foreground sm:inline">
+                      Python 3.14
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => activeId && handleResetCode(activeId)}
+                      disabled={resetDisabled}
+                      className={cn(
+                        "ml-auto inline-flex h-8 items-center gap-2 rounded-md px-3 button-xsm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
+                        EASE
+                      )}
+                    >
+                      <ArrowCounterClockwise size={16} />
+                      Сбросить
+                    </button>
+                  </div>
+
+                  <div className={cn("min-h-0 flex-1", !showEditor && "hidden")}>
+                    <CodeEditor
+                      value={activeCode}
+                      onChange={(value) => activeId && handleCodeChange(activeId, value)}
+                      height="100%"
+                      language="python"
+                      path={`unified-task-${activeTask.id}`}
+                      className="rounded-none! border-0!"
+                    />
+                  </div>
+
+                  {pyodideError && (
+                    <div className="flex shrink-0 flex-wrap items-center gap-3 border-t border-destructive/40 bg-destructive/10 px-3 py-2">
+                      <Warning size={16} weight="fill" className="text-destructive" />
+                      <span className="min-w-0 flex-1 caption-5 text-destructive">
+                        Python не загрузился: {pyodideError.message}
+                      </span>
+                      <Button size="sm" variant="outline" onClick={() => window.location.reload()}>
+                        Перезагрузить
+                      </Button>
+                    </div>
+                  )}
+
+                  <div
+                    className={cn(
+                      "flex shrink-0 flex-wrap items-center gap-2 border-t bg-card p-2",
+                      !showEditor && "hidden"
+                    )}
+                  >
+                    <Button
+                      variant="outline"
+                      onClick={() => activeId && handleRunCode(activeId)}
+                      disabled={runDisabled}
+                      className="flex-1 sm:flex-none"
+                    >
+                      {activeState?.running ? (
+                        <SpinnerGap size={16} className="animate-spin" />
+                      ) : (
+                        <Play size={16} weight="fill" />
+                      )}
+                      Запустить
+                      <span className="hidden font-mono caption-5 opacity-60 xl:inline">⌃↵</span>
+                    </Button>
+                    <Button
+                      onClick={() => activeId && handleTestTask(activeId)}
+                      disabled={testDisabled}
+                      className="flex-1 sm:flex-none"
+                    >
+                      {activeState?.testing ? (
+                        <SpinnerGap size={16} className="animate-spin" />
+                      ) : (
+                        <Check size={16} weight="bold" />
+                      )}
+                      Проверить
+                      <span className="hidden font-mono caption-5 opacity-70 xl:inline">⌃⇧↵</span>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={() => activeId && handleAiHint(activeId)}
+                      disabled={activeState?.hintLoading}
+                      className="flex-1 sm:flex-none"
+                    >
+                      <Lightbulb size={16} />
+                      Подсказка
+                    </Button>
+                    <span className="ml-auto hidden caption-5 text-muted-foreground xl:inline">
+                      {pyodideLoading
+                        ? "Загрузка Python…"
+                        : activeState?.testing
+                          ? "Проверка…"
+                          : activeState?.running
+                            ? "Выполнение…"
+                            : "готов"}
+                    </span>
+                  </div>
+
+                  {showDock && activeId && (
+                    <ResultDock
+                      tab={dockTab}
+                      onTab={setDockTab}
+                      state={activeState}
+                      testCases={activeTestCases}
+                      height={dockHeight}
+                      maxHeight={dockMax}
+                      bodyRef={dockBodyRef}
+                      onGripDown={startDock}
+                      onGripNudge={nudgeDock}
+                      hasNext={activeIndex < orderedTasks.length - 1}
+                      moduleDone={moduleDone}
+                      nextModule={nextModule}
+                      onNext={() => stepTask(1)}
+                      onHint={() => handleAiHint(activeId)}
+                      taskId={activeId}
+                      programInput={programInput}
+                      onProgramInput={(value) =>
+                        setProgramInputs((prev) => ({ ...prev, [activeId]: value }))
+                      }
+                      fill={!isDesktop}
+                    />
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="flex h-8 shrink-0 items-center gap-3 overflow-hidden whitespace-nowrap border-t bg-card px-3 caption-5 text-muted-foreground">
+          <span className="flex items-center gap-1.5">
+            <span
+              className={cn(
+                "size-2 rounded-full",
+                pyodideError
+                  ? "bg-destructive"
+                  : pyodideLoading
+                    ? "bg-amber-500"
+                    : "bg-success ring-3 ring-success/20"
+              )}
+            />
+            {pyodideError
+              ? "Python не загрузился"
+              : pyodideLoading
+                ? "Загрузка Python…"
+                : "Pyodide · Python 3.14"}
+          </span>
+          {mode === "task" && (
+            <span className="mx-auto hidden items-center gap-3 lg:flex">
+              <span className="flex items-center gap-1">
+                <Kbd>Ctrl</Kbd>+<Kbd>↵</Kbd> запустить
+              </span>
+              <span className="flex items-center gap-1">
+                <Kbd>Ctrl</Kbd>+<Kbd>⇧</Kbd>+<Kbd>↵</Kbd> проверить
+              </span>
+              <span className="flex items-center gap-1">
+                <Kbd>Alt</Kbd>+<Kbd>←→</Kbd> задание
+              </span>
+            </span>
+          )}
+          <span className="ml-auto font-mono text-primary lg:ml-0">
+            {completedCount} / {tasks.length}
+          </span>
+        </div>
+      </div>
+    </div>
   );
 }

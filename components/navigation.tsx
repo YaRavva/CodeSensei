@@ -198,7 +198,10 @@ export function Navigation() {
           )}
           {isAuthenticated && (
             <div className="hidden md:block">
-              <DropdownMenu>
+              {/* modal={false}: модальный Radix-меню вешает на body overflow:hidden,
+                  из-за чего скроллпорт липкой шапки переезжает на body и header
+                  перестаёт держаться вверху при прокрутке страницы. */}
+              <DropdownMenu modal={false}>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                     <Avatar className="h-10 w-10">
