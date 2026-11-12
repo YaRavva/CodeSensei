@@ -39,6 +39,7 @@ import {
 } from "@/components/editor/program-input";
 import { TestResults } from "@/components/editor/test-results";
 import { useTheme } from "@/components/theme-provider";
+import { ScrollIntoViewOnMount } from "@/components/modules/scroll-into-view-on-mount";
 import {
   Accordion,
   AccordionContent,
@@ -1502,35 +1503,6 @@ export function ModuleUnifiedPage({
                                     </Card>
                                   )}
 
-                                  {/* Inline AI feedback */}
-                                  {state?.feedbackVisible && state.feedbackData && (
-                                    <Card className="border-emerald-500/30 bg-emerald-500/[0.04] mt-4">
-                                      <CardHeader className="pb-3">
-                                        <div className="flex items-center justify-between">
-                                          <CardTitle className="flex items-center gap-2 text-base">
-                                            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                                            AI-оценка решения
-                                          </CardTitle>
-                                          <Badge
-                                            variant={
-                                              state.feedbackData.score >= 0.7
-                                                ? "success"
-                                                : "outline"
-                                            }
-                                            className="text-sm"
-                                          >
-                                            {Math.round(state.feedbackData.score * 100)}%
-                                          </Badge>
-                                        </div>
-                                      </CardHeader>
-                                      <CardContent className="pt-0">
-                                        <p className="text-sm leading-relaxed">
-                                          {state.feedbackData.feedback}
-                                        </p>
-                                      </CardContent>
-                                    </Card>
-                                  )}
-
                                   {/* Результаты тестов */}
                                   {state?.testResults && (
                                     <div className="mt-4">
@@ -1539,6 +1511,37 @@ export function ModuleUnifiedPage({
                                         testCases={testCases}
                                       />
                                     </div>
+                                  )}
+
+                                  {/* Inline AI feedback: итоговая оценка идёт после результатов */}
+                                  {state?.feedbackVisible && state.feedbackData && (
+                                    <ScrollIntoViewOnMount>
+                                      <Card className="border-emerald-500/30 bg-emerald-500/[0.04] mt-4">
+                                        <CardHeader className="pb-3">
+                                          <div className="flex items-center justify-between">
+                                            <CardTitle className="flex items-center gap-2 text-base">
+                                              <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                                              AI-оценка решения
+                                            </CardTitle>
+                                            <Badge
+                                              variant={
+                                                state.feedbackData.score >= 0.7
+                                                  ? "success"
+                                                  : "outline"
+                                              }
+                                              className="text-sm"
+                                            >
+                                              {Math.round(state.feedbackData.score * 100)}%
+                                            </Badge>
+                                          </div>
+                                        </CardHeader>
+                                        <CardContent className="pt-0">
+                                          <p className="text-sm leading-relaxed">
+                                            {state.feedbackData.feedback}
+                                          </p>
+                                        </CardContent>
+                                      </Card>
+                                    </ScrollIntoViewOnMount>
                                   )}
                                 </CardContent>
                               </Card>
