@@ -1,8 +1,7 @@
 const { Client, Databases, Query } = require("node-appwrite");
 const fs = require("fs");
 
-const env = fs.readFileSync(".env.local", "utf8");
-const key = env.match(/^APPWRITE_API_KEY=(.+)$/m)?.[1]?.trim();
+const key = process.env.APPWRITE_API_KEY;
 if (!key) throw new Error("APPWRITE_API_KEY is missing");
 const db = new Databases(new Client().setEndpoint("https://appwrite.ravva.su/v1").setProject("6adc4f50003202881547").setKey(key));
 

@@ -1,10 +1,7 @@
 const https = require('https');
-const fs = require('fs');
 
-// Read API key from .env.local
-const envContent = fs.readFileSync('.env.local', 'utf8');
-const apiKeyMatch = envContent.match(/APPWRITE_API_KEY=(.+)/);
-const API_KEY = apiKeyMatch ? apiKeyMatch[1].trim() : '';
+const API_KEY = process.env.APPWRITE_API_KEY;
+if (!API_KEY) throw new Error('APPWRITE_API_KEY is missing');
 
 const PROJECT_ID = '6adc4f50003202881547';
 const DB_ID = 'codesensei';

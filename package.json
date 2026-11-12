@@ -10,6 +10,7 @@
     "lint:fix": "biome check --write .",
     "format": "biome format --write .",
     "typecheck": "tsc --noEmit",
+    "check:secrets": "node scripts/check-secrets.mjs",
     "appwrite:setup": "node --env-file-if-exists=.env.local scripts/appwrite/setup.mjs",
     "appwrite:seed": "node --env-file-if-exists=.env.local scripts/appwrite/seed.mjs",
     "appwrite:emails": "node --env-file-if-exists=.env.local scripts/appwrite/emails.mjs",

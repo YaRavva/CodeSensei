@@ -1,9 +1,7 @@
 const { Client, Databases } = require("node-appwrite");
-const fs = require("fs");
 
-const env = fs.readFileSync(".env.local", "utf8");
-const key = env.match(/^APPWRITE_API_KEY=(.+)$/m)?.[1]?.trim();
-if (!key) throw new Error("APPWRITE_API_KEY is missing in .env.local");
+const key = process.env.APPWRITE_API_KEY;
+if (!key) throw new Error("APPWRITE_API_KEY is missing");
 
 const db = new Databases(
   new Client()

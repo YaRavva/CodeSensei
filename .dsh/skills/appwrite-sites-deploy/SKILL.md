@@ -53,6 +53,9 @@ Follow it **in order** — every step exists because an earlier shortcut failed.
 Run in the repo root `C:\Users\Ravva\CodeSensei`:
 
 - `npm run typecheck` (tsc --noEmit) — must be clean.
+- `npm run check:secrets` — scans the tracked files for a hardcoded Appwrite key,
+  Omniroute key or session secret. Must print "No hardcoded secrets". The
+  staging script runs it too, so a secret blocks the deploy.
 - `npm run build` (next build, Turbopack) — must end with "Compiled successfully" and list routes.
   The build takes a minute or two — run it **in the background** and continue with
   staging preparation while it finishes.

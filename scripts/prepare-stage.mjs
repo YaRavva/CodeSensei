@@ -1,9 +1,16 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 
 // Repo = current directory; staging = STAGE_DIR or ../CodeSensei-deploy next to the repo.
 const repo = process.cwd();
 const stage = process.env.STAGE_DIR || path.resolve(repo, '..', 'CodeSensei-deploy');
+
+// A secret in a tracked file would be shipped to the server. Fail before staging.
+execFileSync(process.execPath, [path.join(repo, 'scripts', 'check-secrets.mjs')], {
+  cwd: repo,
+  stdio: 'inherit',
+});
 
 function copyRecursiveSync(src, dest) {
   if (!fs.existsSync(src)) return;
