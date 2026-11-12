@@ -3,7 +3,7 @@ import { AppwriteException, ID } from "node-appwrite";
 import { getAdminAccount } from "@/lib/appwrite/client";
 import { sendVerificationEmail } from "@/lib/appwrite/email-verification";
 import { ensureUserProfile } from "@/lib/appwrite/users";
-import { clientIp, HOUR, hit, MINUTE, tooManyRequests } from "@/lib/security/rate-limit";
+import { HOUR, hit, tooManyRequests } from "@/lib/security/rate-limit";
 
 interface RegisterBody {
   email?: string;
@@ -39,11 +39,10 @@ export async function POST(request: Request) {
     );
   }
 
-  const ip = clientIp(request);
-  const limit = hit(`register:ip:${ip}`, 5, HOUR);
+  // The limit is keyed by email, not by IP: behind the CDN every visitor
+  // shares one address, so an IP bucket blocks all registrations at once.
+  const limit = hit(`register:email:${email}`, 5, HOUR);
   if (!limit.ok) return tooManyRequests(limit.retryAfterSec);
-  const burst = hit(`register:burst:${ip}`, 2, MINUTE);
-  if (!burst.ok) return tooManyRequests(burst.retryAfterSec);
 
   try {
     const userId = ID.unique();

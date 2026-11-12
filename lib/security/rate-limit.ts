@@ -44,26 +44,6 @@ export function hit(key: string, limit: number, windowMs: number): LimitResult {
   };
 }
 
-/** Best-effort client IP behind Caddy / Appwrite proxies. */
-export function clientIp(request: Request): string {
-  const forwarded = request.headers.get("x-forwarded-for");
-  if (forwarded) {
-    const first = forwarded.split(",")[0]?.trim();
-    if (first) return first;
-  }
-  return request.headers.get("x-real-ip")?.trim() || "unknown";
-}
-
-/** Checks several limits at once; every limit is counted. */
-export function hitAll(rules: { key: string; limit: number; windowMs: number }[]): LimitResult {
-  let result: LimitResult = { ok: true, retryAfterSec: 0 };
-  for (const rule of rules) {
-    const r = hit(rule.key, rule.limit, rule.windowMs);
-    if (!r.ok && (result.ok || r.retryAfterSec > result.retryAfterSec)) result = r;
-  }
-  return result;
-}
-
 export function tooManyRequests(retryAfterSec: number): Response {
   const minutes = Math.max(1, Math.ceil(retryAfterSec / 60));
   return Response.json(

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getAdminAccount } from "@/lib/appwrite/client";
-import { clientIp, HOUR, hitAll, MINUTE, tooManyRequests } from "@/lib/security/rate-limit";
+import { HOUR, hit, tooManyRequests } from "@/lib/security/rate-limit";
 
 export async function POST(request: Request) {
   let email = "";
@@ -16,10 +16,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Укажите email" }, { status: 400 });
   }
 
-  const limit = hitAll([
-    { key: `reset:ip:${clientIp(request)}`, limit: 5, windowMs: 15 * MINUTE },
-    { key: `reset:email:${email}`, limit: 3, windowMs: HOUR },
-  ]);
+  const limit = hit(`reset:email:${email}`, 3, HOUR);
   if (!limit.ok) return tooManyRequests(limit.retryAfterSec);
 
   // Never build the reset link from the Host header (link poisoning).

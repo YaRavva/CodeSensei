@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { AppwriteException } from "node-appwrite";
 import { sendVerificationEmail } from "@/lib/appwrite/email-verification";
-import { clientIp, HOUR, hitAll, MINUTE, tooManyRequests } from "@/lib/security/rate-limit";
+import { HOUR, hit, tooManyRequests } from "@/lib/security/rate-limit";
 
 interface ResendBody {
   email?: string;
@@ -24,10 +24,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Укажите email и пароль" }, { status: 400 });
   }
 
-  const limit = hitAll([
-    { key: `resend-verify:ip:${clientIp(request)}`, limit: 5, windowMs: 15 * MINUTE },
-    { key: `resend-verify:email:${email}`, limit: 3, windowMs: HOUR },
-  ]);
+  const limit = hit(`resend-verify:email:${email}`, 3, HOUR);
   if (!limit.ok) return tooManyRequests(limit.retryAfterSec);
 
   // Never build the link from the Host header (link poisoning).

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { AppwriteException } from "node-appwrite";
 import { getAdminAccount } from "@/lib/appwrite/client";
-import { clientIp, hit, MINUTE, tooManyRequests } from "@/lib/security/rate-limit";
+import { hit, MINUTE, tooManyRequests } from "@/lib/security/rate-limit";
 
 export async function POST(request: Request) {
   let body: { userId?: string; secret?: string; password?: string };
@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Недостаточно данных для сброса пароля" }, { status: 400 });
   }
 
-  const limit = hit(`reset-confirm:ip:${clientIp(request)}`, 10, 15 * MINUTE);
+  const limit = hit(`reset-confirm:user:${userId}`, 10, 15 * MINUTE);
   if (!limit.ok) return tooManyRequests(limit.retryAfterSec);
 
   if (password.length < 8 || password.length > 256) {
