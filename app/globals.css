@@ -138,27 +138,32 @@
   --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 
-  /* Аккордеон: высота раскрывается на базовой кривой (B7).
-     fill-mode: backwards удерживает только стартовое состояние: конечное
-     состояние не закрепляется, поэтому панель может вырасти, когда внутри
-     появляются результаты проверки. */
-  --animate-accordion-down: accordion-down 500ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
-  --animate-accordion-up: accordion-up 500ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  /* Аккордеон: раскрытие анимируется без изменения высоты.
+     Высота панели задаётся натурально (height: auto в открытом состоянии),
+     потому что CSS-анимация высоты зависит от таймлайна документа: в фоновой
+     вкладке он заморожен, анимация не стартует, и панель остаётся с height:0 —
+     её содержимое обрезается, а редактор кода не рисуется и не принимает ввод. */
+  --animate-accordion-down: accordion-down 200ms cubic-bezier(0.22, 1, 0.36, 1);
+  --animate-accordion-up: accordion-up 150ms cubic-bezier(0.22, 1, 0.36, 1);
 
   @keyframes accordion-down {
     from {
-      height: 0;
+      opacity: 0;
+      transform: translateY(-4px);
     }
     to {
-      height: var(--radix-accordion-content-height);
+      opacity: 1;
+      transform: none;
     }
   }
   @keyframes accordion-up {
     from {
-      height: var(--radix-accordion-content-height);
+      opacity: 1;
+      transform: none;
     }
     to {
-      height: 0;
+      opacity: 0;
+      transform: translateY(-4px);
     }
   }
 }
