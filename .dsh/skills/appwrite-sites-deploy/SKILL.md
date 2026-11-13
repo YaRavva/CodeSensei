@@ -3,7 +3,7 @@ name: appwrite-sites-deploy
 description: "Use when building and deploying a Next.js site to a self-hosted Appwrite via Appwrite Sites on Windows, especially the CodeSensei project. Covers local production build, preparing a small staging directory for a real source deployment, `appwrite sites create-deployment` from CLI (run in the background — the build takes 1-3 min and does not need to be awaited), activation, and post-deploy page verification run in the background ~3 minutes later. Triggers: deploy appwrite site, create-deployment, build nextjs for appwrite sites, self-hosted appwrite deploy, codesensei deploy."
 metadata:
   author: Ravva
-  version: "1.3.0"
+  version: "1.4.0"
 ---
 
 # Appwrite Sites Deploy (self-hosted)
@@ -68,6 +68,28 @@ Run in the repo root `C:\Users\Ravva\CodeSensei`:
 3. **Always deploy clean source code only** (~220 KB archive: `app`, `components`, `hooks`, `lib`, `types`, `public`, `scripts/appwrite`, `scripts/migrate`, `package.json`, `package-lock.json`, and core config files). OpenRuntimes builder will safely install dependencies and build on the server.
 
 Do NOT copy: `node_modules`, `.next`, `.env.local`, `.env`, `.git`, `.migration`, `scripts/test`.
+
+**CRITICAL — the tarball MUST have the project files at its ROOT, not inside a
+folder.** The builder unpacks the archive into `/usr/local/build` and runs the
+install/build command there. If the archive contains a top level directory
+(`CodeSensei-deploy/...`), the builder finds no `package.json` and the build
+fails in ~10 seconds with:
+
+```
+npm error enoent Could not read package.json: ... open '/usr/local/build/package.json'
+```
+
+Create the archive FROM INSIDE the staging dir so the entries start with `./`:
+
+```bash
+cd /c/Users/ravva/CodeSensei-deploy && tar -czf /c/Users/ravva/CodeSensei-deploy.tar.gz .
+```
+
+Check before deploying — the output must contain `./package.json`:
+
+```bash
+tar -tzf /c/Users/ravva/CodeSensei-deploy.tar.gz | grep -c "^./package.json$"
+```
 
 **CRITICAL — `proxy.ts` MUST be in staging.**
 The root `proxy.ts` (Next 16 renamed `middleware` to `proxy`) holds the CSRF
@@ -159,6 +181,19 @@ appwrite sites create-deployment --site-id codesensei --activate true --code "C:
   });"
   ```
   Статусы: `waiting` → `building` → `ready` | `failed`.
+- **Если статус `failed`, причина сборки — в поле `buildLogs` объекта деплоя.**
+  Логи `listLogs` — это запросы к рантайму, а не вывод сборки; читать их бесполезно.
+  ```bash
+  node --env-file-if-exists=.env.local -e "
+  const { Client, Sites } = require('node-appwrite');
+  const c = new Client().setEndpoint(process.env.APPWRITE_ENDPOINT).setProject(process.env.APPWRITE_PROJECT_ID).setKey(process.env.APPWRITE_API_KEY);
+  new Sites(c).getDeployment({ siteId: 'codesensei', deploymentId: '<id>' }).then(d => {
+    console.log(d.status);
+    if (d.status === 'failed') console.log(d.buildLogs.replace(/\x1b\[[0-9;]*m/g, '').slice(-3000));
+  });"
+  ```
+  Типовые причины: нет `package.json` в корне архива (см. Step 2), отсутствует
+  `postcss.config.js` или `proxy.ts` в staging.
 
 ## Step 4 — Post-deploy verification (в фоне, через 3 минуты после деплоя)
 
