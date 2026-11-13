@@ -3,7 +3,7 @@ import { AppwriteException, ID } from "node-appwrite";
 import { checkAndStoreName } from "@/lib/ai/name-checker";
 import { getAdminAccount } from "@/lib/appwrite/client";
 import { sendVerificationEmail } from "@/lib/appwrite/email-verification";
-import { ensureUserProfile } from "@/lib/appwrite/users";
+import { ensureUserProfile, getUserProfile } from "@/lib/appwrite/users";
 import { HOUR, hit, tooManyRequests } from "@/lib/security/rate-limit";
 
 interface RegisterBody {
@@ -54,12 +54,16 @@ export async function POST(request: Request) {
       name: displayName || email.split("@")[0],
     });
 
-    const profile = await ensureUserProfile(created);
+    let profile = await ensureUserProfile(created);
 
     // Имя проверяется сразу при регистрации: вердикт сохраняется в профиле,
     // и при первом входе проверять его заново не придётся. Проверяется фактическое
     // имя профиля — если ученик его не указал, там email-логин.
     const verdict = await checkAndStoreName(created.$id, profile.display_name);
+
+    // Профиль перечитывается: в ответе должен быть свежий вердикт, иначе
+    // клиент увидит состояние до проверки.
+    profile = (await getUserProfile(created.$id)) ?? profile;
 
     // Registration no longer auto-verifies: the user confirms ownership via
     // the emailed link before the first login.
