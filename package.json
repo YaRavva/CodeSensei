@@ -16,7 +16,8 @@
     "appwrite:emails": "node --env-file-if-exists=.env.local scripts/appwrite/emails.mjs",
     "appwrite:test-emails": "node --env-file-if-exists=.env.local scripts/appwrite/test-emails.mjs",
     "content:validate": "node --import tsx scripts/content/validate.ts",
-    "content:sync": "node --env-file=.env.local --import tsx scripts/content/sync.ts"
+    "content:sync": "node --env-file=.env.local --import tsx scripts/content/sync.ts",
+    "test:name-check": "node --env-file-if-exists=.env.local --import tsx scripts/test/name-check.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^6.0.0",
@@ -64,6 +65,7 @@
     "baseline-browser-mapping": "^2.11.32",
     "postcss": "^8.5.31",
     "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "yaml": "^2.9.1"
   },

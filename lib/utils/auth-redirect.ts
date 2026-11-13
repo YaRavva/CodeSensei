@@ -1,12 +1,13 @@
 import { redirect } from "next/navigation";
+import { requiresNameFix } from "@/lib/ai/name-checker";
 import type { UserProfile } from "@/types/db";
-import { isValidRussianName } from "./name-validation";
 
 /**
- * Redirects to /profile when the display name does not match the required format.
+ * Перенаправляет на страницу профиля, если имя ученика не соответствует
+ * требованиям и его нужно скорректировать.
  */
 export function checkNameAndRedirect(profile: UserProfile | null): boolean {
-  if (!isValidRussianName(profile?.display_name)) {
+  if (profile && requiresNameFix(profile)) {
     redirect("/profile");
   }
 
@@ -14,10 +15,11 @@ export function checkNameAndRedirect(profile: UserProfile | null): boolean {
 }
 
 /**
- * Chooses the landing route after authentication based on name validity.
+ * Выбирает страницу после входа: профиль, если имя нужно исправить,
+ * иначе список модулей.
  */
 export function getPostAuthRedirect(profile: UserProfile | null): string {
-  if (!isValidRussianName(profile?.display_name)) {
+  if (profile && requiresNameFix(profile)) {
     return "/profile";
   }
 

@@ -1,56 +1,55 @@
 /**
- * Проверяет, соответствует ли имя минимальным требованиям (минимум 2 слова)
- * @param name Имя для проверки
- * @returns true если имя валидно или пустое, false если имя невалидно
+ * Проверка имени по правилам русского языка.
+ *
+ * Требуемый формат — «Фамилия Имя» (например, «Петров Иван»): так ученика
+ * удобно искать по фамилии. Проверка формата выполняется без обращения к
+ * ИИ-модели; окончательный вердикт о правильности фамилии и имени выносит
+ * модель (см. lib/ai/name-checker.ts).
  */
-export function isValidName(name: string | null | undefined): boolean {
+
+const CYRILLIC_PART = /^[А-Яа-яЁё]+(?:[-'][А-Яа-яЁё]+)*$/;
+
+/** Сообщение о пустом имени: его нужно заполнить, а не исправлять. */
+export const NAME_REQUIRED_ERROR = "Укажите имя и фамилию";
+
+/**
+ * Проверяет структуру имени: ровно два слова, оба по-русски.
+ *
+ * @returns текст ошибки или null, если имя подходит по формату
+ */
+export function getNameValidationError(name: string | null | undefined): string {
   if (!name || typeof name !== "string") {
-    return true;
+    return NAME_REQUIRED_ERROR;
   }
 
   const trimmed = name.trim();
 
   if (trimmed.length === 0) {
-    return true;
+    return NAME_REQUIRED_ERROR;
   }
 
   const parts = trimmed.split(/\s+/).filter(Boolean);
 
-  if (parts.length < 2) {
-    return false;
+  if (parts.length !== 2) {
+    return "Имя должно состоять из двух слов: фамилия и имя (например: Петров Иван)";
   }
 
   for (const part of parts) {
     if (part.length < 2) {
-      return false;
+      return "Каждая часть имени должна содержать минимум 2 буквы";
     }
-  }
 
-  return true;
-}
-
-export const isValidRussianName = isValidName;
-
-/**
- * Получает сообщение об ошибке для невалидного имени
- */
-export function getNameValidationError(name: string | null | undefined): string {
-  if (!name || typeof name !== "string" || name.trim().length === 0) {
-    return "";
-  }
-
-  const trimmed = name.trim();
-  const parts = trimmed.split(/\s+/).filter(Boolean);
-
-  if (parts.length < 2) {
-    return "Имя должно содержать минимум 2 слова (например: Иван Петров или John Doe)";
-  }
-
-  for (const part of parts) {
-    if (part.length < 2) {
-      return "Каждая часть имени должна содержать минимум 2 символа";
+    if (!CYRILLIC_PART.test(part)) {
+      return "Имя и фамилия должны быть написаны по-русски, кириллицей, без цифр и латиницы";
     }
   }
 
   return "";
+}
+
+/**
+ * Соответствует ли имя формату «Фамилия Имя».
+ */
+export function isValidRussianName(name: string | null | undefined): boolean {
+  return getNameValidationError(name) === "";
 }

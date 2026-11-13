@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
+import { checkName } from "@/lib/ai/name-checker";
 import { badRequest } from "@/lib/appwrite/api";
-import { updateUserProfile } from "@/lib/appwrite/users";
+import { getUserProfile, saveNameCheckResult, updateUserProfile } from "@/lib/appwrite/users";
 import { getAuthContext } from "@/lib/utils/auth";
 import { getNameValidationError } from "@/lib/utils/name-validation";
 
@@ -40,11 +41,30 @@ export async function PATCH(request: Request) {
   }
 
   try {
-    const profile = await updateUserProfile(context.user.$id, {
+    await updateUserProfile(context.user.$id, {
       display_name: displayName,
     });
 
-    return NextResponse.json({ profile });
+    // Имя изменилось — вердикт по нему устарел, проверяем заново.
+    const verdict = await checkName(displayName);
+
+    await saveNameCheckResult(context.user.$id, {
+      status: verdict.status,
+      checkedName: displayName,
+      reason: verdict.reason || null,
+    }).catch((error) => {
+      console.error("Failed to store name check result:", error);
+    });
+
+    // Профиль перечитывается: в ответе должен быть свежий вердикт, иначе
+    // клиент увидит старое состояние и оставит баннер об ошибке имени.
+    const freshProfile = (await getUserProfile(context.user.$id)) ?? context.profile;
+
+    return NextResponse.json({
+      profile: freshProfile,
+      nameInvalid: verdict.status === "invalid",
+      nameReason: verdict.status === "invalid" ? verdict.reason : undefined,
+    });
   } catch (error) {
     console.error("Failed to update profile:", error);
     return NextResponse.json({ error: "Не удалось обновить профиль" }, { status: 500 });

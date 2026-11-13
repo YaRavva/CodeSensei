@@ -5,6 +5,7 @@ import type {
   AiGenerationLog,
   Json,
   Module,
+  NameCheckStatus,
   Task,
   TaskAttempt,
   UserAchievement,
@@ -40,6 +41,14 @@ function parseJson<T>(value: unknown, fallback: T): T {
   }
 }
 
+const NAME_CHECK_STATUSES = ["unchecked", "valid", "invalid", "unknown"] as const;
+
+function toNameCheckStatus(value: unknown): NameCheckStatus {
+  return NAME_CHECK_STATUSES.includes(value as NameCheckStatus)
+    ? (value as NameCheckStatus)
+    : "unchecked";
+}
+
 export function toUserProfile(row: Row): UserProfile {
   const data = base(row);
   return {
@@ -54,6 +63,10 @@ export function toUserProfile(row: Row): UserProfile {
     current_level: calculateLevel(Number(data.total_xp ?? 0)),
     created_at: data.created_at as string,
     last_active_at: (data.last_active_at as string | null) ?? null,
+    name_check_status: toNameCheckStatus(data.name_check_status),
+    name_checked_at: (data.name_checked_at as string | null) ?? null,
+    name_checked_name: (data.name_checked_name as string | null) ?? null,
+    name_check_reason: (data.name_check_reason as string | null) ?? null,
   };
 }
 

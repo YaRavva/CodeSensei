@@ -1,7 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server";
+import { checkAndStoreName, needsNameCheck } from "@/lib/ai/name-checker";
 import { getAdminAccount, getAdminUsers } from "@/lib/appwrite/client";
 import { sessionCookieOptions } from "@/lib/appwrite/session";
-import { ensureUserProfile } from "@/lib/appwrite/users";
+import { ensureUserProfile, getUserProfile } from "@/lib/appwrite/users";
 import { getPostAuthRedirect } from "@/lib/utils/auth-redirect";
 
 function siteOrigin(request: Request): string {
@@ -26,7 +27,14 @@ export async function GET(request: NextRequest) {
     // Read the user through the admin key: the session header alone is not
     // trusted by every Appwrite deployment, and this call must not fail here.
     const user = await getAdminUsers().get(userId);
-    const profile = await ensureUserProfile(user);
+    let profile = await ensureUserProfile(user);
+
+    // Имя из OAuth-профиля может быть в любом формате, поэтому проверяем его
+    // так же, как при входе по паролю.
+    if (needsNameCheck(profile)) {
+      await checkAndStoreName(user.$id, profile.display_name);
+      profile = (await getUserProfile(user.$id)) ?? profile;
+    }
 
     const response = NextResponse.redirect(new URL(getPostAuthRedirect(profile), origin));
 

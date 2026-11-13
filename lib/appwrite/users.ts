@@ -11,7 +11,7 @@ import {
 } from "@/lib/appwrite/db";
 import { toUserProfile } from "@/lib/appwrite/mappers";
 import { calculateLevel } from "@/lib/utils/levels";
-import type { UserProfile } from "@/types/db";
+import type { NameCheckStatus, UserProfile } from "@/types/db";
 
 export async function getUserProfile(userId: string): Promise<UserProfile | null> {
   const row = await getRowOrNull(TABLES.users, userId);
@@ -52,7 +52,7 @@ async function moveUserRows(
   table: string,
   oldId: string,
   newId: string,
-  uniqueFields: string[] = [],
+  uniqueFields: string[] = []
 ): Promise<void> {
   const rows = await listRows(table, [Query.equal("user_id", oldId)]);
 
@@ -85,7 +85,7 @@ async function moveUserRows(
  * progress and attempts attached to the account.
  */
 async function reconcileByEmail(
-  user: Pick<Models.User, "$id" | "email" | "name">,
+  user: Pick<Models.User, "$id" | "email" | "name">
 ): Promise<UserProfile | null> {
   const email = user.email?.trim();
   if (!email) return null;
@@ -96,10 +96,7 @@ async function reconcileByEmail(
   await moveUserRows(TABLES.userProgress, oldProfile.id, user.$id, ["module_id"]);
   await moveUserRows(TABLES.taskAttempts, oldProfile.id, user.$id);
   await moveUserRows(TABLES.userAchievements, oldProfile.id, user.$id, ["achievement_id"]);
-  await moveUserRows(TABLES.aiLogs, oldProfile.id, user.$id, [
-    "generation_type",
-    "created_date",
-  ]);
+  await moveUserRows(TABLES.aiLogs, oldProfile.id, user.$id, ["generation_type", "created_date"]);
 
   const row = await createRow(
     TABLES.users,
@@ -112,7 +109,7 @@ async function reconcileByEmail(
       current_level: oldProfile.current_level,
       last_active_at: oldProfile.last_active_at,
     },
-    user.$id,
+    user.$id
   );
 
   await deleteRow(TABLES.users, oldProfile.id);
@@ -120,7 +117,7 @@ async function reconcileByEmail(
 }
 
 export async function ensureUserProfile(
-  user: Pick<Models.User, "$id" | "email" | "name">,
+  user: Pick<Models.User, "$id" | "email" | "name">
 ): Promise<UserProfile> {
   const existing = await getUserProfile(user.$id);
   if (existing) return existing;
@@ -148,6 +145,27 @@ export async function updateUserProfile(
 ): Promise<UserProfile> {
   const row = await updateRow(TABLES.users, userId, patch);
   return toUserProfile(row);
+}
+
+/**
+ * Сохраняет вердикт ИИ-проверки имени вместе с именем, для которого он получен.
+ * Хранение проверяемого имени нужно, чтобы старый вердикт не блокировал ученика
+ * после того, как он исправил имя.
+ */
+export async function saveNameCheckResult(
+  userId: string,
+  result: {
+    status: NameCheckStatus;
+    checkedName: string;
+    reason?: string | null;
+  }
+): Promise<void> {
+  await updateRow(TABLES.users, userId, {
+    name_check_status: result.status,
+    name_checked_at: new Date().toISOString(),
+    name_checked_name: result.checkedName,
+    name_check_reason: result.reason ?? null,
+  });
 }
 
 export async function touchLastActive(userId: string): Promise<void> {

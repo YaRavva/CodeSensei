@@ -33,6 +33,12 @@ export interface ModuleGenerationInput {
   description?: string;
 }
 
+export interface NameCheckResult {
+  valid: boolean;
+  reason: string;
+  suggested_name?: string;
+}
+
 // ─── Утилиты ────────────────────────────────────────────────────────
 
 const difficultyNames: Record<string, string> = {
@@ -135,16 +141,22 @@ export function buildTaskGenerationPrompt(input: TaskGenerationInput): string {
   const { topic, difficulty, lessonTheory, taskType } = input;
   const diffName = difficultyNames[difficulty] ?? "среднее";
 
-  const linearRules = taskType === "linear" ? `
+  const linearRules =
+    taskType === "linear"
+      ? `
 **КРИТИЧЕСКИ ВАЖНО — ЛИНЕЙНЫЙ КОД:**
 - Стартовый код и solution_code НЕ ДОЛЖНЫ содержать \`def\`, \`return\` или определения функций
 - Не используй \`input()\`: задания выполняются в браузерном Pyodide, значения передаются как переменные
-- Тесты передают входные переменные через объект input и проверяют result или stdout` : "";
-  const classRules = taskType === "class" ? `
+- Тесты передают входные переменные через объект input и проверяют result или stdout`
+      : "";
+  const classRules =
+    taskType === "class"
+      ? `
 **КРИТИЧЕСКИ ВАЖНО — КЛАССЫ:**
 - Разрешены только методы внутри class
 - Вложенные функции и самостоятельные def вне class запрещены
-- Скрипт должен сохранить итог в переменной result` : "";
+- Скрипт должен сохранить итог в переменной result`
+      : "";
 
   return `Ты — опытный преподаватель программирования Python для школьников 7-9 классов.
 
@@ -252,6 +264,46 @@ ${description ? `- Дополнительные требования: ${clipForP
 - ТОЛЬКО валидный JSON, без markdown-разметки`;
 }
 
+// ─── Промпт: проверка имени ─────────────────────────────────────────
+
+/**
+ * Имя ученика должно быть записано по-русски в формате «Фамилия Имя»
+ * (например, «Петров Иван»): так его удобно искать по фамилии.
+ */
+export function buildNameCheckPrompt(name: string): string {
+  return `Ты — строгий, но доброжелательный лингвист. Ты проверяешь, как ученик записал своё имя в школьном тренажёре.
+
+**Требуемый формат:** «Фамилия Имя» — сначала фамилия, затем имя.
+Примеры правильного формата: «Петров Иван», «Кузнецова Мария», «Смирнов Пётр».
+
+**Проверь, что:**
+1. В имени ровно два слова: фамилия и имя.
+2. Оба слова написаны по-русски: кириллица, без латиницы и цифр.
+3. Первое слово — фамилия, второе — имя. Если слова переставлены местами (например, «Иван Петров»), это НЕ соответствует формату.
+4. Оба слова — настоящие фамилия и имя, а не псевдоним, никнейм или выдуманное слово.
+5. Имя и фамилия не пустые, без лишних пробелов и точек.
+
+**Допустимые знаки в словах:**
+- Дефис: двойные фамилии — «Иванов-Петров», «Роум-Ричардс». Это НЕ ошибка.
+- Апостроф: фамилии иноязычного происхождения — «О'Нил», «Д'Аркон». Это НЕ ошибка.
+
+**Формат ответа — строго JSON:**
+{
+  "valid": true | false,
+  "reason": "Короткое объяснение на русском, 1 предложение. Если имя верное — поясни, почему всё в порядке.",
+  "suggested_name": "Правильная запись в формате «Фамилия Имя», если имя нужно исправить; иначе пустая строка"
+}
+
+**Важно:**
+- Если хотя бы одно условие нарушено — \`"valid": false\`.
+- \`reason\` — вежливое обращение к ученику, без резких слов.
+- В \`suggested_name\` верни только имя и фамилию, без пояснений.
+- ТОЛЬКО валидный JSON, без markdown-разметки вокруг.
+
+**Имя для проверки:**
+${clipForPrompt(name)}`;
+}
+
 // ─── Парсинг ответов ────────────────────────────────────────────────
 
 /**
@@ -296,13 +348,45 @@ export function parseEvaluationResponse(content: string): EvaluationResult {
   try {
     const parsed = JSON.parse(cleaned);
     const score = typeof parsed.score === "number" ? Math.max(0, Math.min(1, parsed.score)) : 0;
-    const feedback = typeof parsed.feedback === "string" ? parsed.feedback : "Оценка недоступна. Попробуйте ещё раз.";
+    const feedback =
+      typeof parsed.feedback === "string"
+        ? parsed.feedback
+        : "Оценка недоступна. Попробуйте ещё раз.";
     return { score, feedback };
   } catch {
     return {
       score: 0,
       feedback: "Оценка недоступна. Попробуйте ещё раз.",
     };
+  }
+}
+
+/**
+ * Парсит вердикт проверки имени.
+ * Возвращает null, если ответ модели не разобран: это не «неверное имя»,
+ * а сбой проверки, и ученика нельзя блокировать по такому ответу.
+ */
+export function parseNameCheckResponse(content: string): NameCheckResult | null {
+  const cleaned = extractJsonFromMarkdown(content);
+
+  try {
+    const parsed = JSON.parse(cleaned);
+
+    if (typeof parsed?.valid !== "boolean") return null;
+
+    return {
+      valid: parsed.valid,
+      reason:
+        typeof parsed.reason === "string" && parsed.reason.trim().length > 0
+          ? parsed.reason.trim().slice(0, 250)
+          : parsed.valid
+            ? "Имя записано в нужном формате."
+            : "Имя не соответствует формату «Фамилия Имя».",
+      suggested_name:
+        typeof parsed.suggested_name === "string" ? parsed.suggested_name.trim().slice(0, 100) : "",
+    };
+  } catch {
+    return null;
   }
 }
 

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { AppwriteException, ID } from "node-appwrite";
+import { checkAndStoreName } from "@/lib/ai/name-checker";
 import { getAdminAccount } from "@/lib/appwrite/client";
 import { sendVerificationEmail } from "@/lib/appwrite/email-verification";
 import { ensureUserProfile } from "@/lib/appwrite/users";
@@ -55,6 +56,11 @@ export async function POST(request: Request) {
 
     const profile = await ensureUserProfile(created);
 
+    // Имя проверяется сразу при регистрации: вердикт сохраняется в профиле,
+    // и при первом входе проверять его заново не придётся. Проверяется фактическое
+    // имя профиля — если ученик его не указал, там email-логин.
+    const verdict = await checkAndStoreName(created.$id, profile.display_name);
+
     // Registration no longer auto-verifies: the user confirms ownership via
     // the emailed link before the first login.
     const origin = process.env.NEXT_PUBLIC_SITE_URL;
@@ -67,6 +73,8 @@ export async function POST(request: Request) {
         user: { id: created.$id, email: created.email, name: created.name },
         profile,
         verificationSent: verification.sent,
+        nameInvalid: verdict.status === "invalid",
+        nameReason: verdict.status === "invalid" ? verdict.reason : undefined,
       },
       { status: 201 }
     );

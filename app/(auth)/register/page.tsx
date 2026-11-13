@@ -16,6 +16,8 @@ import { validateEmail, validatePassword } from "@/lib/utils/validation";
 interface RegisterResponse {
   error?: string;
   verificationSent?: boolean;
+  nameInvalid?: boolean;
+  nameReason?: string;
 }
 
 const linkClass =
@@ -76,6 +78,17 @@ export default function RegisterPage() {
 
       setRegisteredEmail(email);
       setVerificationSent(!!data?.verificationSent);
+
+      if (data?.nameInvalid) {
+        toast({
+          title: "Уточните имя",
+          description:
+            data.nameReason ||
+            "Имя должно быть записано в формате «Фамилия Имя» (например: Петров Иван). Поправить его можно в профиле после входа.",
+        });
+        return;
+      }
+
       toast({
         title: "Аккаунт создан",
         description: data?.verificationSent
@@ -209,11 +222,11 @@ export default function RegisterPage() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="displayName">Полное имя (необязательно)</Label>
+                      <Label htmlFor="displayName">Фамилия и имя</Label>
                       <Input
                         id="displayName"
                         type="text"
-                        placeholder="Иван Петров или John Doe"
+                        placeholder="Петров Иван"
                         value={displayName}
                         onChange={(e) => {
                           setDisplayName(e.target.value);
@@ -240,7 +253,7 @@ export default function RegisterPage() {
                         </p>
                       )}
                       <p className="text-xs text-muted-foreground">
-                        Укажите минимум 2 слова (например: Иван Петров)
+                        Сначала фамилия, потом имя — по-русски (например: Петров Иван)
                       </p>
                     </div>
 

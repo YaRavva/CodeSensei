@@ -19,6 +19,11 @@ interface ErrorResponse {
   code?: string;
 }
 
+interface LoginResponse {
+  nameInvalid?: boolean;
+  nameReason?: string;
+}
+
 export function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -83,12 +88,29 @@ export function LoginForm() {
         return;
       }
 
+      const data = (await response.json().catch(() => null)) as LoginResponse | null;
+
+      await refreshProfile();
+
+      // Имя не соответствует формату «Фамилия Имя»: сначала просим его
+      // скорректировать, доступ к остальному сайту откроется после этого.
+      if (data?.nameInvalid) {
+        toast({
+          title: "Уточните имя",
+          description:
+            data.nameReason ||
+            "Имя должно быть записано в формате «Фамилия Имя» (например: Петров Иван)",
+        });
+        router.push("/profile");
+        router.refresh();
+        return;
+      }
+
       toast({
         title: "Вход выполнен",
         description: "Продолжаем с того места, где вы остановились",
       });
 
-      await refreshProfile();
       router.push("/modules");
       router.refresh();
     } catch (error) {

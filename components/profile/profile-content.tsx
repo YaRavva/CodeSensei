@@ -1,5 +1,6 @@
 "use client";
 
+import { AlertTriangle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { AchievementsList } from "@/components/achievements/achievements-list";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -23,6 +24,7 @@ export function ProfileContent({ initialProfile }: ProfileContentProps) {
   const [displayName, setDisplayName] = useState(initialProfile.display_name || "");
   const [loading, setLoading] = useState(false);
   const [nameError, setNameError] = useState<string | null>(null);
+  const [nameWarning, setNameWarning] = useState<string | null>(null);
   const { toast } = useToast();
 
   const currentProfile = profile || initialProfile;
@@ -33,6 +35,12 @@ export function ProfileContent({ initialProfile }: ProfileContentProps) {
     }
   }, [currentProfile.display_name]);
 
+  // Имя ждёт исправления, если модель признала его неверным и ученик его ещё
+  // не поменял.
+  const needsNameFix =
+    currentProfile.name_check_status === "invalid" &&
+    currentProfile.name_checked_name?.trim() === (currentProfile.display_name ?? "").trim();
+
   const currentLevel =
     currentProfile.current_level ??
     calculateLevelProgress(currentProfile.total_xp ?? 0).currentLevel;
@@ -41,7 +49,7 @@ export function ProfileContent({ initialProfile }: ProfileContentProps) {
     e.preventDefault();
 
     const trimmedName = displayName.trim();
-    if (trimmedName && !isValidRussianName(trimmedName)) {
+    if (!isValidRussianName(trimmedName)) {
       const errorMessage = getNameValidationError(trimmedName);
       setNameError(errorMessage);
       toast({
@@ -53,6 +61,7 @@ export function ProfileContent({ initialProfile }: ProfileContentProps) {
     }
 
     setNameError(null);
+    setNameWarning(null);
     setLoading(true);
 
     try {
@@ -63,17 +72,37 @@ export function ProfileContent({ initialProfile }: ProfileContentProps) {
         body: JSON.stringify({ display_name: trimmedName }),
       });
 
-      const data = (await response.json()) as { error?: string };
+      const data = (await response.json()) as {
+        error?: string;
+        nameInvalid?: boolean;
+        nameReason?: string;
+      };
 
       if (!response.ok) {
         throw new Error(data.error || "Не удалось обновить профиль");
+      }
+
+      await refreshProfile();
+
+      // Модель проверила имя и не приняла его: показываем, что именно нужно
+      // исправить, и оставляем ученика на странице профиля.
+      if (data.nameInvalid) {
+        const reason =
+          data.nameReason ||
+          "Имя должно быть записано в формате «Фамилия Имя» (например: Петров Иван)";
+        setNameWarning(reason);
+        toast({
+          title: "Уточните имя",
+          description: reason,
+          variant: "destructive",
+        });
+        return;
       }
 
       toast({
         title: "Профиль обновлен",
         description: "Изменения сохранены",
       });
-      await refreshProfile();
     } catch (error) {
       toast({
         title: "Ошибка",
@@ -87,6 +116,19 @@ export function ProfileContent({ initialProfile }: ProfileContentProps) {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      {needsNameFix && (
+        <div className="mb-6 flex items-start gap-3 rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive dark:border-destructive">
+          <AlertTriangle className="mt-0.5 size-5 shrink-0" aria-hidden="true" />
+          <div className="space-y-1">
+            <p className="font-semibold">Уточните, пожалуйста, ваше имя</p>
+            <p className="text-sm">
+              {currentProfile.name_check_reason ||
+                "Имя должно быть записано по-русски в формате «Фамилия Имя» (например: Петров Иван)."}{" "}
+              Исправьте его ниже — и можно будет продолжить работу над заданиями.
+            </p>
+          </div>
+        </div>
+      )}
       <div className="grid gap-6 items-start lg:grid-cols-[1fr,2fr]">
         <Card>
           <CardHeader>
@@ -156,14 +198,19 @@ export function ProfileContent({ initialProfile }: ProfileContentProps) {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="displayName">Полное имя</Label>
+                <Label htmlFor="displayName">Фамилия и имя</Label>
                 <Input
                   id="displayName"
                   type="text"
                   value={displayName}
                   onChange={(e) => {
                     setDisplayName(e.target.value);
-                    if (nameError) setNameError(null);
+                    if (nameError) {
+                      setNameError(null);
+                    }
+                    if (nameWarning) {
+                      setNameWarning(null);
+                    }
                   }}
                   onBlur={() => {
                     const trimmed = displayName.trim();
@@ -174,18 +221,25 @@ export function ProfileContent({ initialProfile }: ProfileContentProps) {
                     }
                   }}
                   disabled={loading}
-                  placeholder="Иван Петров или John Doe"
-                  className={nameError ? "border-destructive" : ""}
-                  aria-invalid={!!nameError}
-                  aria-describedby={nameError ? "name-error" : undefined}
+                  placeholder="Петров Иван"
+                  className={nameError || nameWarning ? "border-destructive" : ""}
+                  aria-invalid={!!(nameError || nameWarning)}
+                  aria-describedby={
+                    nameError ? "name-error" : nameWarning ? "name-warning" : undefined
+                  }
                 />
                 {nameError && (
                   <p id="name-error" className="text-xs text-destructive">
                     {nameError}
                   </p>
                 )}
+                {nameWarning && !nameError && (
+                  <p id="name-warning" className="text-xs text-destructive">
+                    {nameWarning}
+                  </p>
+                )}
                 <p className="text-xs text-muted-foreground">
-                  Укажите минимум 2 слова (например: Иван Петров)
+                  Сначала фамилия, потом имя — по-русски (например: Петров Иван)
                 </p>
               </div>
 

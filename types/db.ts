@@ -1,6 +1,15 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 /**
+ * Вердикт ИИ-проверки имени:
+ *   unchecked — имя ещё не проверялось;
+ *   valid     — «Фамилия Имя» по правилам русского языка;
+ *   invalid   — имя не соответствует формату, нужна правка;
+ *   unknown   — проверка не удалась (сервис недоступен), блокировки нет.
+ */
+export type NameCheckStatus = "unchecked" | "valid" | "invalid" | "unknown";
+
+/**
  * Application-level row shapes. Appwrite stores rows with technical fields
  * (`$id`, `$createdAt`, ...); the repository layer maps them to these objects.
  */
@@ -170,6 +179,10 @@ export interface Database {
           current_level: number;
           created_at: string;
           last_active_at: string | null;
+          name_check_status: NameCheckStatus;
+          name_checked_at: string | null;
+          name_checked_name: string | null;
+          name_check_reason: string | null;
         };
         Insert: {
           id: string;
@@ -181,6 +194,10 @@ export interface Database {
           current_level?: number;
           created_at?: string;
           last_active_at?: string | null;
+          name_check_status?: NameCheckStatus;
+          name_checked_at?: string | null;
+          name_checked_name?: string | null;
+          name_check_reason?: string | null;
         };
         Update: {
           id?: string;
@@ -192,6 +209,10 @@ export interface Database {
           current_level?: number;
           created_at?: string;
           last_active_at?: string | null;
+          name_check_status?: NameCheckStatus;
+          name_checked_at?: string | null;
+          name_checked_name?: string | null;
+          name_check_reason?: string | null;
         };
       };
       task_attempts: {

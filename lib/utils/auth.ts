@@ -36,7 +36,13 @@ export async function getAuthContext(): Promise<AuthContext | null> {
   return { user, profile };
 }
 
-/** Server components: redirects unauthenticated users to /login. */
+/**
+ * Server components: redirects unauthenticated users to /login.
+ *
+ * The name check is not applied here: an incorrect name must not block solving
+ * tasks and earning XP (PRD 4.1), so only the module list redirects the user
+ * to the profile page.
+ */
 export async function requireAuth(): Promise<AuthContext> {
   const context = await getAuthContext();
 

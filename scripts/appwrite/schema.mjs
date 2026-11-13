@@ -38,6 +38,13 @@ export const tables = [
       { key: "total_xp", ...INT, required: false, default: 0 },
       { key: "current_level", ...INT, required: false, default: 1 },
       { key: "last_active_at", type: "datetime", required: false },
+      // Вердикт ИИ-проверки имени в формате «Фамилия Имя».
+      { key: "name_check_status", type: "varchar", size: 16, required: false, default: "unchecked" },
+      { key: "name_checked_at", type: "datetime", required: false },
+      // Имя, для которого был получен вердикт: он отделяет старый результат
+      // от нового после изменения имени учеником.
+      { key: "name_checked_name", type: "varchar", size: 100, required: false },
+      { key: "name_check_reason", type: "varchar", size: 255, required: false },
     ],
     indexes: [
       { key: "idx_users_xp", type: "key", columns: ["total_xp"] },

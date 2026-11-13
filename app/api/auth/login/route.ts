@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { AppwriteException, type Models } from "node-appwrite";
+import { checkAndStoreName, needsNameCheck, requiresNameFix } from "@/lib/ai/name-checker";
 import { getAdminAccount, getSessionAccount } from "@/lib/appwrite/client";
 import { sessionCookieOptions } from "@/lib/appwrite/session";
-import { ensureUserProfile } from "@/lib/appwrite/users";
+import { ensureUserProfile, getUserProfile } from "@/lib/appwrite/users";
 import { hit, MINUTE, tooManyRequests } from "@/lib/security/rate-limit";
 
 interface LoginBody {
@@ -47,11 +48,29 @@ export async function POST(request: Request) {
       );
     }
 
-    const profile = await ensureUserProfile(user);
+    let profile = await ensureUserProfile(user);
+
+    // При каждом входе имя сверяется с правилом «Фамилия Имя». Вердикт из
+    // профиля переиспользуется, если имя не менялось: платить за API повторно
+    // за то же самое имя не нужно.
+    let nameInvalid = false;
+    let nameReason: string | undefined;
+
+    if (needsNameCheck(profile)) {
+      const verdict = await checkAndStoreName(user.$id, profile.display_name);
+      nameInvalid = verdict.status === "invalid";
+      nameReason = verdict.status === "invalid" ? verdict.reason : undefined;
+      profile = (await getUserProfile(user.$id)) ?? profile;
+    } else {
+      nameInvalid = requiresNameFix(profile);
+      nameReason = profile.name_check_reason ?? undefined;
+    }
 
     const response = NextResponse.json({
       user: { id: user.$id, email: user.email, name: user.name },
       profile,
+      nameInvalid,
+      nameReason,
     });
     const options = sessionCookieOptions(session.expire);
     response.cookies.set(options.name, session.secret, {
