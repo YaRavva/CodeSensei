@@ -42,9 +42,9 @@ function EmptyState({
   shortcut?: string;
 }) {
   return (
-    <div className="flex h-full min-h-[140px] flex-col items-center justify-center gap-3 rounded-xl border border-dashed p-6 text-center">
-      <span className="grid size-12 place-items-center rounded-2xl bg-primary/10 text-primary">
-        <Icon size={24} weight="duotone" />
+    <div className="flex h-full min-h-[140px] flex-col items-center justify-center gap-3 rounded-lg border p-6 text-center">
+      <span className="grid size-12 place-items-center rounded-2xl bg-muted text-muted-foreground">
+        <Icon size={24} />
       </span>
       <p className="title-3 text-foreground">{title}</p>
       <p className="max-w-[420px] caption-2 text-muted-foreground">{hint}</p>
@@ -123,12 +123,12 @@ export function ResultDock({
       return {
         text: `${tests.passedCount}/${tests.totalCount}`,
         tone: passed
-          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+          ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
           : "bg-destructive/10 text-destructive",
       };
     }
     if (id === "hint" && state?.hintData) {
-      return { text: "1", tone: "bg-amber-500/10 text-amber-600 dark:text-amber-400" };
+      return { text: "1", tone: "bg-amber-500/10 text-amber-700 dark:text-amber-400" };
     }
     if (id === "ai" && state?.feedbackData) {
       return {
@@ -199,9 +199,7 @@ export function ResultDock({
               <span className="hidden sm:inline">{label}</span>
               <span className="sm:hidden">{short}</span>
               {mark && (
-                <span
-                  className={cn("rounded-full px-1.5 font-mono caption-5 leading-4", mark.tone)}
-                >
+                <span className={cn("rounded-sm px-1.5 font-mono caption-5 leading-4", mark.tone)}>
                   {mark.text}
                 </span>
               )}
@@ -236,9 +234,7 @@ export function ResultDock({
             ) : (
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="caption-3 uppercase tracking-wider text-muted-foreground">
-                    Вывод программы
-                  </span>
+                  <span className="caption-4 text-muted-foreground">Вывод программы</span>
                   <span className="inline-flex items-center gap-1 caption-5 text-muted-foreground">
                     <Clock size={12} />
                     <span className="font-mono">{state.executionResult.executionTime} мс</span>
@@ -284,9 +280,7 @@ export function ResultDock({
               <p className="body-6 text-foreground">{state.hintData.hint}</p>
               {state.hintData.steps.length > 0 && (
                 <div className="rounded-md border bg-background p-3">
-                  <p className="mb-2 caption-3 uppercase tracking-wider text-muted-foreground">
-                    Шаги к решению
-                  </p>
+                  <p className="mb-2 caption-4 text-muted-foreground">Шаги к решению</p>
                   <ol className="space-y-1.5">
                     {state.hintData.steps.map((step, index) => (
                       <li key={step} className="flex gap-2 caption-2">
@@ -301,9 +295,9 @@ export function ResultDock({
               )}
             </div>
           ) : (
-            <div className="flex h-full min-h-[140px] flex-col items-center justify-center gap-3 rounded-xl border border-dashed p-6 text-center">
-              <span className="grid size-12 place-items-center rounded-2xl bg-primary/10 text-primary">
-                <Lightbulb size={24} weight="duotone" />
+            <div className="flex h-full min-h-[140px] flex-col items-center justify-center gap-3 rounded-lg border p-6 text-center">
+              <span className="grid size-12 place-items-center rounded-2xl bg-muted text-muted-foreground">
+                <Lightbulb size={24} />
               </span>
               <p className="title-3 text-foreground">Подсказка не запрашивалась</p>
               <p className="max-w-[420px] caption-2 text-muted-foreground">
@@ -324,7 +318,7 @@ export function ResultDock({
                   <CheckCircle
                     size={16}
                     weight="fill"
-                    className="text-emerald-600 dark:text-emerald-400"
+                    className="text-emerald-700 dark:text-emerald-400"
                   />
                   Разбор решения
                 </p>

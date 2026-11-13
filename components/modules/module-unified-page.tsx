@@ -69,14 +69,6 @@ interface ModuleUnifiedPageProps {
 
 const EASE = "duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]";
 
-function Kbd({ children }: { children: React.ReactNode }) {
-  return (
-    <kbd className="rounded-sm border px-1 font-mono caption-5 text-muted-foreground">
-      {children}
-    </kbd>
-  );
-}
-
 function ProgressRing({ value }: { value: number }) {
   const circumference = 2 * Math.PI * 14;
   return (
@@ -96,7 +88,7 @@ function ProgressRing({ value }: { value: number }) {
           className="transition-[stroke-dashoffset] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]"
         />
       </svg>
-      <span className="absolute font-mono text-[9px] font-medium text-foreground">{value}</span>
+      <span className="absolute font-mono caption-5 text-foreground">{value}</span>
     </span>
   );
 }
@@ -844,7 +836,7 @@ export function ModuleUnifiedPage({
       <div
         ref={shellRef}
         style={{ height: shellHeight ? `${shellHeight}px` : "calc(100vh - 160px)" }}
-        className="grid min-h-[560px] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden rounded-2xl border bg-card"
+        className="flex min-h-[560px] flex-col overflow-hidden rounded-2xl border bg-card"
       >
         <div className="flex h-12 shrink-0 items-center gap-2 border-b bg-card px-2 lg:hidden">
           <button
@@ -861,14 +853,14 @@ export function ModuleUnifiedPage({
           <span className="min-w-0 flex-1 truncate body-4 text-foreground">
             {mode === "theory" ? "Теория модуля" : activeTask.title}
           </span>
-          <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 font-mono caption-5 text-amber-700 dark:text-amber-400">
-            <Star size={12} weight="fill" />
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-lg border px-2 py-0.5 font-mono caption-5 text-foreground">
+            <Star size={12} weight="fill" className="text-amber-600 dark:text-amber-400" />
             {userProgress?.xpEarned ?? 0}
           </span>
           <ProgressRing value={progress} />
         </div>
 
-        <div className="relative grid min-h-0 min-w-0 grid-cols-1 overflow-hidden lg:grid-cols-[288px_minmax(0,1fr)]">
+        <div className="relative grid min-h-0 min-w-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[288px_minmax(0,1fr)]">
           <aside className="hidden min-h-0 border-r lg:block">{rail}</aside>
 
           {!isDesktop && (
@@ -944,7 +936,7 @@ export function ModuleUnifiedPage({
                         aria-selected={mobilePane === pane}
                         onClick={() => setMobilePane(pane)}
                         className={cn(
-                          "h-9 flex-1 rounded-sm button-sm transition-colors",
+                          "h-9 flex-1 rounded-sm button-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                           EASE,
                           mobilePane === pane
                             ? "bg-background text-foreground shadow-sm"
@@ -965,11 +957,11 @@ export function ModuleUnifiedPage({
                 >
                   <div className="shrink-0 border-b p-4">
                     <div className="mb-2 flex flex-wrap items-center gap-2">
-                      <span className="caption-3 uppercase tracking-wider text-muted-foreground">
+                      <span className="caption-4 text-muted-foreground">
                         Задание {activeIndex + 1} из {orderedTasks.length}
                       </span>
                       <DifficultyBadge difficulty={activeTask.difficulty} />
-                      <span className="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-3 py-0.5 font-mono caption-4 text-primary">
+                      <span className="inline-flex items-center rounded-lg border px-3 py-0.5 font-mono caption-5 text-foreground">
                         +{activeTask.xp_reward} XP
                       </span>
                     </div>
@@ -1008,8 +1000,8 @@ export function ModuleUnifiedPage({
                     <Markdown key={activeTask.id} source={activeTask.description} />
 
                     {example && (
-                      <div className="mt-5 rounded-xl border bg-background p-4">
-                        <p className="caption-3 uppercase tracking-wider text-muted-foreground">
+                      <div className="mt-5 rounded-lg border bg-background p-4">
+                        <p className="caption-4 text-muted-foreground">
                           Пример · {example.description}
                         </p>
                         {example.stdin && example.stdin.length > 0 && (
@@ -1080,10 +1072,10 @@ export function ModuleUnifiedPage({
                     )}
                   >
                     <span className="inline-flex items-center gap-2 font-mono caption-4 text-foreground">
-                      <FilePy size={16} weight="duotone" className="text-primary" />
+                      <FilePy size={16} className="text-primary" />
                       main.py
                     </span>
-                    <span className="hidden rounded-full border px-2 caption-5 text-muted-foreground sm:inline">
+                    <span className="hidden rounded-md border px-2 caption-5 text-muted-foreground sm:inline">
                       Python 3.14
                     </span>
                     <button
@@ -1204,42 +1196,6 @@ export function ModuleUnifiedPage({
               </div>
             )}
           </div>
-        </div>
-
-        <div className="flex h-8 shrink-0 items-center gap-3 overflow-hidden whitespace-nowrap border-t bg-card px-3 caption-5 text-muted-foreground">
-          <span className="flex items-center gap-1.5">
-            <span
-              className={cn(
-                "size-2 rounded-full",
-                pyodideError
-                  ? "bg-destructive"
-                  : pyodideLoading
-                    ? "bg-amber-500"
-                    : "bg-success ring-3 ring-success/20"
-              )}
-            />
-            {pyodideError
-              ? "Python не загрузился"
-              : pyodideLoading
-                ? "Загрузка Python…"
-                : "Pyodide · Python 3.14"}
-          </span>
-          {mode === "task" && (
-            <span className="mx-auto hidden items-center gap-3 lg:flex">
-              <span className="flex items-center gap-1">
-                <Kbd>Ctrl</Kbd>+<Kbd>↵</Kbd> запустить
-              </span>
-              <span className="flex items-center gap-1">
-                <Kbd>Ctrl</Kbd>+<Kbd>⇧</Kbd>+<Kbd>↵</Kbd> проверить
-              </span>
-              <span className="flex items-center gap-1">
-                <Kbd>Alt</Kbd>+<Kbd>←→</Kbd> задание
-              </span>
-            </span>
-          )}
-          <span className="ml-auto font-mono text-primary lg:ml-0">
-            {completedCount} / {tasks.length}
-          </span>
         </div>
       </div>
     </div>

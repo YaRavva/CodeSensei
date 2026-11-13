@@ -48,9 +48,9 @@ function CodeBlock({
   };
 
   return (
-    <div className="my-4 overflow-hidden rounded-xl border bg-background">
+    <div className="my-4 overflow-hidden rounded-lg border bg-background">
       <div className="flex items-center justify-between gap-2 border-b px-4 py-2">
-        <span className="caption-3 uppercase tracking-wider text-primary">{language}</span>
+        <span className="caption-4 text-muted-foreground">{language}</span>
         <button
           type="button"
           onClick={copy}
@@ -141,7 +141,9 @@ export function Markdown({
           ol: ({ children }) => <ol className="mb-3 list-decimal space-y-1 pl-6">{children}</ol>,
           hr: () => <hr className="my-6 border-border" />,
           blockquote: ({ children }) => (
-            <blockquote className="my-4 border-l-2 border-primary pl-4">{children}</blockquote>
+            <blockquote className="my-4 border-l-2 border-border pl-4 text-muted-foreground">
+              {children}
+            </blockquote>
           ),
           strong: ({ children }) => (
             <strong className="font-semibold text-foreground">{children}</strong>
@@ -157,7 +159,7 @@ export function Markdown({
             </a>
           ),
           table: ({ children }) => (
-            <div className="my-4 overflow-x-auto rounded-xl border">
+            <div className="my-4 overflow-x-auto rounded-lg border">
               <table className="w-full caption-2">{children}</table>
             </div>
           ),
@@ -176,7 +178,7 @@ export function Markdown({
             return (
               <code
                 className={cn(
-                  "rounded-sm bg-primary/10 px-1 py-0.5 font-mono text-xs font-medium text-primary",
+                  "rounded-sm bg-muted px-1 py-0.5 font-mono caption-5 text-foreground",
                   codeClassName
                 )}
                 {...rest}

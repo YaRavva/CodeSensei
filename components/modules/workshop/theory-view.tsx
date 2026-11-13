@@ -81,7 +81,7 @@ export function TheoryView({
         className="cs-scroll min-h-0 overflow-y-auto px-6 py-8 md:px-10"
       >
         <div ref={articleRef} className="mx-auto max-w-[720px]">
-          <span className="inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-3 py-1 caption-3 uppercase tracking-wider text-primary">
+          <span className="caption-3 inline-flex items-center rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-foreground">
             Теория · Уровень {level}
           </span>
           <h1 className="hero-heading-gradient heading-4 mt-4 md:heading-3">{title}</h1>
@@ -90,13 +90,13 @@ export function TheoryView({
           {(avgScore !== undefined || timeSpent !== undefined) && (
             <div className="mt-4 flex flex-wrap gap-2">
               {avgScore !== undefined && (
-                <span className="rounded-full border px-3 py-1 caption-4 text-muted-foreground">
+                <span className="caption-4 rounded-lg border px-3 py-1 text-muted-foreground">
                   Средний балл AI:{" "}
                   <span className="font-mono text-foreground">{avgScore.toFixed(0)}%</span>
                 </span>
               )}
               {timeSpent !== undefined && (
-                <span className="rounded-full border px-3 py-1 caption-4 text-muted-foreground">
+                <span className="caption-4 rounded-lg border px-3 py-1 text-muted-foreground">
                   Время в модуле:{" "}
                   <span className="font-mono text-foreground">
                     {Math.round(timeSpent / 60)} мин
@@ -112,7 +112,7 @@ export function TheoryView({
 
           <div className="mt-8 flex flex-wrap items-center gap-4 rounded-xl border bg-card p-6">
             <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-primary/10 text-primary">
-              <Rocket size={20} weight="duotone" />
+              <Rocket size={20} />
             </span>
             <div className="min-w-0 flex-1">
               <p className="title-3 text-foreground">
@@ -136,7 +136,7 @@ export function TheoryView({
         aria-label="Оглавление теории"
         className="cs-scroll hidden min-h-0 overflow-y-auto border-l p-4 xl:block"
       >
-        <p className="pb-3 caption-3 uppercase tracking-wider text-muted-foreground">
+        <p className="caption-3 pb-3 uppercase tracking-wider text-muted-foreground">
           На этой странице
         </p>
         <ul className="space-y-1">
@@ -146,10 +146,10 @@ export function TheoryView({
                 type="button"
                 onClick={() => jump(heading.id)}
                 className={cn(
-                  "w-full rounded-md border px-3 py-2 text-left caption-2 transition-colors duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "w-full rounded-md px-3 py-2 text-left caption-2 transition-colors duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   activeId === heading.id
-                    ? "border-primary/40 bg-primary/10 text-primary"
-                    : "border-transparent text-muted-foreground hover:bg-accent hover:text-foreground"
+                    ? "bg-primary/10 font-medium text-foreground"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
               >
                 {heading.text}
