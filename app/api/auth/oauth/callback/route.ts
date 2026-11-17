@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
 
   try {
     // Exchange the one-time OAuth2 token (userId + secret) for a real session.
-    const session = await getAdminAccount().createSession({ userId, secret });
+    const session = await getAdminAccount().createSession(userId, secret);
 
     // Read the user through the admin key: the session header alone is not
     // trusted by every Appwrite deployment, and this call must not fail here.
