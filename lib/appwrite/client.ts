@@ -74,12 +74,9 @@ export function getOAuthAdminAccount(): Account {
     .setProject(APPWRITE_PROJECT_ID)
     .setKey(process.env.APPWRITE_API_KEY as string);
 
-  // Belt-and-suspenders: keep the URL builder on the public domain even if a
-  // proxy would otherwise rewrite the host back to an internal address.
-  if (!publicEndpoint.includes("appwrite.ravva.su")) {
-    client.addHeader("Host", "appwrite.ravva.su");
-    client.addHeader("X-Forwarded-Proto", "https");
-  }
+  // Always force the public domain headers so Appwrite generates the correct redirect_uri
+  client.addHeader("Host", "appwrite.ravva.su");
+  client.addHeader("X-Forwarded-Proto", "https");
 
   return new Account(client);
 }
