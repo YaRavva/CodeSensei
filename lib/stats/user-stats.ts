@@ -77,7 +77,7 @@ export async function getLeaderboard(period: LeaderboardPeriod): Promise<Leaderb
       current_level: calculateLevel(profile.total_xp),
       solved_tasks: solved.get(profile.id) ?? 0,
     }))
-    .filter((entry) => !periodXp || entry.total_xp > 0)
+    .filter((entry) => entry.total_xp > 0)
     .sort((a, b) => b.total_xp - a.total_xp || b.solved_tasks - a.solved_tasks);
 
   let rank = 0;
