@@ -21,7 +21,9 @@ export function getAdminClient(): Client {
   // If using internal direct IP/proxy, ensure correct Host & Proto headers are set
   if (APPWRITE_ENDPOINT.includes("100.89.46.62") || APPWRITE_ENDPOINT.includes("172.")) {
     adminClient.addHeader("Host", "appwrite.ravva.su");
+    adminClient.addHeader("X-Forwarded-Host", "appwrite.ravva.su");
     adminClient.addHeader("X-Forwarded-Proto", "https");
+    adminClient.addHeader("X-Forwarded-Port", "443");
   }
 
   return adminClient;
@@ -69,14 +71,21 @@ export function getOAuthAdminAccount(): Account {
     ? candidate
     : process.env.APPWRITE_OAUTH_ENDPOINT || "https://appwrite.ravva.su/v1";
 
+  const targetEndpoint =
+    (APPWRITE_ENDPOINT.includes("100.89.46.62") || APPWRITE_ENDPOINT.includes("172."))
+      ? APPWRITE_ENDPOINT
+      : publicEndpoint;
+
   const client = new Client()
-    .setEndpoint(publicEndpoint)
+    .setEndpoint(targetEndpoint)
     .setProject(APPWRITE_PROJECT_ID)
     .setKey(process.env.APPWRITE_API_KEY as string);
 
   // Always force the public domain headers so Appwrite generates the correct redirect_uri
   client.addHeader("Host", "appwrite.ravva.su");
+  client.addHeader("X-Forwarded-Host", "appwrite.ravva.su");
   client.addHeader("X-Forwarded-Proto", "https");
+  client.addHeader("X-Forwarded-Port", "443");
 
   return new Account(client);
 }
@@ -96,7 +105,9 @@ export function getSessionClient(secret: string): Client {
 
   if (APPWRITE_ENDPOINT.includes("100.89.46.62") || APPWRITE_ENDPOINT.includes("172.")) {
     client.addHeader("Host", "appwrite.ravva.su");
+    client.addHeader("X-Forwarded-Host", "appwrite.ravva.su");
     client.addHeader("X-Forwarded-Proto", "https");
+    client.addHeader("X-Forwarded-Port", "443");
   }
 
   return client;
