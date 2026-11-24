@@ -3,7 +3,6 @@
 import { Loader2, Sparkles } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import type { CSSProperties } from "react";
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
@@ -443,6 +442,8 @@ export function TaskForm({ moduleId, taskId, onSuccess, onCancel }: TaskFormProp
                               className,
                               children,
                               style: _style,
+                              ref: _ref,
+                              key: _key,
                               ...rest
                             } = props;
                             const inline = !className?.includes("language-");
@@ -460,12 +461,15 @@ export function TaskForm({ moduleId, taskId, onSuccess, onCancel }: TaskFormProp
                                 PreTag="div"
                                 className="font-mono rounded-md"
                                 customStyle={{ fontFamily: "Geist Mono, monospace" }}
-                                {...(rest as any)}
+                                {...rest}
                               >
                                 {String(children).replace(/\n$/, "")}
                               </SyntaxHighlighter>
                             ) : (
-                              <code className={`font-mono ${className}`} {...(rest as any)}>
+                              <code
+                                className={className ? `font-mono ${className}` : "font-mono"}
+                                {...rest}
+                              >
                                 {children}
                               </code>
                             );

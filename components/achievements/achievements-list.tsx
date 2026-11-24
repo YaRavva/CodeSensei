@@ -52,7 +52,7 @@ export function AchievementsList({
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [initialAchievements.length]);
   if (achievements.length === 0) {
     return (
       <Card>

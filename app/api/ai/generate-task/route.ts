@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
 
     const jsonText = extractJsonFromMarkdown(generatedText.trim());
 
-    let taskData: any = null;
+    let taskData: unknown = null;
     try {
       taskData = JSON.parse(jsonText);
     } catch (parseError) {
@@ -90,12 +90,17 @@ export async function POST(request: NextRequest) {
 
     await logGeneration(userId, "task");
 
-    if (taskData && typeof taskData === "object") {
-      taskData.task_type = effectiveTaskType;
-      if (Array.isArray(taskData.test_cases)) {
-        for (const tc of taskData.test_cases) {
-          if (tc && typeof tc === "object" && !tc.verification_mode) {
-            tc.verification_mode = effectiveTaskType === "function" ? "function" : "variable";
+    if (taskData && typeof taskData === "object" && !Array.isArray(taskData)) {
+      const generated = taskData as Record<string, unknown>;
+      generated.task_type = effectiveTaskType;
+      if (Array.isArray(generated.test_cases)) {
+        for (const testCase of generated.test_cases) {
+          if (testCase && typeof testCase === "object" && !Array.isArray(testCase)) {
+            const testCaseData = testCase as Record<string, unknown>;
+            if (!testCaseData.verification_mode) {
+              testCaseData.verification_mode =
+                effectiveTaskType === "function" ? "function" : "variable";
+            }
           }
         }
       }

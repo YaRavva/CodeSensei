@@ -1,23 +1,26 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import type { PythonRunner } from "@/lib/pyodide/setup";
 import { setupPyodide } from "@/lib/pyodide/setup";
 
-// Более точные типы для Pyodide
-interface Pyodide {
-  runPython: (code: string) => any;
-  runPythonAsync: (code: string) => Promise<any>;
-  globals: any;
-  loadedPackages: { [key: string]: string } | Set<string>;
-}
+type Pyodide = PythonRunner;
 
 let pyodideCache: Pyodide | null = null;
 let loadPromise: Promise<Pyodide> | null = null;
 
 declare global {
   interface Window {
-    loadPyodide: any;
+    /** Появляется после загрузки скрипта pyodide.js с CDN. */
+    loadPyodide?: (options: { indexURL: string }) => Promise<PythonRunner>;
   }
+}
+
+const PYODIDE_INDEX_URL = "https://cdn.jsdelivr.net/pyodide/v314.0.7/full/";
+
+/** Отдельная функция: TypeScript не сужает тип свойства за её пределами. */
+function getWindowLoader() {
+  return window.loadPyodide;
 }
 
 async function loadPyodide(): Promise<Pyodide> {
@@ -37,10 +40,9 @@ async function loadPyodide(): Promise<Pyodide> {
 
     try {
       // Проверяем, загружен ли уже Pyodide
-      if (typeof window.loadPyodide === "function") {
-        const pyodideInstance = await window.loadPyodide({
-          indexURL: "https://cdn.jsdelivr.net/pyodide/v314.0.7/full/",
-        });
+      const loader = getWindowLoader();
+      if (loader) {
+        const pyodideInstance = await loader({ indexURL: PYODIDE_INDEX_URL });
 
         // stdout capture and input() from prepared lines (lib/pyodide/setup.ts)
         setupPyodide(pyodideInstance);
@@ -51,12 +53,9 @@ async function loadPyodide(): Promise<Pyodide> {
 
       // Загружаем Pyodide напрямую с CDN
       const script = document.createElement("script");
-      script.src = "https://cdn.jsdelivr.net/pyodide/v314.0.7/full/pyodide.js";
+      script.src = `${PYODIDE_INDEX_URL}pyodide.js`;
       script.async = true;
-      script.setAttribute(
-        "data-pyodide-base-url",
-        "https://cdn.jsdelivr.net/pyodide/v314.0.7/full/"
-      ); // Добавляем этот атрибут
+      script.setAttribute("data-pyodide-base-url", PYODIDE_INDEX_URL); // Добавляем этот атрибут
 
       const loadPromise = new Promise<void>((resolve, reject) => {
         script.onload = () => resolve();
@@ -67,9 +66,11 @@ async function loadPyodide(): Promise<Pyodide> {
       await loadPromise;
 
       // Теперь получаем доступ к глобальному объекту loadPyodide
-      const pyodideInstance = await window.loadPyodide({
-        indexURL: "https://cdn.jsdelivr.net/pyodide/v314.0.7/full/",
-      });
+      const loaderAfterScript = getWindowLoader();
+      if (!loaderAfterScript) {
+        throw new Error("Pyodide не загрузился: скрипт CDN не определил loadPyodide");
+      }
+      const pyodideInstance = await loaderAfterScript({ indexURL: PYODIDE_INDEX_URL });
 
       // stdout capture and input() from prepared lines (lib/pyodide/setup.ts)
       setupPyodide(pyodideInstance);

@@ -117,7 +117,11 @@ async function validateTheory(py: Py, module: ContentModule, errors: string[]) {
 
 async function validateTask(py: Py, module: ContentModule, task: ContentTask, errors: string[]) {
   const where = `задание ${task.slug} «${task.title}»`;
-  const curriculum = getCurriculumModule(module.id)!;
+  const curriculum = getCurriculumModule(module.id);
+  if (!curriculum) {
+    errors.push(`${where}: модуль ${module.id} отсутствует в программе курса`);
+    return;
+  }
   const type = curriculum.taskType;
   if (!curriculum.modes.includes(task.mode))
     errors.push(`${where}: режим ${task.mode} не подходит модулю`);

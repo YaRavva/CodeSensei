@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import type { CSSProperties } from "react";
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
@@ -101,6 +102,17 @@ export function TaskPageContent({
   const [hintData, setHintData] = useState<{ type: string; hint: string; steps: string[] } | null>(
     null
   );
+
+  // Ключи шагов строим по тексту: одинаковые шаги различаются порядковым номером
+  // повтора, а не индексом массива.
+  const hintSteps = (() => {
+    const occurrences = new Map<string, number>();
+    return (hintData?.steps ?? []).map((step) => {
+      const occurrence = occurrences.get(step) ?? 0;
+      occurrences.set(step, occurrence + 1);
+      return { step, key: occurrence === 0 ? step : `${step}#${occurrence}` };
+    });
+  })();
 
   // Состояние AI-оценки (inline)
   const [feedbackVisible, setFeedbackVisible] = useState(false);
@@ -305,7 +317,7 @@ export function TaskPageContent({
             throw new Error(`HTTP error! status: ${evalRes.status}`);
           }
           const contentType = evalRes.headers.get("content-type");
-          if (!contentType || !contentType.includes("application/json")) {
+          if (!contentType?.includes("application/json")) {
             throw new Error("Response is not JSON");
           }
           const evalJson = await evalRes.json();
@@ -405,7 +417,7 @@ export function TaskPageContent({
               throw new Error(`HTTP error! status: ${xpResponse.status}`);
             }
             const contentType = xpResponse.headers.get("content-type");
-            if (!contentType || !contentType.includes("application/json")) {
+            if (!contentType?.includes("application/json")) {
               throw new Error("Response is not JSON");
             }
             const xpData = await xpResponse.json();
@@ -525,7 +537,7 @@ export function TaskPageContent({
         throw new Error(`HTTP error! status: ${res.status}`);
       }
       const contentType = res.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
+      if (!contentType?.includes("application/json")) {
         throw new Error("Response is not JSON");
       }
       const data = await res.json();
@@ -605,8 +617,16 @@ export function TaskPageContent({
                       remarkPlugins={[remarkGfm, remarkBreaks]}
                       components={{
                         code(props) {
-                          const { node, className, children, ...rest } = props as any;
-                          const inline = !className || !className.includes("language-");
+                          const {
+                            node: _node,
+                            className,
+                            children,
+                            style: _style,
+                            ref: _ref,
+                            key: _key,
+                            ...rest
+                          } = props;
+                          const inline = !className?.includes("language-");
                           const match = /language-(\w+)/.exec(className || "");
                           const isDark =
                             mounted &&
@@ -616,7 +636,7 @@ export function TaskPageContent({
                                 window.matchMedia("(prefers-color-scheme: dark)").matches));
                           return !inline && match ? (
                             <SyntaxHighlighter
-                              style={(isDark ? oneDark : oneLight) as any}
+                              style={(isDark ? oneDark : oneLight) as Record<string, CSSProperties>}
                               language={match[1]}
                               PreTag="div"
                               className="font-mono rounded-md"
@@ -626,7 +646,10 @@ export function TaskPageContent({
                               {String(children).replace(/\n$/, "")}
                             </SyntaxHighlighter>
                           ) : (
-                            <code className={`font-mono ${className}`} {...rest}>
+                            <code
+                              className={className ? `font-mono ${className}` : "font-mono"}
+                              {...rest}
+                            >
                               {children}
                             </code>
                           );
@@ -653,7 +676,7 @@ export function TaskPageContent({
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm, remarkBreaks]}
                     components={{
-                      code({ node, inline, className, children, ...props }: any) {
+                      code({ node: _node, className, children, ...rest }) {
                         const match = /language-(\w+)/.exec(className || "");
                         const isDark =
                           mounted &&
@@ -661,10 +684,10 @@ export function TaskPageContent({
                             (theme === "system" &&
                               typeof window !== "undefined" &&
                               window.matchMedia("(prefers-color-scheme: dark)").matches));
-                        const inlineProp = (props as any).inline;
-                        return !inlineProp && match ? (
+                        const inline = !className?.includes("language-");
+                        return !inline && match ? (
                           <SyntaxHighlighter
-                            style={(isDark ? oneDark : oneLight) as any}
+                            style={(isDark ? oneDark : oneLight) as Record<string, CSSProperties>}
                             language={match[1]}
                             PreTag="div"
                             className="font-mono rounded-md"
@@ -673,7 +696,10 @@ export function TaskPageContent({
                             {String(children).replace(/\n$/, "")}
                           </SyntaxHighlighter>
                         ) : (
-                          <code className={`font-mono ${className}`} {...props}>
+                          <code
+                            className={className ? `font-mono ${className}` : "font-mono"}
+                            {...rest}
+                          >
                             {children}
                           </code>
                         );
@@ -859,8 +885,8 @@ export function TaskPageContent({
                             Шаги к решению:
                           </p>
                           <ol className="space-y-1.5">
-                            {hintData.steps.map((step, i) => (
-                              <li key={i} className="text-sm flex gap-2">
+                            {hintSteps.map(({ step, key }, i) => (
+                              <li key={key} className="text-sm flex gap-2">
                                 <span className="shrink-0 font-medium text-primary">{i + 1}.</span>
                                 <span>{step}</span>
                               </li>

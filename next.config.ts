@@ -56,7 +56,7 @@ const nextConfig: NextConfig = {
         // Игнорируем загрузку проблемных модулей для Monaco Editor
         stackframe: false,
         "error-stack-parser": false,
-      } as any;
+      };
       config.resolve.fallback = {
         ...(config.resolve.fallback || {}),
         child_process: false,

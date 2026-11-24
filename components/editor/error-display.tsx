@@ -153,7 +153,7 @@ export function ErrorDisplay({ error, code }: ErrorDisplayProps) {
                 const isErrorLine = lineNum === parsed.line;
                 return (
                   <div
-                    key={index}
+                    key={lineNum}
                     className={isErrorLine ? "bg-destructive/20 px-2 py-1 rounded" : "px-2 py-1"}
                   >
                     <span className="text-muted-foreground mr-2">

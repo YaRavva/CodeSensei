@@ -1,3 +1,4 @@
+import type { PythonRunner } from "@/lib/pyodide/setup";
 import {
   compareOutcome,
   compareOutput,
@@ -467,7 +468,7 @@ export function clearOutcome(pyodide: { runPython: (code: string) => unknown }):
 export async function runTestCase(
   userCode: string,
   testCase: PublicTestCase,
-  pyodide: any,
+  pyodide: PythonRunner,
   taskType: "linear" | "function" | "class" = "linear"
 ): Promise<TestResult> {
   const startTime = Date.now();
@@ -520,7 +521,7 @@ export async function runTestCase(
 export async function runTestSuite(
   userCode: string,
   testCases: PublicTestCase[],
-  pyodide: any,
+  pyodide: PythonRunner,
   taskType: "linear" | "function" | "class" = "linear"
 ): Promise<TestSuiteResult> {
   const startTime = Date.now();

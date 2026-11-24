@@ -66,8 +66,10 @@ def _cs_input(prompt=""):
 builtins.input = _cs_input
 `;
 
-interface PythonRunner {
+/** The part of the Pyodide API the app uses. */
+export interface PythonRunner {
   runPython: (code: string) => unknown;
+  runPythonAsync: (code: string) => Promise<unknown>;
 }
 
 export function setupPyodide(pyodide: PythonRunner): void {

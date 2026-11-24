@@ -2,6 +2,7 @@
 
 import { AchievementIcon, EARNED_ICON_TILE } from "@/components/achievements/achievement-icon";
 import { Badge } from "@/components/ui/badge";
+import type { Json } from "@/types/db";
 
 type Achievement = {
   id: string;
@@ -10,7 +11,7 @@ type Achievement = {
   icon_name: string;
   xp_reward: number;
   condition_type: string;
-  condition_value: any;
+  condition_value: Json;
   is_active: boolean;
   created_at: string;
 };

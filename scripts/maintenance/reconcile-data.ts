@@ -21,7 +21,8 @@ import { calculateXP } from "@/lib/utils/xp-calculation";
 import type { Achievement, TaskAttempt } from "@/types/db";
 import { adminTables, listAll } from "./backup";
 
-type Row = Record<string, any>;
+/** Raw Appwrite row: the columns are known only at runtime. */
+type Row = Awaited<ReturnType<typeof listAll>>[number];
 
 /** Duplicate definition id prefix → canonical achievement id. */
 const MERGE_INTO: Record<string, string> = {
@@ -259,8 +260,10 @@ async function main() {
   await run(plan.createEvents, (e) =>
     db
       .createRow({ databaseId, tableId: "xp_events", rowId: ID.unique(), data: e })
-      .catch((error: any) => {
-        if (error?.code !== 409) throw error;
+      .catch((error: unknown) => {
+        const code =
+          typeof error === "object" && error !== null && "code" in error ? error.code : undefined;
+        if (code !== 409) throw error;
       })
   );
   await run(plan.updateUsers, (u) =>

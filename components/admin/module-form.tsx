@@ -2,7 +2,6 @@
 
 import { AlertTriangle } from "lucide-react";
 import { useRouter } from "next/navigation";
-import type { CSSProperties } from "react";
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
@@ -763,6 +762,8 @@ export function ModuleForm({ moduleId, initialData }: ModuleFormProps) {
                                       className,
                                       children,
                                       style: _style,
+                                      ref: _ref,
+                                      key: _key,
                                       ...rest
                                     } = props;
                                     const inline = !className?.includes("language-");
@@ -781,12 +782,17 @@ export function ModuleForm({ moduleId, initialData }: ModuleFormProps) {
                                         PreTag="div"
                                         className="font-mono rounded-md"
                                         customStyle={{ fontFamily: "Geist Mono, monospace" }}
-                                        {...(rest as any)}
+                                        {...rest}
                                       >
                                         {String(children).replace(/\n$/, "")}
                                       </SyntaxHighlighter>
                                     ) : (
-                                      <code className={`font-mono ${className}`} {...(rest as any)}>
+                                      <code
+                                        className={
+                                          className ? `font-mono ${className}` : "font-mono"
+                                        }
+                                        {...rest}
+                                      >
                                         {children}
                                       </code>
                                     );
@@ -927,7 +933,7 @@ export function ModuleForm({ moduleId, initialData }: ModuleFormProps) {
                                               typeof window !== "undefined" &&
                                               window.matchMedia("(prefers-color-scheme: dark)")
                                                 .matches));
-                                        const inline = (props as { inline?: boolean }).inline;
+                                        const inline = !className?.includes("language-");
                                         return !inline && match ? (
                                           <SyntaxHighlighter
                                             style={isDark ? oneDark : oneLight}
@@ -939,7 +945,12 @@ export function ModuleForm({ moduleId, initialData }: ModuleFormProps) {
                                             {String(children).replace(/\n$/, "")}
                                           </SyntaxHighlighter>
                                         ) : (
-                                          <code className={`font-mono ${className}`} {...props}>
+                                          <code
+                                            className={
+                                              className ? `font-mono ${className}` : "font-mono"
+                                            }
+                                            {...props}
+                                          >
                                             {children}
                                           </code>
                                         );

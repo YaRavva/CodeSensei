@@ -3,7 +3,7 @@
 import { Menu, User as UserIcon, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -97,7 +97,10 @@ export function Navigation() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   // Закрываем мобильное меню при смене маршрута
+  const lastPathname = useRef(pathname);
   useEffect(() => {
+    if (lastPathname.current === pathname) return;
+    lastPathname.current = pathname;
     setMenuOpen(false);
   }, [pathname]);
 

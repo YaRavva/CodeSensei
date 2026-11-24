@@ -3,10 +3,10 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 const codeLines = [
-  { indent: false, text: "def greet(name):" },
-  { indent: true, text: '    return f"Hello, {name}"' },
-  { indent: false, text: "" },
-  { indent: false, text: 'print(greet("Python"))' },
+  { id: "greet-def", indent: false, text: "def greet(name):" },
+  { id: "greet-return", indent: true, text: '    return f"Hello, {name}"' },
+  { id: "greet-blank", indent: false, text: "" },
+  { id: "greet-print", indent: false, text: 'print(greet("Python"))' },
 ];
 
 export function LandingHero() {
@@ -57,7 +57,7 @@ export function LandingHero() {
           </div>
           <div className="space-y-3 bg-card p-8 font-mono text-base">
             {codeLines.map((line, index) => (
-              <div key={`${index}-${line.text}`} className={line.indent ? "flex pl-8" : "flex"}>
+              <div key={line.id} className={line.indent ? "flex pl-8" : "flex"}>
                 <span className="mr-4 select-none text-muted-foreground/40">{index + 1}</span>
                 <span className="text-foreground/90">{line.text}</span>
               </div>

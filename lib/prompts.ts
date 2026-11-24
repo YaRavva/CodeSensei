@@ -393,7 +393,7 @@ export function parseNameCheckResponse(content: string): NameCheckResult | null 
 /**
  * Пытается исправить неполный или повреждённый JSON.
  */
-export function tryFixJson(jsonText: string): any {
+export function tryFixJson(jsonText: string): unknown {
   try {
     let fixed = jsonText.replace(/,(\s*[}\]])/g, "$1");
 
