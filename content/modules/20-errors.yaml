@@ -207,52 +207,58 @@ tasks:
         expected: c
 
   - slug: t4
-    title: Проверка возраста
+    title: Своя ошибка
     difficulty: medium
     mode: function
     description: |
-      Напишите функцию `parse_age(text)`. Если `text` — не целое число, верните `не число`. Если число меньше 0 или больше 120, верните `неверный возраст`. Иначе верните возраст числом.
+      Напишите функцию `check_age(age)`. Если `age` — не целое число, меньше 0 или больше 120, нужно **сообщить об ошибке** через `raise ValueError("неверный возраст")` и перехватить её, вернув текст ошибки. Иначе верните возраст числом.
 
       **Что уже есть:** заготовка функции.
 
-      **Пример:** `parse_age("14")` возвращает `14`, а `parse_age("двести")`:
+      **Пример:** `check_age(14)` возвращает:
 
       ```text
-      не число
+      14
       ```
 
-      **Как проверим:** вызовем функцию для всех трёх случаев.
+      А `check_age(-5)` возвращает:
+
+      ```text
+      неверный возраст
+      ```
+
+      **Как проверим:** вызовем функцию для правильного возраста и для неправильного.
     starter: |
-      def parse_age(text):
-          # Превратите text в число, затем проверьте диапазон
+      def check_age(age):
+          # Если возраст не подходит — вызовите raise ValueError("неверный возраст")
+          # и перехватите ошибку в except
           pass
     solution: |
-      def parse_age(text):
+      def check_age(age):
           try:
-              age = int(text)
-          except ValueError:
-              return "не число"
-          if age < 0 or age > 120:
-              return "неверный возраст"
+              if not isinstance(age, int) or age < 0 or age > 120:
+                  raise ValueError("неверный возраст")
+          except ValueError as error:
+              return str(error)
           return age
     hints:
-      - Какую проверку нужно сделать первой — тип или диапазон?
-      - В try только age = int(text), в except ValueError — return "не число". Диапазон проверьте обычным if после try.
-      - 'Пример: try: n = int(s) except ValueError: return 0, затем if n > 10: return 10'
+      - Как проверить, что значение — целое число? Как сообщить об ошибке, а затем поймать её?
+      - В try проверьте not isinstance(age, int) или возраст вне диапазона 0–120 и вызовите raise ValueError("неверный возраст"). В except ValueError as error верните str(error).
+      - 'Пример из теории: raise ValueError("Возраст должен быть целым неотрицательным числом")'
     tests:
       - description: "14"
-        input: { text: "14" }
+        input: { age: 14 }
         expected: 14
         visible: true
-      - description: Не число
-        input: { text: двести }
-        expected: не число
+      - description: Отрицательное
+        input: { age: -5 }
+        expected: неверный возраст
       - description: Слишком много
-        input: { text: "150" }
+        input: { age: 150 }
         expected: неверный возраст
-      - description: Отрицательный
-        input: { text: "-1" }
-        expected: неверный возраст
+      - description: Ноль
+        input: { age: 0 }
+        expected: 0
 
   - slug: t5
     title: Сумма из строки с ошибками

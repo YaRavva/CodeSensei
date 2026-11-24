@@ -11,8 +11,9 @@
  * Dry run by default. Validate first (validate.ts) and take a backup (backup.ts).
  * Run: node --env-file=.env.local --import tsx scripts/content/sync.ts [--apply]
  */
-import { getCurriculumModule, XP_BY_DIFFICULTY } from "@/lib/curriculum";
+
 import { taskId } from "@/lib/content/schema";
+import { getCurriculumModule, XP_BY_DIFFICULTY } from "@/lib/curriculum";
 import { adminTables, listAll } from "../maintenance/backup";
 import { loadContent, toTestCases } from "./load";
 
@@ -37,7 +38,13 @@ async function main() {
   const attemptedTasks = new Set(attempts.map((row) => row.task_id as string));
   const contentIds = new Set(content.map((module) => module.id));
 
-  const plan: { table: string; id: string; action: "create" | "update"; data: Row; keys: string[] }[] = [];
+  const plan: {
+    table: string;
+    id: string;
+    action: "create" | "update";
+    data: Row;
+    keys: string[];
+  }[] = [];
   const deletions: string[] = [];
   const kept: string[] = [];
 
@@ -54,7 +61,14 @@ async function main() {
       created_by: "system",
     };
     const keys = changedKeys(moduleById.get(module.id), data);
-    if (keys.length) plan.push({ table: "modules", id: module.id, action: moduleById.has(module.id) ? "update" : "create", data, keys });
+    if (keys.length)
+      plan.push({
+        table: "modules",
+        id: module.id,
+        action: moduleById.has(module.id) ? "update" : "create",
+        data,
+        keys,
+      });
 
     const contentTaskIds = new Set<string>();
     module.tasks.forEach((task, index) => {
@@ -69,36 +83,62 @@ async function main() {
         test_cases: JSON.stringify(toTestCases(module, task.slug)),
         xp_reward: XP_BY_DIFFICULTY[task.difficulty],
         difficulty: task.difficulty,
-        hints: JSON.stringify(task.hints.map((text, level) => ({ id: `hint_${level + 1}`, level: level + 1, text }))),
+        hints: JSON.stringify(
+          task.hints.map((text, level) => ({ id: `hint_${level + 1}`, level: level + 1, text }))
+        ),
         order_index: index + 1,
         variant_number: null,
         task_type: meta.taskType,
       };
       const taskKeys = changedKeys(taskById.get(id), taskData);
-      if (taskKeys.length) plan.push({ table: "tasks", id, action: taskById.has(id) ? "update" : "create", data: taskData, keys: taskKeys });
+      if (taskKeys.length)
+        plan.push({
+          table: "tasks",
+          id,
+          action: taskById.has(id) ? "update" : "create",
+          data: taskData,
+          keys: taskKeys,
+        });
     });
 
-    for (const row of tasks.filter((item) => item.module_id === module.id && !contentTaskIds.has(item.$id))) {
+    for (const row of tasks.filter(
+      (item) => item.module_id === module.id && !contentTaskIds.has(item.$id)
+    )) {
       (attemptedTasks.has(row.$id) ? kept : deletions).push(row.$id);
     }
   }
 
   for (const row of modules.filter((item) => !contentIds.has(item.$id) && item.is_published)) {
-    plan.push({ table: "modules", id: row.$id, action: "update", data: { is_published: false }, keys: ["is_published"] });
+    plan.push({
+      table: "modules",
+      id: row.$id,
+      action: "update",
+      data: { is_published: false },
+      keys: ["is_published"],
+    });
   }
 
-  const count = (table: string, action: string) => plan.filter((p) => p.table === table && p.action === action).length;
-  console.log(`Модули: создать ${count("modules", "create")}, обновить ${count("modules", "update")}`);
-  console.log(`Задания: создать ${count("tasks", "create")}, обновить ${count("tasks", "update")}, удалить ${deletions.length}, оставить (есть попытки) ${kept.length}`);
-  for (const p of plan.filter((item) => item.action === "update")) console.log(`  ~ ${p.table}/${p.id}: ${p.keys.join(", ")}`);
+  const count = (table: string, action: string) =>
+    plan.filter((p) => p.table === table && p.action === action).length;
+  console.log(
+    `Модули: создать ${count("modules", "create")}, обновить ${count("modules", "update")}`
+  );
+  console.log(
+    `Задания: создать ${count("tasks", "create")}, обновить ${count("tasks", "update")}, удалить ${deletions.length}, оставить (есть попытки) ${kept.length}`
+  );
+  for (const p of plan.filter((item) => item.action === "update"))
+    console.log(`  ~ ${p.table}/${p.id}: ${p.keys.join(", ")}`);
   if (!APPLY) {
     console.log("\nПробный запуск. Для применения добавьте --apply");
     return;
   }
 
   // Modules first so tasks never point to a missing module.
-  for (const p of [...plan].sort((a, b) => (a.table === "modules" ? -1 : 0) - (b.table === "modules" ? -1 : 0))) {
-    if (p.action === "create") await db.createRow({ databaseId, tableId: p.table, rowId: p.id, data: p.data });
+  for (const p of [...plan].sort(
+    (a, b) => (a.table === "modules" ? -1 : 0) - (b.table === "modules" ? -1 : 0)
+  )) {
+    if (p.action === "create")
+      await db.createRow({ databaseId, tableId: p.table, rowId: p.id, data: p.data });
     else await db.updateRow({ databaseId, tableId: p.table, rowId: p.id, data: p.data });
   }
   for (const id of deletions) await db.deleteRow({ databaseId, tableId: "tasks", rowId: id });

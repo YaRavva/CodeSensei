@@ -1,21 +1,26 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "yaml";
-import { CURRICULUM, getCurriculumModule } from "@/lib/curriculum";
 import { type ContentModule, moduleSchema, taskId } from "@/lib/content/schema";
+import { CURRICULUM, getCurriculumModule } from "@/lib/curriculum";
 import type { TestCase } from "@/types/test-case";
 
 export const CONTENT_DIR = join(process.cwd(), "content", "modules");
 
 export function loadContent(): ContentModule[] {
-  const files = readdirSync(CONTENT_DIR).filter((file) => file.endsWith(".yaml")).sort();
+  const files = readdirSync(CONTENT_DIR)
+    .filter((file) => file.endsWith(".yaml"))
+    .sort();
   const modules = files.map((file) => {
     const raw = parse(readFileSync(join(CONTENT_DIR, file), "utf8"));
     const parsed = moduleSchema.safeParse(raw);
     if (!parsed.success) {
-      throw new Error(`${file}: ${parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ")}`);
+      throw new Error(
+        `${file}: ${parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ")}`
+      );
     }
-    if (!getCurriculumModule(parsed.data.id)) throw new Error(`${file}: unknown module id ${parsed.data.id}`);
+    if (!getCurriculumModule(parsed.data.id))
+      throw new Error(`${file}: unknown module id ${parsed.data.id}`);
     return parsed.data;
   });
   const order = new Map(CURRICULUM.map((m) => [m.id, m.order]));

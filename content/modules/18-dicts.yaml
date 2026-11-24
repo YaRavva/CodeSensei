@@ -215,17 +215,15 @@ tasks:
           pass
     solution: |
       def most_expensive(prices):
-          best = ""
-          best_price = -1
+          best_price = max(prices.values())
           for item, price in prices.items():
-              if price > best_price:
-                  best = item
-                  best_price = price
-          return best
+              if price == best_price:
+                  return item
+          return ""
     hints:
-      - Что нужно запоминать, пока перебираете товары?
-      - Храните лучший товар и его цену. Перебирайте prices.items() и обновляйте их, если цена больше.
-      - 'Самый старший: oldest = "", best = -1, for name, age in ages.items(): if age > best: …'
+      - Как узнать наибольшую цену, не перебирая товары? Как потом найти товар с такой ценой?
+      - Наибольшая цена — max(prices.values()). Затем переберите prices.items() и верните тот товар, у которого цена равна найденной.
+      - 'Пример из теории: print(sum(ages.values()))'
     tests:
       - description: Сыр дороже всех
         input: { prices: { хлеб: 50, сыр: 300, молоко: 90 } }

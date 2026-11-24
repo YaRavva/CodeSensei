@@ -81,8 +81,11 @@ def _cs_features(code):
             found.add("not")
         elif isinstance(node, _cs_ast.Compare):
             found.add("compare")
-            if any(isinstance(op, (_cs_ast.In, _cs_ast.NotIn)) for op in node.ops):
+            ops = {type(op) for op in node.ops}
+            if _cs_ast.In in ops:
                 found.add("in")
+            if _cs_ast.NotIn in ops:
+                found.add("not in")
     return _cs_json.dumps(sorted(found))
 `;
 

@@ -73,78 +73,78 @@ theory: |
   ```
 tasks:
   - slug: t1
-    title: От короткого к длинному
+    title: Только длинные слова
     difficulty: easy
     mode: function
     description: |
-      Напишите функцию `by_length(words)`, которая возвращает слова из списка `words`, отсортированные по длине от короткого к длинному. Слова одинаковой длины остаются в исходном порядке.
+      Напишите функцию `long_words(words, n)`, которая возвращает только те слова списка `words`, у которых длина больше `n`. Используйте `filter`.
 
       **Что уже есть:** заготовка функции.
 
-      **Пример:** `by_length(["яблоко", "кот", "груша"])` возвращает:
+      **Пример:** `long_words(["яблоко", "кот", "груша"], 4)` возвращает:
 
       ```text
-      ['кот', 'груша', 'яблоко']
+      ['яблоко', 'груша']
       ```
 
-      **Как проверим:** вызовем функцию для разных списков.
+      **Как проверим:** вызовем функцию для разных списков и разных `n`.
     starter: |
-      def by_length(words):
-          # sorted(..., key=...)
+      def long_words(words, n):
+          # list(filter(...))
           pass
     solution: |
-      def by_length(words):
-          return sorted(words, key=len)
+      def long_words(words, n):
+          return list(filter(lambda w: len(w) > n, words))
     hints:
-      - По какому признаку нужно сравнивать слова и какая функция его вычисляет?
-      - Передайте в sorted параметр key=len — тогда слова сравниваются по длине.
-      - 'Пример: sorted(nums, key=abs) сортирует числа по модулю'
+      - Какая функция-фильтр пропустит только подходящие слова? Как задать условие прямо в ней?
+      - 'Передайте в filter функцию lambda w: len(w) > n, а результат превратите в список через list(...).'
+      - 'Пример: list(filter(lambda x: x % 2 == 1, nums))'
     tests:
       - description: яблоко, кот, груша
-        input: { words: [яблоко, кот, груша] }
-        expected: [кот, груша, яблоко]
+        input: { words: [яблоко, кот, груша], n: 4 }
+        expected: [яблоко, груша]
         visible: true
-      - description: Одинаковые длины
-        input: { words: [бык, кот, я] }
-        expected: [я, бык, кот]
-      - description: Один элемент
-        input: { words: [слово] }
+      - description: Ничего не подходит
+        input: { words: [бык, кот, я], n: 5 }
+        expected: []
+      - description: Подходит всё
+        input: { words: [слово], n: 0 }
         expected: [слово]
 
   - slug: t2
-    title: Все положительные
+    title: Хорошие числа
     difficulty: easy
     mode: function
     description: |
-      Напишите функцию `all_positive(nums)`, которая возвращает `True`, если все числа в списке `nums` больше нуля, и `False` в остальных случаях.
+      Напишите функцию `check_nums(nums)`, которая возвращает `True`, если все числа в списке `nums` положительные и среди них нет числа 100. Иначе — `False`.
 
       **Что уже есть:** заготовка функции.
 
-      **Пример:** `all_positive([3, 1, 7])` возвращает:
+      **Пример:** `check_nums([3, 12, 7])` возвращает:
 
       ```text
       True
       ```
 
-      **Как проверим:** вызовем функцию для списков с нулём, отрицательными и только положительными числами.
+      **Как проверим:** вызовем функцию для списков с нулём, с сотней и с обычными числами.
     starter: |
-      def all_positive(nums):
-          # Используйте all(...)
+      def check_nums(nums):
+          # Используйте all(...) и any(...)
           pass
     solution: |
-      def all_positive(nums):
-          return all(x > 0 for x in nums)
+      def check_nums(nums):
+          return all(x > 0 for x in nums) and not any(x == 100 for x in nums)
     hints:
-      - Какая встроенная функция проверяет, что условие верно для всех элементов?
-      - Внутри all запишите генератор x > 0 for x in nums.
+      - Как проверить, что условие верно для всех элементов, а как — что хотя бы для одного?
+      - all(x > 0 for x in nums) проверяет, что все числа положительные. any(x == 100 for x in nums) ищет сотню — если она есть, ответ должен быть False.
       - 'Пример: any(w == "да" for w in words)'
     tests:
-      - description: "[3, 1, 7]"
-        input: { nums: [3, 1, 7] }
+      - description: "[3, 12, 7]"
+        input: { nums: [3, 12, 7] }
         expected: true
         visible: true
-      - description: Есть отрицательное
-        input: { nums: [3, -1, 7] }
+      - description: Есть сотня
+        input: { nums: [3, 100, 7] }
         expected: false
       - description: Есть ноль
         input: { nums: [0, 5] }
