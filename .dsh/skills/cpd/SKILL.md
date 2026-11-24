@@ -39,8 +39,8 @@ for confirmation, and do not stop between steps unless a step actually fails.
 Follow the project's `appwrite-sites-deploy` skill; load it before touching the deploy.
 The short form:
 
-1. `pnpm tsc --noEmit` — must be clean.
-2. `pnpm next build` — must succeed. **If the build fails, stop and report; never
+1. `bun run typecheck` — must be clean.
+2. `bun run build` — must succeed. **If the build fails, stop and report; never
    deploy a broken build.**
 3. Stage clean source into `C:\Users\Ravva\CodeSensei-deploy`, excluding
    `node_modules`, `.next`, `.env.local`, `.git`.

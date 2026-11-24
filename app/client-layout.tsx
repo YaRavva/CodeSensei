@@ -3,8 +3,8 @@
 import "./globals.css";
 import type React from "react";
 import { useEffect } from "react";
-import { BackgroundLogo } from "@/components/background-logo";
 import { AuthProvider } from "@/components/auth/auth-provider";
+import { BackgroundLogo } from "@/components/background-logo";
 import { Footer } from "@/components/footer";
 import { Layout } from "@/components/layout";
 import { Navigation } from "@/components/navigation";

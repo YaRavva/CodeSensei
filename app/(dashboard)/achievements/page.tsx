@@ -66,7 +66,7 @@ export default async function AchievementsPage() {
             </div>
             {merged.length === 0 ? (
               <p className="text-muted-foreground">
-                Достижения пока не настроены. Запустите <code>pnpm appwrite:seed</code>, чтобы
+                Достижения пока не настроены. Запустите <code>bun run appwrite:seed</code>, чтобы
                 добавить стандартный набор.
               </p>
             ) : (

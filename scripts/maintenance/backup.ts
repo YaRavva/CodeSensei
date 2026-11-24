@@ -7,8 +7,16 @@ import { join } from "node:path";
 import { Client, Query, TablesDB } from "node-appwrite";
 
 const TABLES = [
-  "users", "modules", "tasks", "user_progress", "task_attempts", "achievements",
-  "user_achievements", "xp_events", "hint_events", "ai_generation_logs",
+  "users",
+  "modules",
+  "tasks",
+  "user_progress",
+  "task_attempts",
+  "achievements",
+  "user_achievements",
+  "xp_events",
+  "hint_events",
+  "ai_generation_logs",
 ];
 
 export function adminTables(): TablesDB {
@@ -49,5 +57,8 @@ async function main() {
 }
 
 if (process.argv[1]?.endsWith("backup.ts")) {
-  main().catch((error) => { console.error(error); process.exit(1); });
+  main().catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
 }

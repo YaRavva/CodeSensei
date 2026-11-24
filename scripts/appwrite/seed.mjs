@@ -6,7 +6,7 @@
  * modules and tasks are only created when missing (to not overwrite content).
  *
  * Usage:
- *   pnpm appwrite:seed
+ *   bun run appwrite:seed
  */
 
 import { Client, TablesDB } from "node-appwrite";

@@ -15,7 +15,7 @@
       "!**/build",
       "!**/testsprite_tests",
       "!**/.tmp",
-      "!**/pnpm-lock.yaml"
+      "!**/bun.lock"
     ]
   },
   "formatter": {

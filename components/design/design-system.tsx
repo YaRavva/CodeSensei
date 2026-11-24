@@ -27,8 +27,8 @@ import {
   Star,
   Target,
   Terminal,
-  Textbox,
   TextAa,
+  Textbox,
   Trophy,
   Warning,
 } from "@phosphor-icons/react";
@@ -36,7 +36,12 @@ import Link from "next/link";
 import { type ComponentType, type ReactNode, useEffect, useRef, useState } from "react";
 import { ScrollReveal } from "@/components/landing/scroll-reveal";
 import { ModuleCard } from "@/components/modules/module-card";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -58,7 +63,10 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import type { Module } from "@/types/db";
 
-type IconType = ComponentType<{ className?: string; weight?: "regular" | "bold" | "fill" | "duotone" }>;
+type IconType = ComponentType<{
+  className?: string;
+  weight?: "regular" | "bold" | "fill" | "duotone";
+}>;
 
 const EASE = "ease-[cubic-bezier(0.22,1,0.36,1)]";
 
@@ -147,7 +155,9 @@ function Section({
       <ScrollReveal>
         <div className="mb-8 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div className="max-w-[680px] space-y-2">
-            <span className="caption-3 font-mono text-primary">{String(index).padStart(2, "0")}</span>
+            <span className="caption-3 font-mono text-primary">
+              {String(index).padStart(2, "0")}
+            </span>
             <h2 className="heading-4 tracking-tight">{title}</h2>
             <p className="body-6 text-muted-foreground">{description}</p>
           </div>
@@ -163,7 +173,9 @@ function Panel({ className, children }: { className?: string; children: ReactNod
 }
 
 function PanelLabel({ children }: { children: ReactNode }) {
-  return <p className="caption-3 mb-4 uppercase tracking-wider text-muted-foreground">{children}</p>;
+  return (
+    <p className="caption-3 mb-4 uppercase tracking-wider text-muted-foreground">{children}</p>
+  );
 }
 
 function CopyChip({ value }: { value: string }) {
@@ -337,7 +349,9 @@ function useCssVar(name: string): string {
   const [value, setValue] = useState("");
   useEffect(() => {
     const read = () =>
-      setValue(toHex(getComputedStyle(document.documentElement).getPropertyValue(`--${name}`).trim()));
+      setValue(
+        toHex(getComputedStyle(document.documentElement).getPropertyValue(`--${name}`).trim())
+      );
     read();
     const mo = new MutationObserver(read);
     mo.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
@@ -383,7 +397,12 @@ function Colors() {
           <PanelLabel>Графики</PanelLabel>
           <div className="flex h-16 overflow-hidden rounded-xl">
             {CHARTS.map((c) => (
-              <div key={c} className="flex-1" style={{ background: `var(--${c})` }} title={`--${c}`} />
+              <div
+                key={c}
+                className="flex-1"
+                style={{ background: `var(--${c})` }}
+                title={`--${c}`}
+              />
             ))}
           </div>
           <div className="mt-3 flex justify-between">
@@ -399,8 +418,13 @@ function Colors() {
           <div className="grid grid-cols-6 gap-2">
             {DARK_SURFACES.map((hex) => (
               <div key={hex} className="space-y-2">
-                <div className="h-16 rounded-xl border border-white/10" style={{ background: hex }} />
-                <p className="caption-5 truncate text-center font-mono text-muted-foreground">{hex}</p>
+                <div
+                  className="h-16 rounded-xl border border-white/10"
+                  style={{ background: hex }}
+                />
+                <p className="caption-5 truncate text-center font-mono text-muted-foreground">
+                  {hex}
+                </p>
               </div>
             ))}
           </div>
@@ -420,10 +444,30 @@ const TYPE_GROUPS: { id: string; label: string; styles: TextStyle[] }[] = [
     label: "Heading",
     styles: [
       { name: "Heading 1", cls: "heading-1", spec: "60 / 60 · Semibold", sample: "Решай задачи" },
-      { name: "Heading 2", cls: "heading-2", spec: "48 / 48 · Semibold", sample: "Уровень пройден" },
-      { name: "Heading 3", cls: "heading-3", spec: "36 / 40 · Semibold", sample: "Циклы и условия" },
-      { name: "Heading 4", cls: "heading-4", spec: "30 / 36 · Semibold", sample: "Словари и множества" },
-      { name: "Heading 5", cls: "heading-5", spec: "24 / 32 · Semibold", sample: "Рекурсия в Python" },
+      {
+        name: "Heading 2",
+        cls: "heading-2",
+        spec: "48 / 48 · Semibold",
+        sample: "Уровень пройден",
+      },
+      {
+        name: "Heading 3",
+        cls: "heading-3",
+        spec: "36 / 40 · Semibold",
+        sample: "Циклы и условия",
+      },
+      {
+        name: "Heading 4",
+        cls: "heading-4",
+        spec: "30 / 36 · Semibold",
+        sample: "Словари и множества",
+      },
+      {
+        name: "Heading 5",
+        cls: "heading-5",
+        spec: "24 / 32 · Semibold",
+        sample: "Рекурсия в Python",
+      },
       { name: "Heading 6", cls: "heading-6", spec: "20 / 28 · Semibold", sample: "Задание 3 из 6" },
     ],
   },
@@ -442,19 +486,54 @@ const TYPE_GROUPS: { id: string; label: string; styles: TextStyle[] }[] = [
     id: "body",
     label: "Body",
     styles: [
-      { name: "Body 1", cls: "body-1", spec: "16 / 24 · Semibold", sample: "Функция возвращает сумму чисел." },
-      { name: "Body 2", cls: "body-2", spec: "16 / 24 · Medium", sample: "Функция возвращает сумму чисел." },
-      { name: "Body 3", cls: "body-3", spec: "16 / 24 · Regular", sample: "Функция возвращает сумму чисел." },
-      { name: "Body 4", cls: "body-4", spec: "14 / 20 · Semibold", sample: "Цикл повторяется, пока условие истинно." },
-      { name: "Body 5", cls: "body-5", spec: "14 / 20 · Medium", sample: "Цикл повторяется, пока условие истинно." },
-      { name: "Body 6", cls: "body-6", spec: "14 / 20 · Regular", sample: "Цикл повторяется, пока условие истинно." },
+      {
+        name: "Body 1",
+        cls: "body-1",
+        spec: "16 / 24 · Semibold",
+        sample: "Функция возвращает сумму чисел.",
+      },
+      {
+        name: "Body 2",
+        cls: "body-2",
+        spec: "16 / 24 · Medium",
+        sample: "Функция возвращает сумму чисел.",
+      },
+      {
+        name: "Body 3",
+        cls: "body-3",
+        spec: "16 / 24 · Regular",
+        sample: "Функция возвращает сумму чисел.",
+      },
+      {
+        name: "Body 4",
+        cls: "body-4",
+        spec: "14 / 20 · Semibold",
+        sample: "Цикл повторяется, пока условие истинно.",
+      },
+      {
+        name: "Body 5",
+        cls: "body-5",
+        spec: "14 / 20 · Medium",
+        sample: "Цикл повторяется, пока условие истинно.",
+      },
+      {
+        name: "Body 6",
+        cls: "body-6",
+        spec: "14 / 20 · Regular",
+        sample: "Цикл повторяется, пока условие истинно.",
+      },
     ],
   },
   {
     id: "button",
     label: "Button",
     styles: [
-      { name: "Button lg", cls: "button-lg", spec: "18 / 28 · Semibold", sample: "Начать обучение" },
+      {
+        name: "Button lg",
+        cls: "button-lg",
+        spec: "18 / 28 · Semibold",
+        sample: "Начать обучение",
+      },
       { name: "Button md", cls: "button-md", spec: "16 / 24 · Semibold", sample: "Запустить код" },
       { name: "Button sm", cls: "button-sm", spec: "14 / 20 · Semibold", sample: "Подсказка" },
       { name: "Button Xsm", cls: "button-xsm", spec: "12 / 16 · Semibold", sample: "Сбросить" },
@@ -464,8 +543,18 @@ const TYPE_GROUPS: { id: string; label: string; styles: TextStyle[] }[] = [
     id: "caption",
     label: "Caption",
     styles: [
-      { name: "Caption 1", cls: "caption-1", spec: "14 / 20 · Medium", sample: "Обновлено 12 октября" },
-      { name: "Caption 2", cls: "caption-2", spec: "14 / 20 · Regular", sample: "Минимум 8 символов" },
+      {
+        name: "Caption 1",
+        cls: "caption-1",
+        spec: "14 / 20 · Medium",
+        sample: "Обновлено 12 октября",
+      },
+      {
+        name: "Caption 2",
+        cls: "caption-2",
+        spec: "14 / 20 · Regular",
+        sample: "Минимум 8 символов",
+      },
       { name: "Caption 3", cls: "caption-3", spec: "12 / 16 · Semibold", sample: "+20 XP" },
       { name: "Caption 4", cls: "caption-4", spec: "12 / 16 · Medium", sample: "6 заданий" },
       { name: "Caption 5", cls: "caption-5", spec: "12 / 16 · Regular", sample: "4.8 сек" },
@@ -483,7 +572,9 @@ function Typography() {
             <div>
               <p className="heading-1 leading-none tracking-tight">Aa</p>
               <p className="title-1 mt-4">Manrope</p>
-              <p className="caption-2 text-muted-foreground">Regular 400 · Medium 500 · Semibold 600 · Bold 700</p>
+              <p className="caption-2 text-muted-foreground">
+                Regular 400 · Medium 500 · Semibold 600 · Bold 700
+              </p>
             </div>
             <p className="body-3 max-w-xs text-muted-foreground">
               АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЭЮЯ
@@ -509,7 +600,11 @@ function Typography() {
           <div className="border-b p-3">
             <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 bg-transparent p-0">
               {TYPE_GROUPS.map((g) => (
-                <TabsTrigger key={g.id} value={g.id} className="rounded-lg data-[state=active]:bg-muted">
+                <TabsTrigger
+                  key={g.id}
+                  value={g.id}
+                  className="rounded-lg data-[state=active]:bg-muted"
+                >
                   {g.label}
                 </TabsTrigger>
               ))}
@@ -519,7 +614,10 @@ function Typography() {
             <TabsContent key={g.id} value={g.id} className="m-0">
               <ul className="divide-y">
                 {g.styles.map((s) => (
-                  <li key={s.cls} className="grid items-center gap-2 px-6 py-4 md:grid-cols-[200px_1fr]">
+                  <li
+                    key={s.cls}
+                    className="grid items-center gap-2 px-6 py-4 md:grid-cols-[200px_1fr]"
+                  >
                     <div className="space-y-1">
                       <p className="title-4">{s.name}</p>
                       <p className="caption-5 font-mono text-muted-foreground">
@@ -566,7 +664,10 @@ function Spacing() {
             <li key={token} className="grid grid-cols-[88px_40px_1fr] items-center gap-3">
               <span className="caption-4 font-mono">spacing-{token}</span>
               <span className="caption-5 font-mono text-muted-foreground">{px}px</span>
-              <span className="block h-3 rounded-sm bg-primary/80" style={{ width: px === 0 ? 1 : `${(px / 96) * 100}%` }} />
+              <span
+                className="block h-3 rounded-sm bg-primary/80"
+                style={{ width: px === 0 ? 1 : `${(px / 96) * 100}%` }}
+              />
             </li>
           ))}
         </ul>
@@ -607,7 +708,9 @@ function Radius() {
         <div className="grid grid-cols-4 gap-4 sm:grid-cols-7">
           {RADII.map(([cls, px]) => (
             <div key={cls} className="space-y-2 text-center">
-              <div className={cn("mx-auto size-16 border-2 border-primary/70 bg-primary/10", cls)} />
+              <div
+                className={cn("mx-auto size-16 border-2 border-primary/70 bg-primary/10", cls)}
+              />
               <p className="caption-4 font-mono">{cls.replace("rounded-", "")}</p>
               <p className="caption-5 font-mono text-muted-foreground">{px}</p>
             </div>
@@ -669,7 +772,9 @@ function Icons() {
               className={cn(
                 "caption-4 rounded-lg px-3 py-1 transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 EASE,
-                weight === w ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"
+                weight === w
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-muted"
               )}
             >
               {w}
@@ -687,7 +792,9 @@ function Icons() {
             )}
           >
             <Icon className="size-6" weight={weight} />
-            <span className="caption-5 w-full truncate text-center text-muted-foreground">{name}</span>
+            <span className="caption-5 w-full truncate text-center text-muted-foreground">
+              {name}
+            </span>
           </div>
         ))}
       </div>
@@ -715,7 +822,9 @@ function Motion() {
             { label: "linear, не используется", cls: "ease-linear", good: false },
           ].map((row) => (
             <div key={row.label} className="space-y-2">
-              <p className={cn("caption-4", row.good ? "text-foreground" : "text-muted-foreground")}>
+              <p
+                className={cn("caption-4", row.good ? "text-foreground" : "text-muted-foreground")}
+              >
                 {row.label}
               </p>
               <div className="relative h-10 overflow-hidden rounded-xl border bg-background">
@@ -727,7 +836,10 @@ function Motion() {
                   )}
                 >
                   <span
-                    className={cn("size-8 rounded-lg", row.good ? "bg-primary" : "bg-muted-foreground/40")}
+                    className={cn(
+                      "size-8 rounded-lg",
+                      row.good ? "bg-primary" : "bg-muted-foreground/40"
+                    )}
                   />
                 </div>
               </div>
@@ -746,7 +858,9 @@ function Motion() {
           ].map(([d, l]) => (
             <li key={d} className="flex items-center justify-between gap-3">
               <span className="body-6 text-muted-foreground">{l}</span>
-              <span className="caption-3 rounded-md border bg-background px-2 py-0.5 font-mono">{d}</span>
+              <span className="caption-3 rounded-md border bg-background px-2 py-0.5 font-mono">
+                {d}
+              </span>
             </li>
           ))}
         </ul>
@@ -817,14 +931,33 @@ function Components() {
           </div>
           <div className="flex flex-wrap gap-2">
             {[
-              { icon: Clock, label: "Не начат", tone: "border-border bg-muted/40 text-muted-foreground" },
-              { icon: Rocket, label: "В процессе", tone: "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400" },
-              { icon: CheckCircle, label: "Завершён", tone: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" },
-              { icon: Lock, label: "Закрыт", tone: "border-border bg-background text-muted-foreground" },
+              {
+                icon: Clock,
+                label: "Не начат",
+                tone: "border-border bg-muted/40 text-muted-foreground",
+              },
+              {
+                icon: Rocket,
+                label: "В процессе",
+                tone: "border-amber-500/40 bg-amber-500/10 text-amber-700 dark:text-amber-400",
+              },
+              {
+                icon: CheckCircle,
+                label: "Завершён",
+                tone: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
+              },
+              {
+                icon: Lock,
+                label: "Закрыт",
+                tone: "border-border bg-background text-muted-foreground",
+              },
             ].map(({ icon: Icon, label, tone }) => (
               <span
                 key={label}
-                className={cn("caption-3 inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-3 py-1", tone)}
+                className={cn(
+                  "caption-3 inline-flex shrink-0 items-center gap-2 whitespace-nowrap rounded-full border px-3 py-1",
+                  tone
+                )}
               >
                 <Icon className="size-4" weight="bold" /> {label}
               </span>
@@ -843,9 +976,19 @@ function Components() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="ds-email">Электронная почта</Label>
-            <Input id="ds-email" type="email" defaultValue="maria@school" aria-invalid="true" aria-describedby="ds-email-error" />
-            <p id="ds-email-error" className="caption-2 inline-flex items-center gap-1 text-destructive">
-              <Warning className="size-4" /> Проверьте адрес: после @ нужен домен, например school.ru
+            <Input
+              id="ds-email"
+              type="email"
+              defaultValue="maria@school"
+              aria-invalid="true"
+              aria-describedby="ds-email-error"
+            />
+            <p
+              id="ds-email-error"
+              className="caption-2 inline-flex items-center gap-1 text-destructive"
+            >
+              <Warning className="size-4" /> Проверьте адрес: после @ нужен домен, например
+              school.ru
             </p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -905,7 +1048,9 @@ function Components() {
           </AccordionItem>
           <AccordionItem value="q2">
             <AccordionTrigger>Где выполняется код?</AccordionTrigger>
-            <AccordionContent>Прямо в браузере, через Pyodide. Устанавливать Python не нужно.</AccordionContent>
+            <AccordionContent>
+              Прямо в браузере, через Pyodide. Устанавливать Python не нужно.
+            </AccordionContent>
           </AccordionItem>
         </Accordion>
       </Panel>
@@ -929,7 +1074,9 @@ function Feedback() {
         <Alert variant="destructive">
           <Warning className="size-4" />
           <AlertTitle>Тест 3 не пройден</AlertTitle>
-          <AlertDescription>Ожидалось 15, получено 12. Проверьте условие выхода из цикла.</AlertDescription>
+          <AlertDescription>
+            Ожидалось 15, получено 12. Проверьте условие выхода из цикла.
+          </AlertDescription>
         </Alert>
         <div className="flex flex-wrap gap-3">
           <Button
@@ -974,7 +1121,12 @@ function Feedback() {
       </Panel>
       <Panel>
         <PanelLabel>Загрузка</PanelLabel>
-        <div className="space-y-4 rounded-xl border p-4" role="status" aria-busy="true" aria-label="Загрузка карточки">
+        <div
+          className="space-y-4 rounded-xl border p-4"
+          role="status"
+          aria-busy="true"
+          aria-label="Загрузка карточки"
+        >
           <div className="flex justify-between gap-4">
             <div className="h-5 w-2/3 animate-pulse rounded-md bg-foreground/10" />
             <div className="h-5 w-16 animate-pulse rounded-full bg-foreground/10" />
@@ -1022,17 +1174,32 @@ const SAMPLE_MODULE = (id: string, title: string, topic: string, description: st
 
 const SAMPLE_MODULES = [
   {
-    module: SAMPLE_MODULE("design-1", "Вывод на экран", "print и форматирование", "Первые программы: выводим текст, числа и собираем строки."),
+    module: SAMPLE_MODULE(
+      "design-1",
+      "Вывод на экран",
+      "print и форматирование",
+      "Первые программы: выводим текст, числа и собираем строки."
+    ),
     status: "completed" as const,
     tasks: 5,
   },
   {
-    module: SAMPLE_MODULE("design-2", "Цикл for", "range и перебор", "Повторяем действия заданное число раз и обходим последовательности."),
+    module: SAMPLE_MODULE(
+      "design-2",
+      "Цикл for",
+      "range и перебор",
+      "Повторяем действия заданное число раз и обходим последовательности."
+    ),
     status: "in_progress" as const,
     tasks: 6,
   },
   {
-    module: SAMPLE_MODULE("design-3", "Списки", "методы и срезы", "Храним много значений в одной переменной и учимся их менять."),
+    module: SAMPLE_MODULE(
+      "design-3",
+      "Списки",
+      "методы и срезы",
+      "Храним много значений в одной переменной и учимся их менять."
+    ),
     status: "not_started" as const,
     tasks: 5,
   },
@@ -1050,7 +1217,11 @@ function Product() {
     <div className="space-y-4">
       <div className="grid gap-4 md:grid-cols-3">
         {SAMPLE_MODULES.map((m) => (
-          <div key={m.module.id} className="pointer-events-none min-w-0 select-none" aria-hidden="true">
+          <div
+            key={m.module.id}
+            className="pointer-events-none min-w-0 select-none"
+            aria-hidden="true"
+          >
             <ModuleCard module={m.module} status={m.status} tasksCount={m.tasks} />
           </div>
         ))}
@@ -1082,7 +1253,9 @@ function Product() {
                 <span
                   className={cn(
                     "mx-auto flex size-12 items-center justify-center rounded-2xl",
-                    earned ? "bg-primary text-primary-foreground" : "border border-dashed bg-background text-muted-foreground"
+                    earned
+                      ? "bg-primary text-primary-foreground"
+                      : "border border-dashed bg-background text-muted-foreground"
                   )}
                 >
                   <Icon className="size-6" weight={earned ? "fill" : "regular"} />
@@ -1101,12 +1274,17 @@ function Product() {
             </div>
             <pre className="caption-5 overflow-x-auto p-3 font-mono">
               <span className="text-primary">def</span> total(nums):{"\n"}
-              {"    "}<span className="text-primary">return</span> sum(nums)
+              {"    "}
+              <span className="text-primary">return</span> sum(nums)
             </pre>
             <ul className="space-y-1 border-t p-3">
               {["total([1, 2]) == 3", "total([]) == 0"].map((t) => (
                 <li key={t} className="caption-5 flex items-center gap-2 font-mono">
-                  <CheckCircle className="size-4 text-emerald-600 dark:text-emerald-400" weight="fill" /> {t}
+                  <CheckCircle
+                    className="size-4 text-emerald-600 dark:text-emerald-400"
+                    weight="fill"
+                  />{" "}
+                  {t}
                 </li>
               ))}
             </ul>
@@ -1122,16 +1300,70 @@ function Product() {
 export function DesignSystem() {
   const mainRef = useRef<HTMLElement>(null);
   const sections: { id: string; title: string; description: string; node: ReactNode }[] = [
-    { id: "principles", title: "Принципы", description: "Четыре правила, на которых держатся все решения ниже.", node: <Principles /> },
-    { id: "colors", title: "Цвета", description: "Семантические токены из globals.css. Значения обновляются при смене темы, нажмите, чтобы скопировать.", node: <Colors /> },
-    { id: "typography", title: "Типографика", description: "Каждый текст использует именованный стиль. Классы определены один раз в globals.css.", node: <Typography /> },
-    { id: "spacing", title: "Отступы", description: "Тринадцать шагов. Значений между ними нет.", node: <Spacing /> },
-    { id: "radius", title: "Радиусы", description: "Только значения Tailwind и формула для вложенных форм.", node: <Radius /> },
-    { id: "icons", title: "Иконки", description: "Одна библиотека, одинаковая толщина линий во всём интерфейсе.", node: <Icons /> },
-    { id: "motion", title: "Движение", description: "Переходы замедляются к концу. При prefers-reduced-motion движение отключается.", node: <Motion /> },
-    { id: "components", title: "Компоненты", description: "Базовые элементы на shadcn/ui со всеми состояниями: наведение, нажатие, фокус, ошибка.", node: <Components /> },
-    { id: "feedback", title: "Состояния", description: "Сообщения конкретны: что произошло и что делать дальше. Загрузка повторяет форму контента.", node: <Feedback /> },
-    { id: "product", title: "Продукт", description: "Настоящие компоненты CodeSensei на примерных данных.", node: <Product /> },
+    {
+      id: "principles",
+      title: "Принципы",
+      description: "Четыре правила, на которых держатся все решения ниже.",
+      node: <Principles />,
+    },
+    {
+      id: "colors",
+      title: "Цвета",
+      description:
+        "Семантические токены из globals.css. Значения обновляются при смене темы, нажмите, чтобы скопировать.",
+      node: <Colors />,
+    },
+    {
+      id: "typography",
+      title: "Типографика",
+      description:
+        "Каждый текст использует именованный стиль. Классы определены один раз в globals.css.",
+      node: <Typography />,
+    },
+    {
+      id: "spacing",
+      title: "Отступы",
+      description: "Тринадцать шагов. Значений между ними нет.",
+      node: <Spacing />,
+    },
+    {
+      id: "radius",
+      title: "Радиусы",
+      description: "Только значения Tailwind и формула для вложенных форм.",
+      node: <Radius />,
+    },
+    {
+      id: "icons",
+      title: "Иконки",
+      description: "Одна библиотека, одинаковая толщина линий во всём интерфейсе.",
+      node: <Icons />,
+    },
+    {
+      id: "motion",
+      title: "Движение",
+      description: "Переходы замедляются к концу. При prefers-reduced-motion движение отключается.",
+      node: <Motion />,
+    },
+    {
+      id: "components",
+      title: "Компоненты",
+      description:
+        "Базовые элементы на shadcn/ui со всеми состояниями: наведение, нажатие, фокус, ошибка.",
+      node: <Components />,
+    },
+    {
+      id: "feedback",
+      title: "Состояния",
+      description:
+        "Сообщения конкретны: что произошло и что делать дальше. Загрузка повторяет форму контента.",
+      node: <Feedback />,
+    },
+    {
+      id: "product",
+      title: "Продукт",
+      description: "Настоящие компоненты CodeSensei на примерных данных.",
+      node: <Product />,
+    },
   ];
 
   return (

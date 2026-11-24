@@ -72,7 +72,7 @@ export function getOAuthAdminAccount(): Account {
     : process.env.APPWRITE_OAUTH_ENDPOINT || "https://appwrite.ravva.su/v1";
 
   const targetEndpoint =
-    (APPWRITE_ENDPOINT.includes("100.89.46.62") || APPWRITE_ENDPOINT.includes("172."))
+    APPWRITE_ENDPOINT.includes("100.89.46.62") || APPWRITE_ENDPOINT.includes("172.")
       ? APPWRITE_ENDPOINT
       : publicEndpoint;
 

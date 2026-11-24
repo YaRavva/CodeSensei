@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { setupPyodide } from "@/lib/pyodide/setup";
 
-
 // Более точные типы для Pyodide
 interface Pyodide {
   runPython: (code: string) => any;

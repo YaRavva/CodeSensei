@@ -6,7 +6,14 @@ import { z } from "zod";
  */
 
 const json: z.ZodType<unknown> = z.lazy(() =>
-  z.union([z.string(), z.number(), z.boolean(), z.null(), z.array(json), z.record(z.string(), json)])
+  z.union([
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.null(),
+    z.array(json),
+    z.record(z.string(), json),
+  ])
 );
 
 export const testSchema = z.object({

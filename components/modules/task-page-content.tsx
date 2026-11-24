@@ -28,8 +28,8 @@ import {
   usesProgramInput,
 } from "@/components/editor/program-input";
 import { TestResults } from "@/components/editor/test-results";
-import { useTheme } from "@/components/theme-provider";
 import { ScrollIntoViewOnMount } from "@/components/modules/scroll-into-view-on-mount";
+import { useTheme } from "@/components/theme-provider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";

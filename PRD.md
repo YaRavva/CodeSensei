@@ -44,12 +44,22 @@
 | Бэкенд, БД, Auth | **Self-hosted Appwrite 1.9** (TablesDB, Auth, OAuth Google/GitHub) |
 | Хостинг | **Appwrite Sites** (SSR Node.js) |
 | AI | **Omniroute** (OpenAI-совместимый API), модель задаётся `OMNIROUTE_MODEL` |
-| Пакетный менеджер | pnpm |
+| Пакетный менеджер | **bun** 1.4+ (lock-файл `bun.lock`) |
 
 **Supabase и Vercel не используются.** Код, скрипты миграции, типы и документация,
 связанные с ними, удалены. Новые зависимости от них не добавляются.
 
-### 2.1 Секреты и переменные окружения
+### 2.1 Форматирование и окончания строк
+- **Biome** (`biome.json`) — единственный форматтер и линтер: `bun run lint`,
+  `bun run lint:fix`.
+- Окончания строк: git хранит **LF**, в рабочем дереве **CRLF**
+  (`core.autocrlf=true`, правило `* text=auto eol=crlf` в `.gitattributes`).
+  Biome настроен на CRLF (`formatter.lineEnding`), поэтому файлы на диске
+  должны быть в CRLF — иначе `bun run lint` ругается на каждый файл.
+- После правок в TS/TSX: `bunx biome check --write <файлы>`. Не конвертировать
+  окончания строк вручную — это источник ложных ошибок формата.
+
+### 2.2 Секреты и переменные окружения
 - Все секреты хранятся только в `.env.local` (локально) и в переменных окружения
   Appwrite Sites. Файлы `.env*` (кроме `.env.example`) игнорируются git.
 - Ключи, токены, ID сессий и пароли **никогда не записываются в код, скрипты,
@@ -57,7 +67,7 @@
 - Ключ `APPWRITE_API_KEY` — с минимально необходимыми правами. При утечке ключ
   немедленно отзывается, сессии сбрасываются.
 - Проверка захардкоженных секретов (`scripts/check-secrets.mjs`, команда
-  `pnpm check:secrets`): сканирует отслеживаемые файлы на значения ключей
+  `bun run check:secrets`): сканирует отслеживаемые файлы на значения ключей
   Appwrite и Omniroute и на session secret. Запускается автоматически перед
   подготовкой стейджа (`scripts/prepare-stage.mjs`), поэтому секрет не может
   попасть в архив деплоя; при утечке сборка падает с ненулевым кодом.
@@ -137,11 +147,15 @@ AI-подсказки и AI-обратная связь, админка (под�
 
 - ID модулей — из `lib/curriculum.ts` (`m01_print` … `m19_classes`), ID заданий —
   `<moduleId>_t<N>`.
-- Проверка контента: `pnpm content:validate [moduleId…]` —
+- Проверка контента: `bun run content:validate [moduleId…]` —
   прогоняет в Pyodide примеры теории, эталонные решения (проходят все тесты),
   стартовый код (не проходит ни один тест), проверяет разрешённые конструкции,
-  лимиты строк и слов, шаблон условия, состав модуля по сложности, дубли.
-- Загрузка в Appwrite: `pnpm content:sync [-- --apply]`
+  лимиты строк и слов, шаблон условия, состав модуля по сложности, дубли,
+  **согласие теории и заданий в обе стороны**: каждая конструкция эталона
+  объяснена теорией текущего или предыдущих модулей, и каждая конструкция,
+  которую показывает теория, отработана хотя бы в одном задании курса
+  (правила — `scripts/content/theory-mentions.ts`).
+- Загрузка в Appwrite: `bun run content:sync [-- --apply]`
   (по умолчанию пробный запуск; перед `--apply`
   — `scripts/maintenance/backup.ts`). Скрипт идемпотентен: создаёт и обновляет
   строки по ID, модули, которых нет в `content/`, снимает с публикации.
@@ -492,8 +506,8 @@ Worker `prompt()` недоступен. Это неприемлемо.
   (`lib/security/api-errors.ts`); текст ошибки Appwrite при сбросе пароля тоже
   не отдаётся, чтобы по нему нельзя было отличить несуществующего
   пользователя от истёкшего токена.
-- Зависимости: `pnpm audit --prod` без уязвимостей; транзитивные пакеты
-  закреплены через `pnpm.overrides` в `package.json`.
+- Зависимости: `bun audit --prod` без уязвимостей; транзитивные пакеты
+  закреплены через `overrides` в `package.json`.
 - В браузере код ученика пока выполняется в основном потоке (Web Worker с
   таймаутом — в плане); это влияет только на вкладку самого ученика.
 - **Серверная проверка решений** (`lib/sandbox/python-sandbox.ts`): `POST
@@ -517,12 +531,12 @@ Worker `prompt()` недоступен. Это неприемлемо.
   `__import__` (то есть недоступен `import sys`), а сравнивает сервер.
   Браузер проверяет только видимые проверки, но его вердикт ни на что не
   влияет: XP начисляется по серверной успешной попытке.
-- Секреты — раздел 2.1. История git переписана (`git filter-repo`): ключи,
+- Секреты — раздел 2.2. История git переписана (`git filter-repo`): ключи,
   сессии и учётные данные из старых коммитов вычищены, `testsprite_tests/`
   удалена. Ссылка `refs/pull/1/head` на GitHub хранит старую историю до
   очистки через GitHub Support.
-- Продакшен ставит зависимости через `npm` по `package-lock.json`, поэтому
-  закрепления версий продублированы в `overrides` (npm) и `pnpm.overrides`.
+- Продакшен ставит зависимости через `bun install` по `bun.lock`; закрепления
+  версий транзитивных пакетов — в `overrides` в `package.json`.
 
 ---
 
@@ -678,18 +692,17 @@ CSRF-защиты, а без него сброс пароля отключает
 ### 16.2 Команды
 
 ```bash
-pnpm install          # зависимости (локально)
-pnpm dev              # dev-сервер (управляет пользователь)
-pnpm typecheck        # tsc --noEmit
-pnpm build            # продакшн-сборка
-pnpm lint             # Biome
-pnpm appwrite:setup   # база, таблицы, колонки, индексы (идемпотентно, только добавляет)
-pnpm appwrite:seed    # достижения ach_* (upsert), демо-контент (только если пусто)
+bun install          # зависимости (локально)
+bun run dev          # dev-сервер (управляет пользователь)
+bun run typecheck    # tsc --noEmit
+bun run build        # продакшн-сборка
+bun run lint         # Biome
+bun run appwrite:setup   # база, таблицы, колонки, индексы (идемпотентно, только добавляет)
+bun run appwrite:seed    # достижения ach_* (upsert), демо-контент (только если пусто)
 ```
 
-На сервере зависимости ставит `npm install --legacy-peer-deps` по
-`package-lock.json`, поэтому lock-файл держится в соответствии с `package.json`
-(`npm install --package-lock-only --legacy-peer-deps`).
+На сервере зависимости ставит `bun install` по `bun.lock` — тот же lock-файл,
+что и локально, поэтому версии на сервере и в разработке совпадают.
 
 ### 16.3 Модель данных
 База `codesensei` (TablesDB). Таблицы без клиентских прав, доступ только по ключу.
@@ -723,8 +736,8 @@ pnpm appwrite:seed    # достижения ach_* (upsert), демо-конте
   повторную отправку (`POST /api/auth/resend-verification`). Ссылка действует 1 час.
 - Шаблоны писем (`verification`, `recovery`) — кастомные, в стиле проекта,
   хранятся для локалей ru и en (`scripts/appwrite/templates/*.html`, применение —
-  `pnpm appwrite:emails`); отправитель `no-reply@ravva.su` (Resend SMTP).
-  Смоук-тест обоих писем на тестовый адрес — `pnpm appwrite:test-emails`.
+  `bun run appwrite:emails`); отправитель `no-reply@ravva.su` (Resend SMTP).
+  Смоук-тест обоих писем на тестовый адрес — `bun run appwrite:test-emails`.
 - OAuth Google/GitHub: `/api/auth/oauth/{provider}` → провайдер → callback Appwrite
   → `/api/auth/oauth/callback` (`userId`, `secret`) → сессия → `ensureUserProfile()`;
   `reconcileByEmail()` переносит данные, если у OAuth-аккаунта новый ID.
@@ -739,10 +752,10 @@ pnpm appwrite:seed    # достижения ach_* (upsert), демо-конте
 
 ### 16.5 Деплой (Appwrite Sites)
 Подробная процедура — навык `.dsh/skills/appwrite-sites-deploy/SKILL.md`. Кратко:
-1. `pnpm typecheck` и `pnpm build` без ошибок; сломанную сборку не деплоим.
+1. `bun run typecheck` и `bun run build` без ошибок; сломанную сборку не деплоим.
 2. Staging только из исходников (`scripts/prepare-stage.mjs`): `app`, `components`,
    `hooks`, `lib`, `types`, `public`, `scripts/appwrite`, `package.json`,
-   `package-lock.json`, `next.config.ts`, `postcss.config.js`, `tailwind.config.ts`,
+   `bun.lock`, `next.config.ts`, `postcss.config.js`, `tailwind.config.ts`,
    `tsconfig.json`, `components.json`, `appwrite.config.json`, `proxy.ts`,
    `next-env.d.ts`. **Без** `node_modules`, `.next`, `.env*`, `.git`
    (архив ≈ 230 КБ). Без `postcss.config.js` стили на проде ломаются.
@@ -774,7 +787,7 @@ pnpm appwrite:seed    # достижения ach_* (upsert), демо-конте
 ## 18. UI: Tailwind CSS 4 + shadcn/ui
 - Токены темы — в `app/globals.css` (`:root`, `.dark`, `@theme inline`), цвета в
   `oklch(...)`; тёмная тема — класс `dark` на `<html>` (`ThemeProvider`, `ThemeToggle`).
-- Компоненты shadcn — в `components/ui/*` (`pnpm dlx shadcn@latest add ...`).
+- Компоненты shadcn — в `components/ui/*` (`bunx shadcn@latest add ...`).
 - Только токен-классы (`bg-background`, `bg-card`, `bg-primary`, `text-muted-foreground`,
   `border-border`); запрещены hex/rgb в классах, `hsl(var(--...))`, ручной фон страницы,
   shadcn-токены в `theme.extend.colors`.

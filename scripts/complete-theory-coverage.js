@@ -1,7 +1,12 @@
 const { Client, Databases } = require("node-appwrite");
 const key = process.env.APPWRITE_API_KEY;
 if (!key) throw new Error("APPWRITE_API_KEY is missing");
-const db = new Databases(new Client().setEndpoint("https://appwrite.ravva.su/v1").setProject("6adc4f50003202881547").setKey(key));
+const db = new Databases(
+  new Client()
+    .setEndpoint("https://appwrite.ravva.su/v1")
+    .setProject("6adc4f50003202881547")
+    .setKey(key)
+);
 const databaseId = "codesensei";
 const NL = String.fromCharCode(10);
 const additions = {
@@ -30,7 +35,7 @@ const additions = {
     "",
     "Метод класса может изменять объект или возвращать значение. В заданиях методы работают со списками и условиями: список операций перебирается циклом `for`, а `if` выбирает нужную ветку. Методы внутри класса объявляются через `def` и разрешены только в этом модуле классов.",
   ],
-  "mod_strings": [
+  mod_strings: [
     "## Цикл и условие при обработке текста",
     "",
     "В сложном задании слова перебираются циклом `for`, а `if` выбирает самое длинное слово. `len(word)` возвращает количество символов в слове. Эти конструкции нужны, чтобы сравнивать найденные варианты.",
@@ -40,17 +45,17 @@ const additions = {
     "",
     "В `except (ValueError, TypeError)` можно перечислить несколько ошибок в кортеже. Одна ветка обработает любую из перечисленных ошибок.",
   ],
-  "mod_files": [
+  mod_files: [
     "## Количество строк и фильтрация",
     "",
-    "`len(file.readlines())` возвращает количество прочитанных строк. Чтобы выбрать только нужные строки, используйте цикл `for` и условие `if`, например `if \"ERROR\" in line`.",
+    '`len(file.readlines())` возвращает количество прочитанных строк. Чтобы выбрать только нужные строки, используйте цикл `for` и условие `if`, например `if "ERROR" in line`.',
   ],
-  "mod_comprehensions": [
+  mod_comprehensions: [
     "## Длина элементов",
     "",
     "Включение списка может использовать `len()`, чтобы отобрать элементы по длине: `[word for word in words if len(word) >= min_length]`.",
   ],
-  "module_loops": [
+  module_loops: [
     "## Важно",
     "",
     "В этом модуле используйте только готовые переменные из условия и сохраняйте ответ в `result`. Функции `def` и `input()` не нужны.",
@@ -65,12 +70,12 @@ const additions = {
     "",
     "У рекурсии обязательно должен быть базовый случай. На каждом шаге аргумент должен приближаться к нему. Иначе вызовы не закончатся и Python сообщит о переполнении стека. Рекурсивный Fibonacci удобен для обучения, но для больших чисел работает медленно.",
   ],
-  "mod_strings_advanced": [
+  mod_strings_advanced: [
     "## Границы этого модуля",
     "",
     "В текущих заданиях отрабатываются f-строки и выражения внутри `{}`. Регулярные выражения в упражнениях этого модуля не используются и будут вынесены в отдельное продолжение темы.",
   ],
-  "mod_lambdas": [
+  mod_lambdas: [
     "## Используемые алгоритмы",
     "",
     "В заданиях используются `map`, `filter` и `sorted` вместе с lambda. `reduce` упоминается как дополнительный инструмент, но в текущих упражнениях не требуется.",
@@ -83,14 +88,21 @@ const additions = {
     const module = await db.getDocument(databaseId, "modules", id);
     const marker = lines[0];
     if (!module.description.includes(marker)) {
-      await db.updateDocument(databaseId, "modules", id, { description: `${module.description.trim()}${NL}${NL}${lines.join(NL)}` });
+      await db.updateDocument(databaseId, "modules", id, {
+        description: `${module.description.trim()}${NL}${NL}${lines.join(NL)}`,
+      });
       console.log("Updated theory:", module.title);
     }
   }
   const fn = await db.getDocument(databaseId, "modules", "a8666f99-1cf9-4121-abf3-110d82957e95");
   if (!fn.description.includes("## Область видимости")) {
     const lines = additions["a8666f99-1cf9-4121-abf3-110d82957e95_scope"];
-    await db.updateDocument(databaseId, "modules", fn.$id, { description: `${fn.description.trim()}${NL}${NL}${lines.join(NL)}` });
+    await db.updateDocument(databaseId, "modules", fn.$id, {
+      description: `${fn.description.trim()}${NL}${NL}${lines.join(NL)}`,
+    });
     console.log("Updated theory:", fn.title);
   }
-})().catch((error) => { console.error(error.message); process.exit(1); });
+})().catch((error) => {
+  console.error(error.message);
+  process.exit(1);
+});

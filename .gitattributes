@@ -1,0 +1,7 @@
+# Git stores LF, the working tree uses CRLF on Windows (core.autocrlf=true).
+# Biome is configured for CRLF, so the files on disk must match that.
+* text=auto eol=crlf
+
+# Lock files are written by the package manager with LF and are read back
+# byte for byte — keep them LF in the working tree too.
+bun.lock text eol=lf

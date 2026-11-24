@@ -17,10 +17,7 @@ function siteOrigin(request: Request): string {
   return process.env.NEXT_PUBLIC_SITE_URL || new URL(request.url).origin;
 }
 
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ provider: string }> },
-) {
+export async function GET(request: Request, { params }: { params: Promise<{ provider: string }> }) {
   const { provider } = await params;
 
   if (!isProvider(provider)) {

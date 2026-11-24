@@ -9,10 +9,16 @@ import {
   OmnirouteError,
 } from "@/lib/ai/omniroute";
 import { getTask } from "@/lib/appwrite/tasks";
-import { getAuthContext } from "@/lib/utils/auth";
 import { buildEvaluationPrompt, parseEvaluationResponse } from "@/lib/prompts";
-import { HOUR, hit, MAX_CODE_LENGTH, MAX_TEXT_LENGTH, tooManyRequests } from "@/lib/security/rate-limit";
+import {
+  HOUR,
+  hit,
+  MAX_CODE_LENGTH,
+  MAX_TEXT_LENGTH,
+  tooManyRequests,
+} from "@/lib/security/rate-limit";
 import { canAccessTask } from "@/lib/security/task-access";
+import { getAuthContext } from "@/lib/utils/auth";
 
 function clip(value: unknown): string | undefined {
   if (value == null) return undefined;
@@ -39,10 +45,7 @@ export async function POST(req: NextRequest) {
     if (!limit.ok) return tooManyRequests(limit.retryAfterSec);
 
     if (!isOmnirouteConfigured()) {
-      return NextResponse.json(
-        { error: "AI-проверка временно недоступна" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "AI-проверка временно недоступна" }, { status: 500 });
     }
 
     const task = await getTask(String(taskId));
@@ -51,9 +54,10 @@ export async function POST(req: NextRequest) {
     }
 
     const typedTask = task as { title: string; description: string; task_type?: string } | null;
-    const taskType = typedTask?.task_type === "function" || typedTask?.task_type === "class"
-      ? typedTask.task_type
-      : "linear";
+    const taskType =
+      typedTask?.task_type === "function" || typedTask?.task_type === "class"
+        ? typedTask.task_type
+        : "linear";
 
     const prompt = buildEvaluationPrompt({
       taskTitle: typedTask?.title ?? "Без названия",

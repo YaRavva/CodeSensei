@@ -20,7 +20,11 @@ export async function logHintEvent(userId: string, taskId: string): Promise<void
 }
 
 /** True when the user requested an AI hint for the task (optionally before a moment). */
-export async function hasUsedHint(userId: string, taskId: string, before?: string): Promise<boolean> {
+export async function hasUsedHint(
+  userId: string,
+  taskId: string,
+  before?: string
+): Promise<boolean> {
   const queries = [Query.equal("user_id", userId), Query.equal("task_id", taskId)];
   if (before) queries.push(Query.lessThanEqual("created_at", before));
   return (await countRows(TABLES.hintEvents, queries)) > 0;

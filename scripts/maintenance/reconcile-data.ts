@@ -43,7 +43,11 @@ function canonicalId(id: string): string {
 function toAchievement(row: Row): Achievement {
   let value: unknown = row.condition_value;
   if (typeof value === "string") {
-    try { value = JSON.parse(value); } catch { value = {}; }
+    try {
+      value = JSON.parse(value);
+    } catch {
+      value = {};
+    }
   }
   return { ...row, id: row.$id, condition_value: value } as unknown as Achievement;
 }
@@ -51,8 +55,15 @@ function toAchievement(row: Row): Achievement {
 async function main() {
   const db = adminTables();
   const [users, tasks, attemptsRaw, progress, achievementsRaw, awards, events] = await Promise.all(
-    ["users", "tasks", "task_attempts", "user_progress", "achievements", "user_achievements", "xp_events"]
-      .map((table) => listAll(db, table))
+    [
+      "users",
+      "tasks",
+      "task_attempts",
+      "user_progress",
+      "achievements",
+      "user_achievements",
+      "xp_events",
+    ].map((table) => listAll(db, table))
   );
 
   const achievements = achievementsRaw.map(toAchievement);
@@ -108,8 +119,15 @@ async function main() {
         averageExecutionTime: avg(timesByTask.get(solved.taskId)),
       });
       taskEvents.push({
-        user_id: userId, source_type: "task", source_id: solved.taskId, amount: calc.totalXP,
-        details: JSON.stringify({ attemptId: first.id, attemptNumber: index + 1, reconciled: true }),
+        user_id: userId,
+        source_type: "task",
+        source_id: solved.taskId,
+        amount: calc.totalXP,
+        details: JSON.stringify({
+          attemptId: first.id,
+          attemptNumber: index + 1,
+          reconciled: true,
+        }),
         created_at: first.created_at,
       });
     }
@@ -123,13 +141,25 @@ async function main() {
       if (!prev || award.earned_at < prev) earliest.set(id, award.earned_at);
     }
     const eligible = canonical.filter((a) =>
-      checkAchievementCondition(a, { tasks: summary, completedModules, profileCreatedAt: user.$createdAt })
+      checkAchievementCondition(a, {
+        tasks: summary,
+        completedModules,
+        profileCreatedAt: user.$createdAt,
+      })
     );
     const eligibleIds = new Set(eligible.map((a) => a.id));
-    const lastSolve = summary.map((s) => s.solvedAt).filter(Boolean).sort().pop() ?? new Date().toISOString();
+    const lastSolve =
+      summary
+        .map((s) => s.solvedAt)
+        .filter(Boolean)
+        .sort()
+        .pop() ?? new Date().toISOString();
 
     for (const award of userAwards) {
-      if (award.achievement_id !== canonicalId(award.achievement_id) || !eligibleIds.has(award.achievement_id)) {
+      if (
+        award.achievement_id !== canonicalId(award.achievement_id) ||
+        !eligibleIds.has(award.achievement_id)
+      ) {
         plan.deleteAwards.push(award);
       }
     }
@@ -140,22 +170,33 @@ async function main() {
     for (const achievement of eligible) {
       const earnedAt = earliest.get(achievement.id) ?? lastSolve;
       if (!keptIds.has(achievement.id)) {
-        plan.createAwards.push({ user_id: userId, achievement_id: achievement.id, earned_at: earnedAt });
+        plan.createAwards.push({
+          user_id: userId,
+          achievement_id: achievement.id,
+          earned_at: earnedAt,
+        });
       }
       if (achievement.xp_reward > 0) {
         achievementEvents.push({
-          user_id: userId, source_type: "achievement", source_id: achievement.id,
-          amount: achievement.xp_reward, details: JSON.stringify({ reconciled: true }), created_at: earnedAt,
+          user_id: userId,
+          source_type: "achievement",
+          source_id: achievement.id,
+          amount: achievement.xp_reward,
+          details: JSON.stringify({ reconciled: true }),
+          created_at: earnedAt,
         });
       }
     }
 
     const allEvents = [...taskEvents, ...achievementEvents];
-    const newEvents = allEvents.filter((e) => !existingEvents.has(`${e.user_id}|${e.source_type}|${e.source_id}`));
+    const newEvents = allEvents.filter(
+      (e) => !existingEvents.has(`${e.user_id}|${e.source_type}|${e.source_id}`)
+    );
     plan.createEvents.push(...newEvents);
     const keptExisting = events.filter((e) => e.user_id === userId);
     const totalXp =
-      newEvents.reduce((sum, e) => sum + e.amount, 0) + keptExisting.reduce((sum, e) => sum + e.amount, 0);
+      newEvents.reduce((sum, e) => sum + e.amount, 0) +
+      keptExisting.reduce((sum, e) => sum + e.amount, 0);
     const level = calculateLevel(totalXp);
     if (totalXp !== user.total_xp || level !== user.current_level) {
       plan.updateUsers.push({ id: userId, total_xp: totalXp, current_level: level });
@@ -164,7 +205,10 @@ async function main() {
     report.push({
       user: user.display_name || userId,
       role: user.role,
-      oldXp: user.total_xp, newXp: totalXp, oldLevel: user.current_level, newLevel: level,
+      oldXp: user.total_xp,
+      newXp: totalXp,
+      oldLevel: user.current_level,
+      newLevel: level,
       solvedTasks: taskEvents.length,
       taskXp: taskEvents.reduce((s, e) => s + e.amount, 0),
       achievementsBefore: userAwards.length,
@@ -177,38 +221,61 @@ async function main() {
   }
 
   const delta = report.map((r) => r.newXp - r.oldXp);
-  console.log(JSON.stringify({
-    mode: APPLY ? "apply" : "dry-run",
-    users: report.length,
-    duplicateDefinitions: duplicateIds.length,
-    deleteAwards: plan.deleteAwards.length,
-    createAwards: plan.createAwards.length,
-    createEvents: plan.createEvents.length,
-    updateUsers: plan.updateUsers.length,
-    xpUp: delta.filter((d) => d > 0).length,
-    xpDown: delta.filter((d) => d < 0).length,
-    xpSame: delta.filter((d) => d === 0).length,
-    totalOld: report.reduce((s, r) => s + (r.oldXp || 0), 0),
-    totalNew: report.reduce((s, r) => s + r.newXp, 0),
-  }, null, 1));
-  writeFileSync(`reconcile-report${APPLY ? "-applied" : ""}.json`, JSON.stringify({ report, plan }, null, 1));
+  console.log(
+    JSON.stringify(
+      {
+        mode: APPLY ? "apply" : "dry-run",
+        users: report.length,
+        duplicateDefinitions: duplicateIds.length,
+        deleteAwards: plan.deleteAwards.length,
+        createAwards: plan.createAwards.length,
+        createEvents: plan.createEvents.length,
+        updateUsers: plan.updateUsers.length,
+        xpUp: delta.filter((d) => d > 0).length,
+        xpDown: delta.filter((d) => d < 0).length,
+        xpSame: delta.filter((d) => d === 0).length,
+        totalOld: report.reduce((s, r) => s + (r.oldXp || 0), 0),
+        totalNew: report.reduce((s, r) => s + r.newXp, 0),
+      },
+      null,
+      1
+    )
+  );
+  writeFileSync(
+    `reconcile-report${APPLY ? "-applied" : ""}.json`,
+    JSON.stringify({ report, plan }, null, 1)
+  );
   if (!APPLY) return;
 
   const run = async <T>(items: T[], fn: (item: T) => Promise<unknown>) => {
     for (let i = 0; i < items.length; i += 10) await Promise.all(items.slice(i, i + 10).map(fn));
   };
-  await run(plan.deleteAwards, (a) => db.deleteRow({ databaseId, tableId: "user_achievements", rowId: a.$id }));
-  await run(plan.createAwards, (a) => db.createRow({ databaseId, tableId: "user_achievements", rowId: ID.unique(), data: a }));
+  await run(plan.deleteAwards, (a) =>
+    db.deleteRow({ databaseId, tableId: "user_achievements", rowId: a.$id })
+  );
+  await run(plan.createAwards, (a) =>
+    db.createRow({ databaseId, tableId: "user_achievements", rowId: ID.unique(), data: a })
+  );
   await run(plan.createEvents, (e) =>
-    db.createRow({ databaseId, tableId: "xp_events", rowId: ID.unique(), data: e }).catch((error: any) => {
-      if (error?.code !== 409) throw error;
-    })
+    db
+      .createRow({ databaseId, tableId: "xp_events", rowId: ID.unique(), data: e })
+      .catch((error: any) => {
+        if (error?.code !== 409) throw error;
+      })
   );
   await run(plan.updateUsers, (u) =>
-    db.updateRow({ databaseId, tableId: "users", rowId: u.id, data: { total_xp: u.total_xp, current_level: u.current_level } as never })
+    db.updateRow({
+      databaseId,
+      tableId: "users",
+      rowId: u.id,
+      data: { total_xp: u.total_xp, current_level: u.current_level } as never,
+    })
   );
   await run(duplicateIds, (id) => db.deleteRow({ databaseId, tableId: "achievements", rowId: id }));
   console.log("applied");
 }
 
-main().catch((error) => { console.error(error); process.exit(1); });
+main().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});

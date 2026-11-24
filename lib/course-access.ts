@@ -14,7 +14,9 @@ export function levelModuleIds(level: number): string[] {
 
 /** Highest open level for a user: 1 + number of fully completed levels in a row. */
 export function openLevel(progress: { module_id: string; status: string }[]): number {
-  const completed = new Set(progress.filter((p) => p.status === "completed").map((p) => p.module_id));
+  const completed = new Set(
+    progress.filter((p) => p.status === "completed").map((p) => p.module_id)
+  );
   let open = 1;
   for (const { level } of LEVELS) {
     if (level >= LEVELS.length) break;
@@ -24,7 +26,10 @@ export function openLevel(progress: { module_id: string; status: string }[]): nu
   return open;
 }
 
-export function isModuleOpen(moduleId: string, progress: { module_id: string; status: string }[]): boolean {
+export function isModuleOpen(
+  moduleId: string,
+  progress: { module_id: string; status: string }[]
+): boolean {
   return moduleLevel(moduleId) <= openLevel(progress);
 }
 

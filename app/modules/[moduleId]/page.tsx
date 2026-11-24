@@ -2,9 +2,9 @@ import { redirect } from "next/navigation";
 import { ModuleUnifiedPage } from "@/components/modules/module-unified-page";
 import { listAttemptsForTasks } from "@/lib/appwrite/attempts";
 import { getPublishedModule, listPublishedModules } from "@/lib/appwrite/modules";
+import { listUserProgress } from "@/lib/appwrite/progress";
 import { listTasksByModule, toPublicTask } from "@/lib/appwrite/tasks";
 import { isModuleOpen, isStaffRole } from "@/lib/course-access";
-import { listUserProgress } from "@/lib/appwrite/progress";
 import { requireAuth } from "@/lib/utils/auth";
 import type { Json } from "@/types/db";
 
@@ -21,7 +21,10 @@ export default async function ModulePage({ params }: { params: Promise<{ moduleI
     redirect("/modules");
   }
 
-  const [tasks, published] = await Promise.all([listTasksByModule(moduleId), listPublishedModules()]);
+  const [tasks, published] = await Promise.all([
+    listTasksByModule(moduleId),
+    listPublishedModules(),
+  ]);
   const index = published.findIndex((item) => item.id === moduleId);
   const next = index >= 0 ? published[index + 1] : undefined;
   const nextModule = next ? { id: next.id, title: next.title } : null;

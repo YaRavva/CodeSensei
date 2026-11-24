@@ -21,7 +21,7 @@ Follow it **in order** — every step exists because an earlier shortcut failed.
 
 ## Key facts about Environment Variables (`.env.local` vs Appwrite Site Variables)
 
-- **Local Development & Build**: `.env.local` in the project root holds local environment variables (`APPWRITE_ENDPOINT`, `APPWRITE_PROJECT_ID`, `APPWRITE_DATABASE_ID`, `APPWRITE_API_KEY`, etc.) used during `npm run dev` and local `npm run build`.
+- **Local Development & Build**: `.env.local` in the project root holds local environment variables (`APPWRITE_ENDPOINT`, `APPWRITE_PROJECT_ID`, `APPWRITE_DATABASE_ID`, `APPWRITE_API_KEY`, etc.) used during `bun run dev` and local `bun run build`.
 - **Production Runtime on Appwrite Sites**: Appwrite Sites runtime container does **not** read `.env.local`. All production environment variables are stored as **Appwrite Site Variables** on the server (`appwrite sites create-variable` or `update-variable`).
 - **`.env.local` must NOT be included in staging** when deploying code via `appwrite sites create-deployment --code`.
 
@@ -42,7 +42,7 @@ Follow it **in order** — every step exists because an earlier shortcut failed.
 
 ## Prerequisites
 
-- Node 22, pnpm/npm installed, `node_modules` present.
+- Node 22 and **bun** installed (`bun --version`), `node_modules` present.
 - Appwrite CLI logged in (session endpoint = the endpoint in `appwrite.config.json`).
   Verify with `appwrite client --debug`.
 - `.env.local` with required Appwrite keys for local testing.
@@ -52,11 +52,11 @@ Follow it **in order** — every step exists because an earlier shortcut failed.
 
 Run in the repo root `C:\Users\Ravva\CodeSensei`:
 
-- `npm run typecheck` (tsc --noEmit) — must be clean.
-- `npm run check:secrets` — scans the tracked files for a hardcoded Appwrite key,
+- `bun run typecheck` (tsc --noEmit) — must be clean.
+- `bun run check:secrets` — scans the tracked files for a hardcoded Appwrite key,
   Omniroute key or session secret. Must print "No hardcoded secrets". The
   staging script runs it too, so a secret blocks the deploy.
-- `npm run build` (next build, Turbopack) — must end with "Compiled successfully" and list routes.
+- `bun run build` (next build, Turbopack) — must end with "Compiled successfully" and list routes.
   The build takes a minute or two — run it **in the background** and continue with
   staging preparation while it finishes.
 
@@ -65,7 +65,7 @@ Run in the repo root `C:\Users\Ravva\CodeSensei`:
 **Reason:** 
 1. `create-duplicate-deployment` rebuilds the ORIGINAL frozen source archive (`sourceSize` stays constant), so code edits never reach production unless you use `create-deployment --code` with a fresh staging directory.
 2. **Never include `node_modules` or `.next` in staging.** Including `node_modules` results in a huge archive (~1.5–3 GB), which violates Appwrite storage limits (`The file size exceeds maximum allowed size`). 
-3. **Always deploy clean source code only** (~220 KB archive: `app`, `components`, `hooks`, `lib`, `types`, `public`, `scripts/appwrite`, `scripts/migrate`, `package.json`, `package-lock.json`, and core config files). OpenRuntimes builder will safely install dependencies and build on the server.
+3. **Always deploy clean source code only** (~220 KB archive: `app`, `components`, `hooks`, `lib`, `types`, `public`, `scripts/appwrite`, `scripts/migrate`, `package.json`, `bun.lock`, and core config files). OpenRuntimes builder will safely install dependencies and build on the server.
 
 Do NOT copy: `node_modules`, `.next`, `.env.local`, `.env`, `.git`, `.migration`, `scripts/test`.
 
@@ -125,7 +125,7 @@ The following files are essential for the remote build to succeed. Missing any o
 | `components.json` | shadcn/ui component registry |
 | `next-env.d.ts` | Next.js TypeScript declarations |
 | `appwrite.config.json` | Appwrite CLI endpoint configuration |
-| `package.json` + `package-lock.json` | Dependencies lock |
+| `package.json` + `bun.lock` | Dependencies lock (bun) |
 | `next.config.ts` (or `.js`) | Next.js build configuration — must stay self-contained |
 | `proxy.ts` | CSRF check, session redirect, CSP nonce — **without it there is no CSRF and no CSP** |
 | `tsconfig.json` | TypeScript compiler options |
@@ -134,7 +134,7 @@ The following files are essential for the remote build to succeed. Missing any o
 **Pre-deploy staging verification (PowerShell):**
 ```powershell
 $staging = "C:\Users\Ravva\CodeSensei-deploy"
-$required = @("postcss.config.js","postcss.config.mjs","tailwind.config.ts","components.json","next-env.d.ts","appwrite.config.json","package.json","package-lock.json","next.config.ts","proxy.ts","tsconfig.json")
+$required = @("postcss.config.js","postcss.config.mjs","tailwind.config.ts","components.json","next-env.d.ts","appwrite.config.json","package.json","bun.lock","next.config.ts","proxy.ts","tsconfig.json")
 $missing = $required | Where-Object { !(Test-Path (Join-Path $staging $_)) }
 if ($missing) {
   Write-Host "ERROR: Missing required files in staging:" -ForegroundColor Red
@@ -164,7 +164,7 @@ appwrite sites create-deployment --site-id codesensei --activate true --code "C:
   занимает 1–3 минуты. Запусти её в фоне (`run_in_background`) или отдельной
   командой с `&` и переходи к следующим задачам.
 - **Understanding CLI Blocking / "Hanging"**: `appwrite sites create-deployment` blocks the terminal shell because it streams remote build logs in real-time from OpenRuntimes. **This is normal and does not mean it is frozen.** A clean source build takes ~1–3 minutes.
-- **Handling npm / store-dir conflicts**: Ensure no global/local `.npmrc` containing `store-dir` (from pnpm) leaks into the environment or staging, as this causes remote npm builds to hang in deadlock.
+- **Handling store-dir conflicts**: Ensure no global/local `.npmrc` containing `store-dir` leaks into the environment or staging, as this causes remote npm builds to hang in deadlock.
 - **Verification via SDK**: If you prefer non-blocking execution or if CLI throws serialization bugs (`Go unmarshal error` on `list-logs`), poll deployment status via Node.js SDK:
   ```js
   const dep = await sites.getDeployment({ siteId: "codesensei", deploymentId });

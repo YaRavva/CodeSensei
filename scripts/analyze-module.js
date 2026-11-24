@@ -25,11 +25,7 @@ async function getTasksByModule(moduleId) {
   const response = await tablesDB.listRows({
     databaseId: DATABASE_ID,
     tableId: "tasks",
-    queries: [
-      Query.equal("module_id", moduleId),
-      Query.orderAsc("order_index"),
-      Query.limit(100),
-    ],
+    queries: [Query.equal("module_id", moduleId), Query.orderAsc("order_index"), Query.limit(100)],
   });
   return response.rows;
 }
@@ -48,22 +44,23 @@ async function main() {
   try {
     console.log("=== Все модули ===\n");
     const modules = await listAllModules();
-    
-    modules.forEach(m => {
+
+    modules.forEach((m) => {
       console.log(`- ${m.title} (id: ${m.$id}, topic: ${m.topic}, level: ${m.level})`);
     });
-    
-    const targetModule = modules.find(m => 
-      m.title.toLowerCase().includes("консольный") || 
-      m.title.toLowerCase().includes("ввод") ||
-      m.title.toLowerCase().includes("вывод")
+
+    const targetModule = modules.find(
+      (m) =>
+        m.title.toLowerCase().includes("консольный") ||
+        m.title.toLowerCase().includes("ввод") ||
+        m.title.toLowerCase().includes("вывод")
     );
-    
+
     if (!targetModule) {
       console.log("\nМодуль 'Консольный ввод и вывод' не найден!");
       return;
     }
-    
+
     console.log(`\n\n=== МОДУЛЬ: ${targetModule.title} ===`);
     console.log(`ID: ${targetModule.$id}`);
     console.log(`Topic: ${targetModule.topic}`);
@@ -72,10 +69,10 @@ async function main() {
     console.log(`Published: ${targetModule.is_published}`);
     console.log(`\nDescription (theory):`);
     console.log(targetModule.description || "(пусто)");
-    
+
     console.log(`\n--- ЗАДАНИЯ МОДУЛЯ ---`);
     const tasks = await getTasksByModule(targetModule.$id);
-    
+
     for (let i = 0; i < tasks.length; i++) {
       const task = tasks[i];
       console.log(`\n\n=== ЗАДАНИЕ ${i + 1}: ${task.title} ===`);
@@ -95,7 +92,6 @@ async function main() {
       console.log(`\nHints:`);
       console.log(JSON.stringify(safeJson(task.hints), null, 2));
     }
-    
   } catch (error) {
     console.error("Error:", error.message);
     if (error.response) {

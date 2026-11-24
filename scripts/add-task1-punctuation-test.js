@@ -1,7 +1,12 @@
 ﻿const { Client, Databases } = require("node-appwrite");
 const key = process.env.APPWRITE_API_KEY;
 if (!key) throw new Error("APPWRITE_API_KEY is missing");
-const db = new Databases(new Client().setEndpoint("https://appwrite.ravva.su/v1").setProject("6adc4f50003202881547").setKey(key));
+const db = new Databases(
+  new Client()
+    .setEndpoint("https://appwrite.ravva.su/v1")
+    .setProject("6adc4f50003202881547")
+    .setKey(key)
+);
 const id = "82206b7e-1ad5-42bf-b905-68ef65d47bf4";
 (async () => {
   const task = await db.getDocument("codesensei", "tasks", id);
@@ -15,6 +20,11 @@ const id = "82206b7e-1ad5-42bf-b905-68ef65d47bf4";
     category: "edge",
     is_visible: true,
   });
-  const updated = await db.updateDocument("codesensei", "tasks", id, { test_cases: JSON.stringify(next) });
+  const updated = await db.updateDocument("codesensei", "tasks", id, {
+    test_cases: JSON.stringify(next),
+  });
   console.log(updated.test_cases);
-})().catch((error) => { console.error(error.message); process.exit(1); });
+})().catch((error) => {
+  console.error(error.message);
+  process.exit(1);
+});

@@ -1,7 +1,7 @@
 {
   "projectId": "6adc4f50003202881547",
-  "endpoint": "https://appwrite.ravva.su/v1",
   "projectName": "CodeSensei",
+  "endpoint": "https://appwrite.ravva.su/v1",
   "sites": [
     {
       "$id": "codesensei",

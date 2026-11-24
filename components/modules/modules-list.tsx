@@ -167,7 +167,10 @@ export function ModulesList({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Все уровни</SelectItem>
-              {(levels.length > 0 ? levels : [1, 2, 3].map((level) => ({ level, title: `Уровень ${level}` }))).map((item) => (
+              {(levels.length > 0
+                ? levels
+                : [1, 2, 3].map((level) => ({ level, title: `Уровень ${level}` }))
+              ).map((item) => (
                 <SelectItem key={item.level} value={String(item.level)}>
                   {item.title}
                 </SelectItem>
@@ -214,11 +217,17 @@ export function ModulesList({
           const items = sortedModules.filter((m) => m.level === level.level);
           const all = modules.filter((m) => m.level === level.level);
           if (all.length === 0) return null;
-          const done = all.filter((m) => getModuleStatus(m.id, userProgress) === "completed").length;
+          const done = all.filter(
+            (m) => getModuleStatus(m.id, userProgress) === "completed"
+          ).length;
           const locked = level.level > openLevel;
           const previous = levels.find((item) => item.level === level.level - 1);
           return (
-            <section key={level.level} className="space-y-4" aria-labelledby={`level-${level.level}`}>
+            <section
+              key={level.level}
+              className="space-y-4"
+              aria-labelledby={`level-${level.level}`}
+            >
               <div className="flex items-center gap-4 pt-2">
                 <div className="h-px flex-1 bg-border" aria-hidden="true" />
                 <div className="text-center">

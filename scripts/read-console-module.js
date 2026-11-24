@@ -1,8 +1,20 @@
 ﻿const { Client, Databases } = require("node-appwrite");
 const key = process.env.APPWRITE_API_KEY;
 if (!key) throw new Error("APPWRITE_API_KEY is missing");
-const db = new Databases(new Client().setEndpoint("https://appwrite.ravva.su/v1").setProject("6adc4f50003202881547").setKey(key));
+const db = new Databases(
+  new Client()
+    .setEndpoint("https://appwrite.ravva.su/v1")
+    .setProject("6adc4f50003202881547")
+    .setKey(key)
+);
 (async () => {
-  const module = await db.getDocument("codesensei", "modules", "8c8f076b-9879-47d8-b503-ce38db78f439");
+  const module = await db.getDocument(
+    "codesensei",
+    "modules",
+    "8c8f076b-9879-47d8-b503-ce38db78f439"
+  );
   console.log(JSON.stringify({ title: module.title, description: module.description }, null, 2));
-})().catch((error) => { console.error(error.message); process.exit(1); });
+})().catch((error) => {
+  console.error(error.message);
+  process.exit(1);
+});

@@ -1,7 +1,6 @@
 "use client";
 
 import { Loader2, Sparkles } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import type { CSSProperties } from "react";
@@ -19,6 +18,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -489,7 +489,11 @@ export function TaskForm({ moduleId, taskId, onSuccess, onCancel }: TaskFormProp
             <div className="flex items-center justify-between">
               <Label htmlFor="starterCode">Стартовый код *</Label>
               <Badge variant="outline" className="text-xs">
-                {taskType === "linear" ? "Линейный код (без def)" : taskType === "class" ? "Класс (методы разрешены)" : "Функциональный (с def)"}
+                {taskType === "linear"
+                  ? "Линейный код (без def)"
+                  : taskType === "class"
+                    ? "Класс (методы разрешены)"
+                    : "Функциональный (с def)"}
               </Badge>
             </div>
             <MonacoEditor

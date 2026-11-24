@@ -75,7 +75,11 @@ export function TestCasesEditor({ testCases, onChange, disabled }: TestCasesEdit
       const parsed = JSON.parse(value || "{}");
       updateTestCase(id, { [field]: parsed });
     } catch {
-      toast({ title: "Ошибка JSON", description: "Неверный формат файлового JSON", variant: "destructive" });
+      toast({
+        title: "Ошибка JSON",
+        description: "Неверный формат файлового JSON",
+        variant: "destructive",
+      });
     }
   }
 

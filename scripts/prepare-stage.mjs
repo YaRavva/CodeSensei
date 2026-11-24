@@ -49,14 +49,14 @@ for (const s of scriptDirs) {
 
 const files = [
   'package.json',
-  'package-lock.json',
+  'bun.lock',
   'next.config.ts',
   'postcss.config.js',
   'tailwind.config.ts',
   'tsconfig.json',
   'appwrite.config.json',
   'proxy.ts',
-    'components.json',
+  'components.json',
   'next-env.d.ts'
 ];
 

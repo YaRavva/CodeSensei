@@ -12,7 +12,9 @@ import type { TaskAttempt } from "@/types/db";
  */
 
 /** Number of unique tasks with at least one successful attempt. */
-export function countSolvedTasks(attempts: Pick<TaskAttempt, "task_id" | "is_successful">[]): number {
+export function countSolvedTasks(
+  attempts: Pick<TaskAttempt, "task_id" | "is_successful">[]
+): number {
   return new Set(attempts.filter((attempt) => attempt.is_successful).map((a) => a.task_id)).size;
 }
 

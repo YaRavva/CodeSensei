@@ -2,8 +2,8 @@ import { notFound } from "next/navigation";
 import { TaskPageContent } from "@/components/modules/task-page-content";
 import { getLastAttempt } from "@/lib/appwrite/attempts";
 import { getModule, getPublishedModule } from "@/lib/appwrite/modules";
-import { getTaskInModule, listTaskSummariesByModule, toPublicTask } from "@/lib/appwrite/tasks";
 import { listUserProgress } from "@/lib/appwrite/progress";
+import { getTaskInModule, listTaskSummariesByModule, toPublicTask } from "@/lib/appwrite/tasks";
 import { isModuleOpen, isStaffRole } from "@/lib/course-access";
 import { requireAuth } from "@/lib/utils/auth";
 

@@ -2,7 +2,7 @@
  * Creates (or updates) the CodeSensei database schema on a self-hosted Appwrite.
  *
  * Usage:
- *   pnpm appwrite:setup
+ *   bun run appwrite:setup
  *
  * Requires APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID and APPWRITE_API_KEY
  * (read from .env.local automatically through the npm script).

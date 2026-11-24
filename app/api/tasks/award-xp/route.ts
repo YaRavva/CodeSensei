@@ -1,10 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { recomputeModuleProgress } from "@/lib/appwrite/progress";
 import { getTask } from "@/lib/appwrite/tasks";
+import { canAccessTask } from "@/lib/security/task-access";
 import { checkAndAwardAchievements } from "@/lib/utils/achievements";
 import { getAuthContext } from "@/lib/utils/auth";
 import { awardTaskXp } from "@/lib/xp/award-task";
-import { canAccessTask } from "@/lib/security/task-access";
 
 /**
  * Awards XP for a solved task. Only `taskId` is read from the request: attempt

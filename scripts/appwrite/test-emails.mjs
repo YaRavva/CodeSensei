@@ -4,7 +4,7 @@
  * the account's verification state afterwards.
  *
  * Usage:
- *   pnpm appwrite:test-emails
+ *   bun run appwrite:test-emails
  */
 
 import { Account, Client, Query, Users } from "node-appwrite";

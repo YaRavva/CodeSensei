@@ -2,7 +2,7 @@
  * Applies the CodeSensei auth email templates to Appwrite.
  *
  * Usage:
- *   pnpm appwrite:emails
+ *   bun run appwrite:emails
  *
  * Templates are stored for both `en` (the instance default locale) and `ru`
  * so the Russian copy is used regardless of locale resolution.

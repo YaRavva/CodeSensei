@@ -10,10 +10,10 @@ import {
 } from "@/lib/ai/omniroute";
 import { checkHintLimit, logHintEvent } from "@/lib/appwrite/hint-events";
 import { getTask } from "@/lib/appwrite/tasks";
-import { getAuthContext } from "@/lib/utils/auth";
 import { buildHintPrompt, parseHintResponse } from "@/lib/prompts";
 import { MAX_CODE_LENGTH } from "@/lib/security/rate-limit";
 import { canAccessTask } from "@/lib/security/task-access";
+import { getAuthContext } from "@/lib/utils/auth";
 
 export async function POST(req: NextRequest) {
   try {
@@ -38,9 +38,10 @@ export async function POST(req: NextRequest) {
     }
 
     const typedTask = task as { title: string; description: string; task_type?: string } | null;
-    const taskType = typedTask?.task_type === "function" || typedTask?.task_type === "class"
-      ? typedTask.task_type
-      : "linear";
+    const taskType =
+      typedTask?.task_type === "function" || typedTask?.task_type === "class"
+        ? typedTask.task_type
+        : "linear";
 
     const prompt = buildHintPrompt({
       taskTitle: typedTask?.title ?? "Без названия",
@@ -50,10 +51,7 @@ export async function POST(req: NextRequest) {
     });
 
     if (!isOmnirouteConfigured()) {
-      return NextResponse.json(
-        { error: "AI-подсказки временно недоступны" },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: "AI-подсказки временно недоступны" }, { status: 500 });
     }
 
     let content = "";
