@@ -17,6 +17,7 @@
     "appwrite:emails": "bun --env-file-if-exists=.env.local scripts/appwrite/emails.mjs",
     "appwrite:test-emails": "bun --env-file-if-exists=.env.local scripts/appwrite/test-emails.mjs",
     "content:validate": "bun --import tsx scripts/content/validate.ts",
+    "content:audit": "bun --import tsx scripts/content/audit.ts",
     "content:sync": "bun --env-file=.env.local --import tsx scripts/content/sync.ts",
     "test:name-check": "bun --env-file-if-exists=.env.local --import tsx scripts/test/name-check.ts"
   },
