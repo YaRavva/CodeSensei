@@ -12,7 +12,11 @@
  * nonce from the `Content-Security-Policy` request header and puts it on every
  * script and style it renders.
  */
-export function buildContentSecurityPolicy(nonce: string, isDev: boolean): string {
+export function buildContentSecurityPolicy(
+  nonce: string,
+  isDev: boolean,
+  isPreview = false
+): string {
   const directives: string[] = [
     `default-src 'self'`,
     // 'strict-dynamic' lets the scripts that carry the nonce load the
@@ -49,7 +53,7 @@ export function buildContentSecurityPolicy(nonce: string, isDev: boolean): strin
     `frame-src 'self'`,
   ];
 
-  if (!isDev) {
+  if (!isDev && !isPreview) {
     directives.push("upgrade-insecure-requests");
   }
 

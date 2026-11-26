@@ -33,7 +33,12 @@ export function proxy(request: NextRequest) {
 
   const nonce = createNonce();
   const isDev = process.env.NODE_ENV === "development";
-  const csp = buildContentSecurityPolicy(nonce, isDev);
+  const isPreview =
+    request.nextUrl.searchParams.has("appwrite-preview") ||
+    Boolean(request.headers.get("x-appwrite-hostname")) ||
+    Boolean(request.headers.get("x-appwrite-key")) ||
+    (request.nextUrl.protocol === "http:" && request.headers.get("x-forwarded-proto") !== "https");
+  const csp = buildContentSecurityPolicy(nonce, isDev, isPreview);
 
   const requestHeaders = new Headers(request.headers);
   // Next.js reads the nonce from the policy of the request header and puts it
@@ -49,6 +54,12 @@ export function proxy(request: NextRequest) {
     url.searchParams.set("next", pathname);
     const redirect = NextResponse.redirect(url);
     redirect.headers.set("Content-Security-Policy", csp);
+    if (!isDev && !isPreview) {
+      redirect.headers.set(
+        "Strict-Transport-Security",
+        "max-age=63072000; includeSubDomains; preload"
+      );
+    }
     return redirect;
   }
 
@@ -58,6 +69,12 @@ export function proxy(request: NextRequest) {
 
   const response = NextResponse.next({ request: { headers: requestHeaders } });
   response.headers.set("Content-Security-Policy", csp);
+  if (!isDev && !isPreview) {
+    response.headers.set(
+      "Strict-Transport-Security",
+      "max-age=63072000; includeSubDomains; preload"
+    );
+  }
   return response;
 }
 
