@@ -66,7 +66,8 @@ export function TestResults({ testResults, testCases }: TestResultsProps) {
           // The expected value of a hidden check is not known to the browser.
           const expected = testCase?.expected_output;
           const input = testCase?.input ?? {};
-          const isHidden = testCase ? testCase.is_visible === false : false;
+          // A check without metadata is hidden too: its answer stays on the server.
+          const isHidden = !testCase || testCase.is_visible === false;
 
           return (
             <section

@@ -46,7 +46,7 @@ import { Button } from "@/components/ui/button";
 import { DifficultyBadge } from "@/components/ui/difficulty-badge";
 import { usePyodide } from "@/hooks/use-pyodide";
 import { useToast } from "@/hooks/use-toast";
-import { visibleTestCases } from "@/lib/security/public-tests";
+import { toPublicTestCases, visibleTestCases } from "@/lib/security/public-tests";
 import { cn } from "@/lib/utils";
 import { buildPreviewCode, runTestSuite } from "@/lib/utils/test-runner";
 import type { Module, Task, TaskAttempt } from "@/types/db";
@@ -240,6 +240,12 @@ export function ModuleUnifiedPage({
   const activeCode = activeState?.code ?? activeTask?.starter_code ?? "";
   const activeTestCases: PublicTestCase[] = useMemo(
     () => visibleTestCases(activeTask?.test_cases),
+    [activeTask]
+  );
+  // Полный список проверок нужен только для отображения результатов: у скрытых
+  // проверок нет ожидаемого значения, и в результатах они помечаются как скрытые.
+  const allTestCases: PublicTestCase[] = useMemo(
+    () => toPublicTestCases(activeTask?.test_cases),
     [activeTask]
   );
   const initialInput = defaultProgramInput(activeTestCases);
@@ -1173,7 +1179,7 @@ export function ModuleUnifiedPage({
                       tab={dockTab}
                       onTab={setDockTab}
                       state={activeState}
-                      testCases={activeTestCases}
+                      testCases={allTestCases}
                       height={dockHeight}
                       maxHeight={dockMax}
                       bodyRef={dockBodyRef}

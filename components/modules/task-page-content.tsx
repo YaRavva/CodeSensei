@@ -38,7 +38,7 @@ import { DifficultyBadge, getDifficultyXP } from "@/components/ui/difficulty-bad
 import { ToastAction } from "@/components/ui/toast";
 import { usePyodide } from "@/hooks/use-pyodide";
 import { useToast } from "@/hooks/use-toast";
-import { visibleTestCases } from "@/lib/security/public-tests";
+import { toPublicTestCases, visibleTestCases } from "@/lib/security/public-tests";
 import { buildPreviewCode, runTestSuite } from "@/lib/utils/test-runner";
 import type { Module, Task, TaskAttempt } from "@/types/db";
 import type { PublicTestCase, TestSuiteResult } from "@/types/test-case";
@@ -135,6 +135,9 @@ export function TaskPageContent({
   // Парсим тестовые случаи. В браузере доступны только видимые проверки:
   // ожидаемые значения скрытых тестов остаются на сервере.
   const testCases: PublicTestCase[] = visibleTestCases(task.test_cases);
+  // Полный список нужен только для отображения результатов: у скрытых проверок
+  // нет ожидаемого значения, и в результатах они помечаются как скрытые.
+  const allTestCases: PublicTestCase[] = toPublicTestCases(task.test_cases);
 
   async function handleRunCode() {
     if (pyodideError) {
@@ -859,7 +862,7 @@ export function TaskPageContent({
             )}
 
             {/* Результаты тестов */}
-            {testResults && <TestResults testResults={testResults} testCases={testCases} />}
+            {testResults && <TestResults testResults={testResults} testCases={allTestCases} />}
 
             {/* Inline AI-подсказка */}
             {hintVisible && (
