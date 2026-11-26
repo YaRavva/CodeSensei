@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { AppwriteException } from "node-appwrite";
-import { getAdminAccount } from "@/lib/appwrite/client";
+import { getGuestAccount } from "@/lib/appwrite/client";
 import { hit, MINUTE, tooManyRequests } from "@/lib/security/rate-limit";
 
 interface VerifyBody {
@@ -32,13 +32,23 @@ export async function POST(request: Request) {
   if (!limit.ok) return tooManyRequests(limit.retryAfterSec);
 
   try {
-    await getAdminAccount().updateEmailVerification({ userId, secret });
+    await getGuestAccount().updateEmailVerification({ userId, secret });
     return NextResponse.json({ success: true });
   } catch (error) {
     if (error instanceof AppwriteException) {
+      if (error.type === "user_invalid_token") {
+        return NextResponse.json(
+          {
+            error: "Ссылка недействительна или устарела. Запросите новое письмо на странице входа.",
+          },
+          { status: 400 }
+        );
+      }
+
+      console.error("Appwrite verification error:", error.type, error.message);
       return NextResponse.json(
-        { error: "Ссылка недействительна или устарела. Запросите новое письмо на странице входа." },
-        { status: 400 }
+        { error: "Временная ошибка сервиса авторизации. Пожалуйста, повторите попытку позже." },
+        { status: 503 }
       );
     }
 

@@ -94,6 +94,29 @@ export function getAdminUsers(): Users {
   return new Users(getAdminClient());
 }
 
+/**
+ * Unauthenticated client (no API key, no session). Used for public endpoints
+ * like email verification where guest role is required.
+ */
+export function getGuestClient(): Client {
+  assertAppwriteConfig();
+
+  const client = new Client().setEndpoint(APPWRITE_ENDPOINT).setProject(APPWRITE_PROJECT_ID);
+
+  if (APPWRITE_ENDPOINT.includes("100.89.46.62") || APPWRITE_ENDPOINT.includes("172.")) {
+    client.addHeader("Host", "appwrite.ravva.su");
+    client.addHeader("X-Forwarded-Host", "appwrite.ravva.su");
+    client.addHeader("X-Forwarded-Proto", "https");
+    client.addHeader("X-Forwarded-Port", "443");
+  }
+
+  return client;
+}
+
+export function getGuestAccount(): Account {
+  return new Account(getGuestClient());
+}
+
 /** Client that acts on behalf of a user session (no API key). */
 export function getSessionClient(secret: string): Client {
   assertAppwriteConfig();
