@@ -1,9 +1,20 @@
 import { Client, Sites } from "node-appwrite";
 
+const endpoint = process.env.APPWRITE_ENDPOINT || "http://100.89.46.62:80/v1";
+const projectId = process.env.APPWRITE_PROJECT_ID || "6adc4f50003202881547";
+const apiKey = process.env.APPWRITE_API_KEY;
+
 const client = new Client()
-  .setEndpoint(process.env.APPWRITE_ENDPOINT)
-  .setProject(process.env.APPWRITE_PROJECT_ID)
-  .setKey(process.env.APPWRITE_API_KEY);
+  .setEndpoint(endpoint)
+  .setProject(projectId)
+  .setKey(apiKey);
+
+if (endpoint.includes("100.89.46.62") || endpoint.includes("172.")) {
+  client.addHeader("Host", "appwrite.ravva.su");
+  client.addHeader("X-Forwarded-Host", "appwrite.ravva.su");
+  client.addHeader("X-Forwarded-Proto", "https");
+  client.addHeader("X-Forwarded-Port", "443");
+}
 
 const sites = new Sites(client);
 const deploymentId = process.argv[2];
